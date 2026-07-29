@@ -362,15 +362,38 @@ header .profile .role {
   .main-content { margin-right: 0; padding: 12px; }
   .stats-grid { grid-template-columns: 1fr; gap: 12px; }
   .charts-row { grid-template-columns: 1fr; }
-  .recent-orders { padding: 12px; overflow-x: auto; }
+  .recent-orders { padding: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .recent-orders table { min-width: 600px; }
   .recent-orders .orders-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-  header { flex-direction: column; align-items: flex-start; gap: 16px; }
-  header h1 { font-size: 22px; }
+  .recent-orders th, .recent-orders td { padding: 8px 10px; font-size: 12px; white-space: nowrap; }
+  .recent-orders td { font-size: 12px; }
+  header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  header h1 { font-size: 20px; }
   header .profile { align-self: flex-start; }
-  .stat-card .stat-value { font-size: 22px; }
-  .chart-card { padding: 16px; }
+  .stat-card { padding: 14px 16px; }
+  .stat-card .stat-value { font-size: 20px; }
+  .stat-card .stat-label { font-size: 12px; }
+  .stat-card .stat-icon { width: 36px; height: 36px; font-size: 16px; }
+  .chart-card { padding: 14px; }
   .chart-card .chart-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .stats-grid[style*="grid-template-columns: repeat(4, 1fr)"] { grid-template-columns: 1fr 1fr !important; }
-  .orders-title { font-size: 15px; }
+  .chart-card .chart-title { font-size: 15px; }
+  .chart-card .chart-period { font-size: 11px; padding: 4px 10px; }
+  .orders-title { font-size: 14px; }
+  input, select, button { font-size: 13px !important; }
+  input[type="date"], select { width: 100%; }
+  [style*="display: flex"][style*="gap"] { flex-wrap: wrap; }
+  [style*="flex: 1 1 200px"] { flex: 1 1 100% !important; }
+  .status { font-size: 10px !important; padding: 3px 8px !important; }
+  .sidebar .logo { font-size: 13px; margin-bottom: 24px; }
+  .sidebar nav a { font-size: 13px; padding: 10px 12px; }
+  [style*="grid-template-columns: repeat(4, 1fr)"] { grid-template-columns: 1fr 1fr !important; }
+}
+
+@media (max-width: 480px) {
+  header h1 { font-size: 18px; }
+  .stat-card .stat-value { font-size: 18px; }
+  .recent-orders th, .recent-orders td { padding: 6px 8px; font-size: 11px; }
+  .recent-orders table { min-width: 500px; }
+  .stats-grid { gap: 8px; }
+  [style*="grid-template-columns: repeat(4, 1fr)"] { grid-template-columns: 1fr 1fr !important; }
 }
