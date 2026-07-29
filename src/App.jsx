@@ -434,7 +434,7 @@ function OrdersTab({ data }) {
     const map = {}
     const cityPOs = {}
     for (const r of filteredData) {
-      const c = r['City'] || 'Unknown'
+      const c = r['City']; if (!c) continue
       if (!map[c]) { map[c] = { city: c, orders: new Set(), value: 0, tonnage: 0 } }
       map[c].orders.add(r['PO Number'])
       map[c].value += num(r['PO Value with Tax'])
@@ -661,7 +661,7 @@ function WoWCityTable({ data, dateFrom, dateTo, platformFilter }) {
     const map = {}
     const currValueSet = {}; const currTonnageSet = {}; const prevValueSet = {}; const prevTonnageSet = {}
     inRange.forEach(r => {
-      const c = r['City'] || 'Unknown'
+      const c = r['City']; if (!c) return
       const d = parseDate(r['DATE(MM-DD-YYYY)'])
       const po = r['PO Number']
       if (!map[c]) {
@@ -808,7 +808,7 @@ function InventoryTab({ data }) {
       skuMap[p].salesBoxes += num(r['Box Count'])
       skuMap[p].transportCharge += toNumKG(r['Transport Charge'])
       skuMap[p].totalValue += num(r['PO Value with Tax'])
-      skuMap[p].cities.add(r['City'] || 'Unknown')
+      if (r['City']) skuMap[p].cities.add(r['City'])
     })
 
     const nextMonth = (thisMonth + 1) % 12
@@ -1700,7 +1700,7 @@ function RTOTab({ data }) {
   const cityRTO = useMemo(() => {
     const map = {}
     rtoPOs.forEach(r => {
-      const c = r['City'] || 'Unknown'
+      const c = r['City']; if (!c) return
       if (!map[c]) map[c] = { city: c, rto: 0, tonnage: 0, value: 0 }
       map[c].rto++
       map[c].tonnage += toNumKG(r['RTO Tonnage (MT)'])
@@ -1974,7 +1974,7 @@ function App() {
   const cityData = useMemo(() => {
     const map = {}
     for (const r of data) {
-      const c = r['City'] || 'Unknown'
+      const c = r['City']; if (!c) continue
       if (!map[c]) map[c] = { city: c, orders: new Set(), tonnage: 0, delivered: 0, deliveredTonnage: 0 }
       map[c].orders.add(r['PO Number'])
       map[c].tonnage += num(r['Tonnage'])
