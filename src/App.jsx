@@ -1324,17 +1324,21 @@ function PerformanceTab({ data }) {
     for (const r of poData) {
       const c = r['City']
       if (!c) continue
-      if (!cityAvail[c]) cityAvail[c] = { city: c, dispatchFill: [], deliveredFill: [], finalFill: [], rto: 0, total: 0 }
-      cityAvail[c].dispatchFill.push(parsePct(r['PO Dispatch fill rate']))
-      cityAvail[c].deliveredFill.push(parsePct(r['Delivered Fill rate']))
-      cityAvail[c].finalFill.push(parsePct(r['Final Fill Rate']))
+      if (!cityAvail[c]) cityAvail[c] = { city: c, delivered: 0, rto: 0, total: 0 }
       cityAvail[c].total++
-      if (r['Status'] === 'RTO') cityAvail[c].rto++
+      const hasGRN = r['GRN details'] && String(r['GRN details']).trim()
+      const rejQty = num(r['Rejected Qty'])
+      if (hasGRN) {
+        cityAvail[c].delivered++
+      } else if (r['Status'] === 'RTO' || rejQty > 0) {
+        cityAvail[c].rto++
+      } else {
+        cityAvail[c].delivered++
+      }
     }
     const cityFillData = Object.values(cityAvail).map(x => ({
       city: x.city,
-      avgFinal: x.finalFill.length ? Math.round(x.finalFill.reduce((s, v) => s + v, 0) / x.finalFill.length) : 0,
-      rtoRate: x.total ? Math.round(x.rto / x.total * 100) : 0,
+      avgFinal: (x.delivered + x.rto) ? Math.round(x.delivered / (x.delivered + x.rto) * 100) : 0,
       samples: x.total,
     })).sort((a, b) => a.city.localeCompare(b.city))
 
@@ -1370,7 +1374,7 @@ function PerformanceTab({ data }) {
             analysis.transportData.forEach(t => add('Transport', t.transporter, `₹${t.costPerKG.toFixed(2)}/KG, ${t.count} POs, ${t.costPct.toFixed(1)}% of value`))
             analysis.leadData.forEach(l => add('Lead Time', l.platform, `${l.avgTotal} days total (booking ${l.avgBooking}d, delivery ${l.avgDelivery}d)`))
             analysis.fillData.filter(x => x.samples > 1).slice(0, 20).forEach(f => add('Fill Rate', f.product, `Final ${f.avgFinal}%, gap ${f.gap}%`))
-            analysis.cityFillData.forEach(c => add('City Fill', c.city, `Final ${c.avgFinal}%, RTO ${c.rtoRate}%`))
+            analysis.cityFillData.forEach(c => add('City Fill', c.city, `Fill ${c.avgFinal}%, Samples ${c.samples}`))
             analysis.rtoData.forEach(r => add('RTO', r.reason, `${r.count} occurrences, ₹${Math.round(r.value).toLocaleString()} at risk`))
             const csv = [header, ...rows].join('\n')
             const blob = new Blob([csv], { type: 'text/csv' })
