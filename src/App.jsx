@@ -1332,13 +1332,11 @@ function PerformanceTab({ data }) {
         cityAvail[c].delivered++
       } else if (r['Status'] === 'RTO' || rejQty > 0) {
         cityAvail[c].rto++
-      } else {
-        cityAvail[c].delivered++
       }
     }
     const cityFillData = Object.values(cityAvail).map(x => ({
       city: x.city,
-      avgFinal: (x.delivered + x.rto) ? Math.round(x.delivered / (x.delivered + x.rto) * 100) : 0,
+      avgFinal: (x.delivered + x.rto) ? Math.round(x.delivered / (x.delivered + x.rto) * 100) : null,
       samples: x.total,
     })).sort((a, b) => a.city.localeCompare(b.city))
 
@@ -1601,9 +1599,9 @@ function PerformanceTab({ data }) {
             {analysis.cityFillData.map((row, i) => (
               <tr key={i}>
                 <td style={{ fontWeight: 600 }}>{row.city}</td>
-                <td style={{ fontWeight: 700, color: row.avgFinal >= 90 ? '#22c55e' : row.avgFinal >= 70 ? '#eab308' : '#ef4444' }}>{row.avgFinal}%</td>
+                <td style={{ fontWeight: 700, color: row.avgFinal === null ? '#64748b' : row.avgFinal >= 90 ? '#22c55e' : row.avgFinal >= 70 ? '#eab308' : '#ef4444' }}>{row.avgFinal !== null ? row.avgFinal + '%' : '—'}</td>
                 <td>{row.samples}</td>
-                <td><span style={{ padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: row.avgFinal < 70 ? 'rgba(239,68,68,0.2)' : row.avgFinal < 90 ? 'rgba(234,179,8,0.2)' : 'rgba(34,197,94,0.2)', color: row.avgFinal < 70 ? '#ef4444' : row.avgFinal < 90 ? '#eab308' : '#22c55e' }}>{row.avgFinal < 70 ? '🔴 Critical' : row.avgFinal < 90 ? '🟡 Monitor' : '🟢 Good'}</span></td>
+                <td><span style={{ padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: row.avgFinal === null ? 'rgba(100,116,139,0.2)' : row.avgFinal < 70 ? 'rgba(239,68,68,0.2)' : row.avgFinal < 90 ? 'rgba(234,179,8,0.2)' : 'rgba(34,197,94,0.2)', color: row.avgFinal === null ? '#64748b' : row.avgFinal < 70 ? '#ef4444' : row.avgFinal < 90 ? '#eab308' : '#22c55e' }}>{row.avgFinal === null ? '⚪ No Data' : row.avgFinal < 70 ? '🔴 Critical' : row.avgFinal < 90 ? '🟡 Monitor' : '🟢 Good'}</span></td>
               </tr>
             ))}
           </tbody>
