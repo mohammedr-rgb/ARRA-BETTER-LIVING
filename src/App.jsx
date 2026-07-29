@@ -1208,7 +1208,7 @@ function PerformanceTab({ data }) {
   const analysis = useMemo(() => {
     const poData = uniqueByPO(data)
 
-    const parsePct = (v) => { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n }
+    const parsePct = (v) => { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : (n <= 1 ? Math.round(n * 100) : Math.round(n)) }
 
     const leadDays = (a, b) => {
       const da = parseDate(a); const db = parseDate(b)
