@@ -1687,16 +1687,15 @@ function RTOTab({ data }) {
   }
   const poData = useMemo(() => uniqueByPO(data), [data])
   const rtoPOs = useMemo(() => poData.filter(r => r['Status'] === 'RTO'), [poData])
-  const rtoRows = useMemo(() => data.filter(r => r['Status'] === 'RTO'), [data])
 
   const rtoMetrics = useMemo(() => {
     const totalRTO = rtoPOs.length
     const totalPO = poData.length
     const rtoRate = totalPO ? (totalRTO / totalPO * 100).toFixed(1) : 0
-    const tonnageLost = rtoRows.reduce((s, r) => s + toNumKG(r['RTO Tonnage (MT)']), 0)
-    const valueLost = rtoRows.reduce((s, r) => s + toNumKG(r['RTO Value at Risk']), 0)
+    const tonnageLost = rtoPOs.reduce((s, r) => s + toNumKG(r['RTO Tonnage (MT)']), 0)
+    const valueLost = rtoPOs.reduce((s, r) => s + toNumKG(r['RTO Value at Risk']), 0)
     return { totalRTO, rtoRate: parseFloat(rtoRate), tonnageLost, valueLost }
-  }, [rtoPOs, rtoRows, poData.length])
+  }, [rtoPOs, poData.length])
 
   const cityRTO = useMemo(() => {
     const map = {}
@@ -1887,6 +1886,7 @@ function RTOTab({ data }) {
           <thead>
             <tr>
               <th>PO #</th>
+              <th>Appt Date</th>
               <th>City</th>
               <th>Platform</th>
               <th>Product</th>
@@ -1899,6 +1899,7 @@ function RTOTab({ data }) {
             {rtoPOs.slice(0, 50).map((r, i) => (
               <tr key={i}>
                 <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
+                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)'] || '—'}</td>
                 <td>{r['City'] || '—'}</td>
                 <td>{r['Platform'] || '—'}</td>
                 <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product'] || '—'}</td>
@@ -1920,6 +1921,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('dashboard')
   const [userEmail, setUserEmail] = useState('mohammed.r@gemedible.com')
+  const [mobileMenu, setMobileMenu] = useState(false)
 
   useEffect(() => {
     fetch(SHEET_URL)
@@ -2015,19 +2017,23 @@ function App() {
     )
   }
 
+  const closeNav = () => setMobileMenu(false)
   return (
     <>
-      <aside className="sidebar">
+      <div className={`mobile-overlay ${mobileMenu ? 'visible' : ''}`} onClick={closeNav} />
+      <button className="menu-toggle" onClick={() => setMobileMenu(v => !v)}>☰</button>
+      <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
+        <button className="menu-close" onClick={closeNav}>✕</button>
         <div className="logo"><span className="brand-icon">✦</span> <span className="brand-gradient">ARRA BETTER LIVING</span></div>
         <nav>
-          <a href="#" className={tab === 'dashboard' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('dashboard') }}><span className="icon">📈</span> Dashboard</a>
-          <a href="#" className={tab === 'orders' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('orders') }}><span className="icon">📦</span> Orders</a>
-          <a href="#" className={tab === 'inventory' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('inventory') }}><span className="icon">🏭</span> Inventory</a>
-           <a href="#" className={tab === 'logistics' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('logistics') }}><span className="icon">🚚</span> Logistics</a>
-           <a href="#" className={tab === 'reports' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('reports') }}><span className="icon">📋</span> Reports</a>
-           <a href="#" className={tab === 'rto' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('rto') }}><span className="icon">↩️</span> RTO</a>
-            <a href="#" className={tab === 'performance' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('performance') }}><span className="icon">🔬</span> Performance</a>
-           <a href="#" className={tab === 'settings' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('settings') }}><span className="icon">⚙️</span> Settings</a>
+          <a href="#" className={tab === 'dashboard' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('dashboard'); closeNav() }}><span className="icon">📈</span> Dashboard</a>
+          <a href="#" className={tab === 'orders' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('orders'); closeNav() }}><span className="icon">📦</span> Orders</a>
+          <a href="#" className={tab === 'inventory' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('inventory'); closeNav() }}><span className="icon">🏭</span> Inventory</a>
+           <a href="#" className={tab === 'logistics' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('logistics'); closeNav() }}><span className="icon">🚚</span> Logistics</a>
+           <a href="#" className={tab === 'reports' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('reports'); closeNav() }}><span className="icon">📋</span> Reports</a>
+           <a href="#" className={tab === 'rto' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('rto'); closeNav() }}><span className="icon">↩️</span> RTO</a>
+            <a href="#" className={tab === 'performance' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('performance'); closeNav() }}><span className="icon">🔬</span> Performance</a>
+           <a href="#" className={tab === 'settings' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('settings'); closeNav() }}><span className="icon">⚙️</span> Settings</a>
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #334155' }}>
           <button onClick={() => {
