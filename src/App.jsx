@@ -249,7 +249,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders }) {
           <ResponsiveContainer width="100%" height={300}>
               <BarChart data={cityData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="city" stroke="#64748b" tick={{ fontSize: 12 }} />
+                <XAxis dataKey="city" stroke="#64748b" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={80} interval={0} />
                 <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
                 <Tooltip
                   contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
