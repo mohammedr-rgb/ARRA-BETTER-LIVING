@@ -357,7 +357,7 @@ header .profile .role {
   .menu-toggle { display: flex; }
   .menu-close { display: flex; }
   .sidebar { display: none; }
-  .sidebar.mobile-open { display: flex; }
+  .sidebar.mobile-open { display: flex; z-index: 12; }
   .mobile-overlay.visible { display: block; }
   .main-content { margin-right: 0; padding: 12px; }
   .stats-grid { grid-template-columns: 1fr; gap: 12px; }
