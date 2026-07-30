@@ -366,8 +366,8 @@ function DispatchTab({ data, rawCSV }) {
   }, [data])
 
   const dispatchMetrics = useMemo(() => {
-    const dispatched = poData.filter(r => ['In-Transit', 'Processing'].includes(r['Status'] || ''))
-    const allDispatched = data.filter(r => ['In-Transit', 'Processing'].includes(r['Status'] || ''))
+    const dispatched = poData.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes(r['Status'] || ''))
+    const allDispatched = data.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes(r['Status'] || ''))
     return {
       openDispatches: dispatched.length,
       openLines: allDispatched.length,
@@ -381,7 +381,7 @@ function DispatchTab({ data, rawCSV }) {
       <header>
         <div>
           <h1>Dispatch Overview</h1>
-          <div className="date">{dispatchMetrics.openDispatches} open dispatches • {pendingData.length} pending • upcoming 7-day plan</div>
+          <div className="date">{dispatchMetrics.openDispatches} pending POs • {pendingData.length} product lines</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => {
@@ -417,7 +417,7 @@ function DispatchTab({ data, rawCSV }) {
             <div className="stat-icon" style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6' }}>🚚</div>
           </div>
           <div className="stat-value">{dispatchMetrics.openDispatches}</div>
-          <div className="stat-change">POs In-Transit / Processing</div>
+          <div className="stat-change">Pending POs</div>
           {hoverStat === 'dispatches' && (
             <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Dispatch Summary</div>
