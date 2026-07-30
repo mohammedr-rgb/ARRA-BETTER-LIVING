@@ -367,12 +367,14 @@ function DispatchTab({ data, rawCSV }) {
 
   const dispatchMetrics = useMemo(() => {
     const dispatched = poData.filter(r => ['In-Transit', 'Processing'].includes(r['Status'] || ''))
+    const allDispatched = data.filter(r => ['In-Transit', 'Processing'].includes(r['Status'] || ''))
     return {
       openDispatches: dispatched.length,
+      openLines: allDispatched.length,
       openTonnage: dispatched.reduce((s, r) => s + num(r['Tonnage']), 0),
       openCharge: dispatched.reduce((s, r) => s + num(r['Transport Charges']), 0),
     }
-  }, [poData])
+  }, [poData, data])
 
   return (
     <>
@@ -419,7 +421,8 @@ function DispatchTab({ data, rawCSV }) {
           {hoverStat === 'dispatches' && (
             <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Dispatch Summary</div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>Open Dispatches: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openDispatches}</span></div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Unique POs: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openDispatches}</span></div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Total Lines: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openLines}</span></div>
             </div>
           )}
         </div>
@@ -433,6 +436,7 @@ function DispatchTab({ data, rawCSV }) {
           {hoverStat === 'tonnage' && (
             <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Tonnage Details</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Unique POs: <span style={{ color: '#a855f7', fontWeight: 600 }}>{dispatchMetrics.openDispatches}</span></div>
               <div style={{ fontSize: 12, color: '#94a3b8' }}>Open Tonnage: <span style={{ color: '#a855f7', fontWeight: 600 }}>{Math.round(dispatchMetrics.openTonnage).toLocaleString()} KG</span></div>
             </div>
           )}
