@@ -90,6 +90,38 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [hoverStat, setHoverStat] = useState(null)
   const [platformFilter, setPlatformFilter] = useState('All')
+  const [dispatchView, setDispatchView] = useState(false)
+
+  const dispatchMetrics = useMemo(() => {
+    const dispatched = poData.filter(r => ['In-Transit', 'Processing'].includes(r['Status'] || ''))
+    const dispatchedPODel = poData.filter(r => r['Status'] === 'Delivered')
+    return {
+      openDispatches: dispatched.length,
+      openTonnage: dispatched.reduce((s, r) => s + num(r['Tonnage']), 0),
+      openCharge: dispatched.reduce((s, r) => s + num(r['Transport Charges']), 0),
+      deliveredQty: dispatchedPODel.reduce((s, r) => s + num(r['Delivered QTY']), 0),
+    }
+  }, [poData])
+
+  const upcomingDispatch = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7)
+    const fmt = (d) => { const mm = String(d.getMonth() + 1).padStart(2, '0'); const dd = String(d.getDate()).padStart(2, '0'); return `${mm}-${dd}-${d.getFullYear()}` }
+    const todayStr = fmt(today)
+    const seen = new Set()
+    const rows = []
+    for (const r of data) {
+      const d = parseDate(r['Appointment Date(MM-DD-YYYY)'])
+      if (!d) continue
+      const po = r['PO Number']
+      if (!po || seen.has(po)) continue
+      seen.add(po)
+      if (d >= today && d <= weekEnd) {
+        rows.push({ ...r, _apptDate: d })
+      }
+    }
+    return rows.sort((a, b) => a._apptDate - b._apptDate || (a['City'] || '').localeCompare(b['City'] || ''))
+  }, [data])
 
   const platforms = useMemo(() => {
     const set = new Set()
@@ -151,10 +183,13 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders }) {
               </div>
             )})}
           </div>
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
             <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', padding: '6px 10px', fontSize: 12, cursor: 'pointer' }}>
               {platforms.map(p => <option key={p} value={p}>{p === 'All' ? 'All Platforms' : p}</option>)}
             </select>
+            <button onClick={() => setDispatchView(v => !v)} style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', background: dispatchView ? 'rgba(59,130,246,0.25)' : 'rgba(59,130,246,0.1)', border: dispatchView ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(59,130,246,0.2)', color: dispatchView ? '#60a5fa' : '#3b82f6' }}>
+              🚚 {dispatchView ? 'Dashboard View' : 'Dispatch View'}
+            </button>
           </div>
         </div>
         <ProfileSection />
@@ -239,6 +274,75 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders }) {
           )}
         </div>
       </div>
+
+      {dispatchView && (
+        <div style={{ marginBottom: 20, background: 'rgba(59,130,246,0.04)', borderRadius: 14, border: '1px solid rgba(59,130,246,0.12)', padding: 20 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>🚚 Dispatch Overview</span>
+            <span style={{ fontSize: 12, fontWeight: 400, color: '#64748b' }}>upcoming 7-day plan</span>
+          </div>
+          <div className="stats-grid" style={{ marginBottom: 16 }}>
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-label">Open Dispatches</div>
+                <div className="stat-icon" style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6' }}>🚚</div>
+              </div>
+              <div className="stat-value">{dispatchMetrics.openDispatches}</div>
+              <div className="stat-change">POs In-Transit / Processing</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-label">Dispatch Tonnage</div>
+                <div className="stat-icon" style={{ background: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>⚖️</div>
+              </div>
+              <div className="stat-value">{Math.round(dispatchMetrics.openTonnage).toLocaleString()} KG</div>
+              <div className="stat-change">Open tonnage in transit</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-label">Transport Charges</div>
+                <div className="stat-icon" style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308' }}>💰</div>
+              </div>
+              <div className="stat-value">₹{Math.round(dispatchMetrics.openCharge).toLocaleString()}</div>
+              <div className="stat-change">Open dispatch transport cost</div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9', marginBottom: 12 }}>Upcoming Dispatch Plan (Next 7 Days)</div>
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>PO #</th>
+                  <th>City</th>
+                  <th>Product</th>
+                  <th>PO Qty</th>
+                  <th>Tonnage</th>
+                  <th>Transporter</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {upcomingDispatch.length === 0 ? (
+                  <tr><td colSpan={8} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No upcoming dispatches in the next 7 days</td></tr>
+                ) : upcomingDispatch.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)']}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
+                    <td>{r['City']}</td>
+                    <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product']}</td>
+                    <td>{r['PO Qty']}</td>
+                    <td>{num(r['Tonnage']).toLocaleString()}</td>
+                    <td>{r['Transporter'] || '—'}</td>
+                    <td><span className={`status ${(r['Status'] || '').toLowerCase().replace(/\s+/g, '')}`}>{r['Status'] || 'N/A'}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="charts-row">
         <div className="chart-card">
