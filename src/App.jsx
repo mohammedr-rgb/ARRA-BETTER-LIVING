@@ -355,13 +355,7 @@ function DispatchTab({ data, rawCSV }) {
 
   const pendingData = useMemo(() => {
     const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
-    const seenPOs = new Set()
-    return data.filter(r => {
-      const po = r['PO Number']
-      if (!po || seenPOs.has(po)) return false
-      seenPOs.add(po)
-      return statuses.has(r['Status'])
-    })
+    return data.filter(r => statuses.has(r['Status']))
   }, [data])
 
   const dispatchMetrics = useMemo(() => {
