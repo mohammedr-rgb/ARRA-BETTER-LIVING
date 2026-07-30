@@ -406,10 +406,19 @@ function DispatchTab({ data, rawCSV }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => {
-            const cols = ['Platform', 'City', 'PO Number', 'Product', 'PO Qty', 'Tonnage', 'Box Count', 'MRP']
-            const header = cols.join(',')
-            const body = pendingData.map(r => cols.map(c => {
-              const v = r[c]
+            const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
+            const seen = new Set()
+            const filtered = data.filter(r => {
+              const po = r['PO Number']
+              if (!po || seen.has(po)) return false
+              seen.add(po)
+              return statuses.has(r['Status'])
+            })
+            if (!filtered.length) return
+            const headers = Object.keys(filtered[0])
+            const header = headers.join(',')
+            const body = filtered.map(r => headers.map(h => {
+              const v = r[h] || ''
               return /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
             }).join(',')).join('\n')
             const blob = new Blob([header + '\n' + body], { type: 'text/csv' })
