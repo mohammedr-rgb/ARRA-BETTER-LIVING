@@ -349,7 +349,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders }) {
   )
 }
 
-function DispatchTab({ data }) {
+function DispatchTab({ data, rawCSV }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [hoverStat, setHoverStat] = useState(null)
 
@@ -386,6 +386,16 @@ function DispatchTab({ data }) {
         <div>
           <h1>Dispatch Overview</h1>
           <div className="date">{dispatchMetrics.openDispatches} open dispatches • upcoming 7-day plan</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => {
+            const blob = new Blob([rawCSV], { type: 'text/csv' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a'); a.href = url; a.download = 'master_data.csv'; a.click()
+            URL.revokeObjectURL(url)
+          }} style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#22c55e', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            ⬇ Download Master Data
+          </button>
         </div>
       </header>
 
@@ -2167,7 +2177,7 @@ function App() {
           {tab === 'orders' && <OrdersTab data={data} />}
           {tab === 'inventory' && <InventoryTab data={data} />}
           {tab === 'logistics' && <LogisticsTab data={data} />}
-          {tab === 'dispatch' && <DispatchTab data={data} />}
+          {tab === 'dispatch' && <DispatchTab data={data} rawCSV={rawCSV} />}
           {tab === 'reports' && <ReportsTab data={data} metrics={metrics} />}
           {tab === 'rto' && <RTOTab data={data} />}
           {tab === 'performance' && <PerformanceTab data={data} />}
