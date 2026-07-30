@@ -2362,6 +2362,11 @@ function App() {
       <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
         <button className="menu-close" onClick={closeNav}>✕</button>
         <div className="logo"><span className="brand-icon">✦</span> <span className="brand-gradient">ARRA BETTER LIVING</span></div>
+        <div style={{ padding: '8px 16px 4px' }}>
+          <select value={globalPlatform} onChange={e => setGlobalPlatform(e.target.value)} style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, cursor: 'pointer' }}>
+            {platforms.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
         <nav>
           <a href="#" className={tab === 'dashboard' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('dashboard'); closeNav() }}><span className="icon">📈</span> Dashboard</a>
           <a href="#" className={tab === 'orders' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('orders'); closeNav() }}><span className="icon">📦</span> Orders</a>
@@ -2374,12 +2379,6 @@ function App() {
             <a href="#" className={tab === 'performance' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('performance'); closeNav() }}><span className="icon">🔬</span> Performance</a>
            <a href="#" className={tab === 'settings' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('settings'); closeNav() }}><span className="icon">⚙️</span> Settings</a>
         </nav>
-        <div style={{ padding: '12px 16px', borderTop: '1px solid #334155' }}>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Platform Filter</div>
-          <select value={globalPlatform} onChange={e => setGlobalPlatform(e.target.value)} style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, cursor: 'pointer' }}>
-            {platforms.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </div>
         <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #334155' }}>
           <button onClick={() => {
             const blob = new Blob([rawCSV], { type: 'text/csv' })
