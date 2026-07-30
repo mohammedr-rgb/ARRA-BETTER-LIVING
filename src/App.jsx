@@ -741,6 +741,7 @@ function AppointmentView({ data }) {
           <tr>
             <th>PO #</th>
             <th>City</th>
+            <th>Facility</th>
             <th>Transporter</th>
             <th>Tonnage (KG)</th>
             <th>Appt Date</th>
@@ -754,6 +755,7 @@ function AppointmentView({ data }) {
             <tr key={i}>
               <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
               <td>{r['City']}</td>
+              <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['FacilityName'] || '—'}</td>
               <td>{r['Transporter'] || '—'}</td>
               <td style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
               <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)']}</td>
