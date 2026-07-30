@@ -85,16 +85,10 @@ const PIE_COLORS = {
   Unknown: '#64748b',
 }
 
-function DashboardTab({ data, metrics, cityData, statusData, recentOrders }) {
+function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [hoverStat, setHoverStat] = useState(null)
-  const [platformFilter, setPlatformFilter] = useState('All')
-  const platforms = useMemo(() => {
-    const set = new Set()
-    poData.forEach(r => { if (r['Platform']) set.add(r['Platform']) })
-    return ['All', ...Array.from(set).sort()]
-  }, [poData])
 
   const openMetrics = useMemo(() => {
     const activePOs = data.filter(r => ['In-Transit', 'Pending', 'Processing'].includes(r['Status'] || ''))
@@ -149,11 +143,6 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders }) {
                 )}
               </div>
             )})}
-          </div>
-          <div style={{ marginTop: 8 }}>
-            <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', padding: '6px 10px', fontSize: 12, cursor: 'pointer' }}>
-              {platforms.map(p => <option key={p} value={p}>{p === 'All' ? 'All Platforms' : p}</option>)}
-            </select>
           </div>
         </div>
         <ProfileSection />
@@ -733,7 +722,7 @@ function formatDate(d) {
 
 const statusFilters = ['All', 'Active', 'Delivered', 'RTO']
 
-function OrdersTab({ data }) {
+function OrdersTab({ data, platformFilter }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const today = new Date()
   const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
@@ -741,13 +730,6 @@ function OrdersTab({ data }) {
   const [dateTo, setDateTo] = useState(formatDate(today))
   const [statusFilter, setStatusFilter] = useState('Active')
   const [hoverFilter, setHoverFilter] = useState(null)
-  const [platformFilter, setPlatformFilter] = useState('All')
-
-  const platforms = useMemo(() => {
-    const set = new Set()
-    data.forEach(r => { if (r['Platform']) set.add(r['Platform']) })
-    return ['All', ...Array.from(set).sort()]
-  }, [data])
 
   const statusSummary = useMemo(() => {
     const result = {}
@@ -849,9 +831,6 @@ function OrdersTab({ data }) {
             </div>
           ))}
         </div>
-        <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', padding: '8px 12px', fontSize: 13, cursor: 'pointer' }}>
-          {platforms.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginLeft: 'auto' }}>
           <label style={{ color: '#94a3b8', fontSize: 13, fontWeight: 500 }}>From</label>
           <input type="date" value={(() => { const p = dateFrom.split('-'); return `${p[2]}-${p[0]}-${p[1]}` })()} onChange={e => { const p = e.target.value.split('-'); setDateFrom(`${p[1]}-${p[2]}-${p[0]}`) }} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', padding: '8px 12px', fontSize: 13 }} />
@@ -1415,18 +1394,11 @@ function LogisticsTab({ data }) {
   )
 }
 
-function ReportsTab({ data, metrics }) {
+function ReportsTab({ data, metrics, platformFilter }) {
   const today = new Date()
   const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
   const [dateFrom, setDateFrom] = useState(formatDate(thirtyDaysAgo))
   const [dateTo, setDateTo] = useState(formatDate(today))
-  const [platformFilter, setPlatformFilter] = useState('All')
-
-  const platforms = useMemo(() => {
-    const set = new Set()
-    data.forEach(r => { if (r['Platform']) set.add(r['Platform']) })
-    return ['All', ...Array.from(set).sort()]
-  }, [data])
 
   const reportData = useMemo(() => {
     const map = {}
@@ -1481,9 +1453,6 @@ function ReportsTab({ data, metrics }) {
         <input type="date" value={(() => { const p = dateFrom.split('-'); return `${p[2]}-${p[0]}-${p[1]}` })()} onChange={e => { const p = e.target.value.split('-'); setDateFrom(`${p[1]}-${p[2]}-${p[0]}`) }} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', padding: '8px 12px', fontSize: 13 }} />
         <label style={{ color: '#94a3b8', fontSize: 13, fontWeight: 500 }}>To</label>
         <input type="date" value={(() => { const p = dateTo.split('-'); return `${p[2]}-${p[0]}-${p[1]}` })()} onChange={e => { const p = e.target.value.split('-'); setDateTo(`${p[1]}-${p[2]}-${p[0]}`) }} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', padding: '8px 12px', fontSize: 13 }} />
-        <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', padding: '8px 12px', fontSize: 13, cursor: 'pointer' }}>
-          {platforms.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
         <button onClick={downloadCSV} style={{ marginLeft: 'auto', background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
           ⬇ Download CSV
         </button>
@@ -1560,7 +1529,7 @@ function SettingsTab() {
   )
 }
 
-function PerformanceTab({ data }) {
+function PerformanceTab({ data, platformFilter }) {
   const today = new Date()
   const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
   const [wowDateFrom, setWowDateFrom] = useState(formatDate(thirtyDaysAgo))
@@ -1574,7 +1543,8 @@ function PerformanceTab({ data }) {
   }, [data])
 
   const analysis = useMemo(() => {
-    const poData = uniqueByPO(data)
+    const filtered = platformFilter === 'All' ? data : data.filter(r => r['Platform'] === platformFilter)
+    const poData = uniqueByPO(filtered)
 
     const parsePct = (v) => { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : (n <= 1 ? Math.round(n * 100) : Math.round(n)) }
 
@@ -1601,7 +1571,7 @@ function PerformanceTab({ data }) {
     }
 
     const poAgg = {}
-    for (const r of data) {
+    for (const r of filtered) {
       const po = r['PO Number']
       if (!po) continue
       if (!poAgg[po]) poAgg[po] = { transporter: r['Transporter'], charge: 0, tonnage: 0, value: 0 }
@@ -1706,7 +1676,7 @@ function PerformanceTab({ data }) {
     const overallCostPerKG = totalTonnage ? totalCharge / totalTonnage : null
 
     return { pocMap, transportData, leadData, fillData, rtoData, cityFillData, overallBooking, overallDelivery, overallFillRate, overallCostPerKG }
-  }, [data])
+  }, [data, platformFilter])
 
   const agings = ['New PO', 'Less than 7 days PO', 'Grater than 7 days', 'Grater than 15 days', 'More than 30 days', 'N/A']
 
@@ -2276,6 +2246,13 @@ function App() {
   const [tab, setTab] = useState('dashboard')
   const [userEmail, setUserEmail] = useState('mohammed.r@gemedible.com')
   const [mobileMenu, setMobileMenu] = useState(false)
+  const [globalPlatform, setGlobalPlatform] = useState('All')
+
+  const platforms = useMemo(() => {
+    const set = new Set()
+    data.forEach(r => { if (r['Platform']) set.add(r['Platform']) })
+    return ['All', ...Array.from(set).sort()]
+  }, [data])
 
   useEffect(() => {
     fetch(SHEET_URL)
@@ -2288,12 +2265,17 @@ function App() {
       .catch(() => setLoading(false))
   }, [])
 
+  const filteredData = useMemo(() => {
+    if (globalPlatform === 'All') return data
+    return data.filter(r => r['Platform'] === globalPlatform)
+  }, [data, globalPlatform])
+
   const metrics = useMemo(() => {
-    const poData = uniqueByPO(data)
+    const poData = uniqueByPO(filteredData)
     const totalOrders = poData.length
-    const totalTonnage = data.reduce((s, r) => s + num(r['Tonnage']), 0)
-    const totalBoxes = data.reduce((s, r) => s + num(r['Box Count']), 0)
-    const totalValue = data.reduce((s, r) => s + num(r['PO Value with Tax']), 0)
+    const totalTonnage = filteredData.reduce((s, r) => s + num(r['Tonnage']), 0)
+    const totalBoxes = filteredData.reduce((s, r) => s + num(r['Box Count']), 0)
+    const totalValue = filteredData.reduce((s, r) => s + num(r['PO Value with Tax']), 0)
 
     const statusCounts = {}
     poData.forEach(r => {
@@ -2301,7 +2283,7 @@ function App() {
       statusCounts[s] = (statusCounts[s] || 0) + 1
     })
 
-    const delivered = data.filter(r => r['Status'] === 'Delivered')
+    const delivered = filteredData.filter(r => r['Status'] === 'Delivered')
     const deliveredTonnage = delivered.reduce((s, r) => s + num(r['Tonnage']), 0)
 
     const cities = [...new Set(poData.map(r => r['City']).filter(Boolean))]
@@ -2324,11 +2306,11 @@ function App() {
       cities: cities.length,
       avgFillRate: Math.round(avgFillRate),
     }
-  }, [data])
+  }, [filteredData])
 
   const cityData = useMemo(() => {
     const map = {}
-    for (const r of data) {
+    for (const r of filteredData) {
       const c = r['City']; if (!c) continue
       if (!map[c]) map[c] = { city: c, orders: new Set(), tonnage: 0, delivered: 0, deliveredTonnage: 0 }
       map[c].orders.add(r['PO Number'])
@@ -2339,22 +2321,22 @@ function App() {
       }
     }
     return Object.values(map).map(x => ({ ...x, orders: x.orders.size })).sort((a, b) => b.orders - a.orders)
-  }, [data])
+  }, [filteredData])
 
   const statusData = useMemo(() => {
-    const poData = uniqueByPO(data)
+    const poData = uniqueByPO(filteredData)
     const map = {}
     poData.forEach(r => {
       const s = r['Status'] || 'Unknown'
       map[s] = (map[s] || 0) + 1
     })
     return Object.entries(map).map(([name, value]) => ({ name, value }))
-  }, [data])
+  }, [filteredData])
 
   const recentOrders = useMemo(() => {
     const now = new Date()
     const twoDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2)
-    return data
+    return filteredData
       .filter(r => {
         const released = parseDate(r['PO Released Date(MM-DD-YYYY)'])
         if (!released) return false
@@ -2362,7 +2344,7 @@ function App() {
         return true
       })
       .slice(0, 10)
-  }, [data])
+  }, [filteredData])
 
   if (loading) {
     return (
@@ -2392,6 +2374,12 @@ function App() {
             <a href="#" className={tab === 'performance' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('performance'); closeNav() }}><span className="icon">🔬</span> Performance</a>
            <a href="#" className={tab === 'settings' ? 'active' : ''} onClick={e => { e.preventDefault(); setTab('settings'); closeNav() }}><span className="icon">⚙️</span> Settings</a>
         </nav>
+        <div style={{ padding: '12px 16px', borderTop: '1px solid #334155' }}>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Platform Filter</div>
+          <select value={globalPlatform} onChange={e => setGlobalPlatform(e.target.value)} style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, cursor: 'pointer' }}>
+            {platforms.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
         <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #334155' }}>
           <button onClick={() => {
             const blob = new Blob([rawCSV], { type: 'text/csv' })
@@ -2406,15 +2394,15 @@ function App() {
 
       <UserContext.Provider value={{ userEmail, setUserEmail }}>
         <div className="main-content">
-          {tab === 'dashboard' && <DashboardTab data={data} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} />}
-          {tab === 'orders' && <OrdersTab data={data} />}
-          {tab === 'inventory' && <InventoryTab data={data} />}
-          {tab === 'logistics' && <LogisticsTab data={data} />}
-          {tab === 'dispatch' && <DispatchTab data={data} rawCSV={rawCSV} />}
-          {tab === 'reports' && <ReportsTab data={data} metrics={metrics} />}
-          {tab === 'rto' && <RTOTab data={data} />}
-          {tab === 'finance' && <FinanceTab data={data} />}
-          {tab === 'performance' && <PerformanceTab data={data} />}
+          {tab === 'dashboard' && <DashboardTab data={filteredData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} />}
+          {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} />}
+          {tab === 'inventory' && <InventoryTab data={filteredData} />}
+          {tab === 'logistics' && <LogisticsTab data={filteredData} />}
+          {tab === 'dispatch' && <DispatchTab data={filteredData} rawCSV={rawCSV} />}
+          {tab === 'reports' && <ReportsTab data={filteredData} metrics={metrics} platformFilter={globalPlatform} />}
+          {tab === 'rto' && <RTOTab data={filteredData} />}
+          {tab === 'finance' && <FinanceTab data={filteredData} />}
+          {tab === 'performance' && <PerformanceTab data={filteredData} platformFilter={globalPlatform} />}
           {tab === 'settings' && <SettingsTab />}
         </div>
       </UserContext.Provider>
