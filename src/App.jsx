@@ -460,19 +460,29 @@ function DispatchTab({ data, rawCSV }) {
         <table>
           <thead>
             <tr>
-              {data.length > 0 && Object.keys(data[0]).map(h => <th key={h}>{h}</th>)}
+              <th>City</th>
+              <th>Platform</th>
+              <th>Product</th>
+              <th>PO Qty</th>
+              <th>Tonnage</th>
+              <th>Box</th>
+              <th>MRP</th>
+              <th>Unit Cost</th>
             </tr>
           </thead>
           <tbody>
             {pendingData.length === 0 ? (
-              <tr><td colSpan={Object.keys(data[0] || {}).length || 1} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
             ) : pendingData.map((r, i) => (
               <tr key={i}>
-                {Object.keys(data[0]).map(h => (
-                  <td key={h} style={h === 'Product' || h === 'Entity' ? { maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : h === 'PO Number' || h === 'Appointment ID' ? { fontFamily: 'monospace', fontSize: 12, color: '#94a3b8' } : (h.includes('Date') ? { fontSize: 12, color: '#94a3b8' } : {})}>
-                    {r[h] || '—'}
-                  </td>
-                ))}
+                <td>{r['City']}</td>
+                <td>{r['Platform']}</td>
+                <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product']}</td>
+                <td>{r['PO Qty']}</td>
+                <td>{r['Tonnage']}</td>
+                <td>{r['Box Count']}</td>
+                <td>{r['MRP'] || '—'}</td>
+                <td>{r['Unit Cost'] || '—'}</td>
               </tr>
             ))}
           </tbody>
