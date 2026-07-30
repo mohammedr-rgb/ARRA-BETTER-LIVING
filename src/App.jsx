@@ -355,12 +355,19 @@ function DispatchTab({ data, rawCSV }) {
 
   const pendingData = useMemo(() => {
     const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
+    const statusFiltered = data.filter(r => statuses.has(r['Status']))
+    const poCount = {}
+    for (const r of statusFiltered) {
+      const po = r['PO Number']
+      if (po) poCount[po] = (poCount[po] || 0) + 1
+    }
     const seenPOs = new Set()
-    return data.filter(r => {
+    return statusFiltered.filter(r => {
       const po = r['PO Number']
       if (!po || seenPOs.has(po)) return false
       seenPOs.add(po)
-      return statuses.has(r['Status'])
+      r._productCount = poCount[po]
+      return true
     })
   }, [data])
 
@@ -460,6 +467,8 @@ function DispatchTab({ data, rawCSV }) {
         <table>
           <thead>
             <tr>
+              <th>PO #</th>
+              <th>Products</th>
               <th>City</th>
               <th>Platform</th>
               <th>Product</th>
@@ -472,10 +481,11 @@ function DispatchTab({ data, rawCSV }) {
           </thead>
           <tbody>
             {pendingData.length === 0 ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
+              <tr><td colSpan={10} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
             ) : pendingData.map((r, i) => (
               <tr key={i}>
-                <td>{r['City']}</td>
+                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
+                <td style={{ textAlign: 'center', fontWeight: 600 }}>{r._productCount}</td>
                 <td>{r['Platform']}</td>
                 <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product']}</td>
                 <td>{r['PO Qty']}</td>
