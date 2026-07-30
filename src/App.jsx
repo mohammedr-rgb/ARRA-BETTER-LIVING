@@ -595,6 +595,7 @@ function AppointmentView({ data }) {
             <th>Appt Date</th>
             <th>Appt ID</th>
             <th>Status</th>
+            <th>Remarks</th>
           </tr>
         </thead>
         <tbody>
@@ -607,6 +608,7 @@ function AppointmentView({ data }) {
               <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)']}</td>
               <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
               <td><span className={`status ${(r['Status'] || '').toLowerCase().replace(/\s+/g, '')}`}>{r['Status'] || 'N/A'}</span></td>
+              <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Remarks'] || '—'}</td>
             </tr>
           ))}
         </tbody>
