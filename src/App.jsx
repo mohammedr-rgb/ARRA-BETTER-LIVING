@@ -355,19 +355,13 @@ function DispatchTab({ data, rawCSV }) {
 
   const pendingData = useMemo(() => {
     const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
-    const cols = ['Platform', 'City', 'PO Number', 'Product', 'PO Qty', 'Tonnage', 'Box Count', 'MRP', 'Status']
     const seenPOs = new Set()
-    const rows = []
-    for (const r of data) {
-      if (!statuses.has(r['Status'])) continue
+    return data.filter(r => {
       const po = r['PO Number']
-      if (!po || seenPOs.has(po)) continue
+      if (!po || seenPOs.has(po)) return false
       seenPOs.add(po)
-      const row = {}
-      cols.forEach(c => { row[c] = r[c] || '' })
-      rows.push(row)
-    }
-    return rows
+      return statuses.has(r['Status'])
+    })
   }, [data])
 
   const dispatchMetrics = useMemo(() => {
@@ -378,24 +372,6 @@ function DispatchTab({ data, rawCSV }) {
       openCharge: dispatched.reduce((s, r) => s + num(r['Transport Charges']), 0),
     }
   }, [poData])
-
-  const upcomingDispatch = useMemo(() => {
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7)
-    const seen = new Set()
-    const rows = []
-    for (const r of data) {
-      const d = parseDate(r['Appointment Date(MM-DD-YYYY)'])
-      if (!d) continue
-      const po = r['PO Number']
-      if (!po || seen.has(po)) continue
-      seen.add(po)
-      if (d >= today && d <= weekEnd) {
-        rows.push({ ...r, _apptDate: d })
-      }
-    }
-    return rows.sort((a, b) => a._apptDate - b._apptDate || (a['City'] || '').localeCompare(b['City'] || ''))
-  }, [data])
 
   return (
     <>
@@ -489,63 +465,38 @@ function DispatchTab({ data, rawCSV }) {
               <th>PO #</th>
               <th>Product</th>
               <th>PO Qty</th>
+              <th>Dispatched</th>
+              <th>Delivered</th>
               <th>Tonnage</th>
               <th>Box</th>
               <th>MRP</th>
+              <th>Appt Date</th>
+              <th>Appt ID</th>
+              <th>Released</th>
+              <th>Entity</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {pendingData.length === 0 ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
+              <tr><td colSpan={15} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
             ) : pendingData.map((r, i) => (
               <tr key={i}>
                 <td>{r['Platform']}</td>
                 <td>{r['City']}</td>
                 <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
-                <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product']}</td>
+                <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product']}</td>
                 <td>{r['PO Qty']}</td>
+                <td>{r['Dispatched QTY']}</td>
+                <td>{r['Delivered QTY']}</td>
                 <td>{r['Tonnage']}</td>
                 <td>{r['Box Count']}</td>
                 <td>{r['MRP'] || '—'}</td>
+                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)'] || '—'}</td>
+                <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
+                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['PO Released Date(MM-DD-YYYY)'] || '—'}</td>
+                <td style={{ fontSize: 11, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Entity'] || '—'}</td>
                 <td><span className="status pending">{r['Status']}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="recent-orders">
-        <div className="orders-header">
-          <div className="orders-title">Upcoming Dispatch Plan</div>
-          <div className="chart-period">Next 7 days</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>PO #</th>
-              <th>City</th>
-              <th>Product</th>
-              <th>PO Qty</th>
-              <th>Tonnage</th>
-              <th>Transporter</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {upcomingDispatch.length === 0 ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No upcoming dispatches in the next 7 days</td></tr>
-            ) : upcomingDispatch.map((r, i) => (
-              <tr key={i}>
-                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)']}</td>
-                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
-                <td>{r['City']}</td>
-                <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product']}</td>
-                <td>{r['PO Qty']}</td>
-                <td>{num(r['Tonnage']).toLocaleString()}</td>
-                <td>{r['Transporter'] || '—'}</td>
-                <td><span className={`status ${(r['Status'] || '').toLowerCase().replace(/\s+/g, '')}`}>{r['Status'] || 'N/A'}</span></td>
               </tr>
             ))}
           </tbody>
