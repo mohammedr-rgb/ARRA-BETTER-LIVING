@@ -1321,14 +1321,15 @@ function PerformanceTab({ data }) {
     for (const r of poData) {
       const c = r['City']
       if (!c) continue
-      if (!cityAvail[c]) cityAvail[c] = { city: c, totalPOQty: 0, totalDelQty: 0 }
+      if (!cityAvail[c]) cityAvail[c] = { city: c, totalPOQty: 0, totalDelQty: 0, poCount: 0 }
       cityAvail[c].totalPOQty += num(r['PO Qty'])
       cityAvail[c].totalDelQty += num(r['Delivered QTY'])
+      cityAvail[c].poCount++
     }
     const cityFillData = Object.values(cityAvail).map(x => ({
       city: x.city,
       avgFinal: x.totalPOQty ? Math.round(x.totalDelQty / x.totalPOQty * 100) : null,
-      samples: x.totalDelQty,
+      samples: x.poCount,
     })).sort((a, b) => a.city.localeCompare(b.city))
 
     const totalPOQty = poData.reduce((s, r) => s + num(r['PO Qty']), 0)
