@@ -353,6 +353,23 @@ function DispatchTab({ data, rawCSV }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [hoverStat, setHoverStat] = useState(null)
 
+  const pendingData = useMemo(() => {
+    const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
+    const cols = ['Platform', 'City', 'PO Number', 'Product', 'PO Qty', 'Tonnage', 'Box Count', 'MRP']
+    const seenPOs = new Set()
+    const rows = []
+    for (const r of data) {
+      if (!statuses.has(r['Status'])) continue
+      const po = r['PO Number']
+      if (!po || seenPOs.has(po)) continue
+      seenPOs.add(po)
+      const row = {}
+      cols.forEach(c => { row[c] = r[c] || '' })
+      rows.push(row)
+    }
+    return rows
+  }, [data])
+
   const dispatchMetrics = useMemo(() => {
     const dispatched = poData.filter(r => ['In-Transit', 'Processing'].includes(r['Status'] || ''))
     return {
@@ -385,16 +402,22 @@ function DispatchTab({ data, rawCSV }) {
       <header>
         <div>
           <h1>Dispatch Overview</h1>
-          <div className="date">{dispatchMetrics.openDispatches} open dispatches • upcoming 7-day plan</div>
+          <div className="date">{dispatchMetrics.openDispatches} open dispatches • {pendingData.length} pending • upcoming 7-day plan</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => {
-            const blob = new Blob([rawCSV], { type: 'text/csv' })
+            const cols = ['Platform', 'City', 'PO Number', 'Product', 'PO Qty', 'Tonnage', 'Box Count', 'MRP']
+            const header = cols.join(',')
+            const body = pendingData.map(r => cols.map(c => {
+              const v = r[c]
+              return /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
+            }).join(',')).join('\n')
+            const blob = new Blob([header + '\n' + body], { type: 'text/csv' })
             const url = URL.createObjectURL(blob)
-            const a = document.createElement('a'); a.href = url; a.download = 'master_data.csv'; a.click()
+            const a = document.createElement('a'); a.href = url; a.download = 'pending_dispatch_schedule.csv'; a.click()
             URL.revokeObjectURL(url)
           }} style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#22c55e', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            ⬇ Download Master Data
+            ⬇ Download Pending Data
           </button>
         </div>
       </header>
@@ -442,6 +465,45 @@ function DispatchTab({ data, rawCSV }) {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="recent-orders">
+        <div className="orders-header">
+          <div className="orders-title">Pending for Dispatch / Schedule</div>
+          <div className="chart-period">{pendingData.length} POs</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>City</th>
+              <th>PO #</th>
+              <th>Product</th>
+              <th>PO Qty</th>
+              <th>Tonnage</th>
+              <th>Box</th>
+              <th>MRP</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pendingData.length === 0 ? (
+              <tr><td colSpan={9} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
+            ) : pendingData.map((r, i) => (
+              <tr key={i}>
+                <td>{r['Platform']}</td>
+                <td>{r['City']}</td>
+                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
+                <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product']}</td>
+                <td>{r['PO Qty']}</td>
+                <td>{r['Tonnage']}</td>
+                <td>{r['Box Count']}</td>
+                <td>{r['MRP'] || '—'}</td>
+                <td><span className="status pending">{r['Status']}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div className="recent-orders">
