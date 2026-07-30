@@ -460,43 +460,19 @@ function DispatchTab({ data, rawCSV }) {
         <table>
           <thead>
             <tr>
-              <th>Platform</th>
-              <th>City</th>
-              <th>PO #</th>
-              <th>Product</th>
-              <th>PO Qty</th>
-              <th>Dispatched</th>
-              <th>Delivered</th>
-              <th>Tonnage</th>
-              <th>Box</th>
-              <th>MRP</th>
-              <th>Appt Date</th>
-              <th>Appt ID</th>
-              <th>Released</th>
-              <th>Entity</th>
-              <th>Status</th>
+              {data.length > 0 && Object.keys(data[0]).map(h => <th key={h}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
             {pendingData.length === 0 ? (
-              <tr><td colSpan={15} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
+              <tr><td colSpan={Object.keys(data[0] || {}).length || 1} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
             ) : pendingData.map((r, i) => (
               <tr key={i}>
-                <td>{r['Platform']}</td>
-                <td>{r['City']}</td>
-                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
-                <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product']}</td>
-                <td>{r['PO Qty']}</td>
-                <td>{r['Dispatched QTY']}</td>
-                <td>{r['Delivered QTY']}</td>
-                <td>{r['Tonnage']}</td>
-                <td>{r['Box Count']}</td>
-                <td>{r['MRP'] || '—'}</td>
-                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)'] || '—'}</td>
-                <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
-                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['PO Released Date(MM-DD-YYYY)'] || '—'}</td>
-                <td style={{ fontSize: 11, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Entity'] || '—'}</td>
-                <td><span className="status pending">{r['Status']}</span></td>
+                {Object.keys(data[0]).map(h => (
+                  <td key={h} style={h === 'Product' || h === 'Entity' ? { maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : h === 'PO Number' || h === 'Appointment ID' ? { fontFamily: 'monospace', fontSize: 12, color: '#94a3b8' } : (h.includes('Date') ? { fontSize: 12, color: '#94a3b8' } : {})}>
+                    {r[h] || '—'}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
