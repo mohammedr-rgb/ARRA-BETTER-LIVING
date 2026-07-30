@@ -470,21 +470,24 @@ function DispatchTab({ data, rawCSV }) {
               <th>Box</th>
               <th>MRP</th>
               <th>Unit Cost</th>
+              <th>Appointment / Status</th>
             </tr>
           </thead>
           <tbody>
             {pendingData.length === 0 ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
+              <tr><td colSpan={10} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
             ) : pendingData.map((r, i) => (
               <tr key={i}>
                 <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
+                <td>{r['City']}</td>
                 <td>{r['Platform']}</td>
                 <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product']}</td>
-                <td>{r['PO Qty']}</td>
-                <td>{r['Tonnage']}</td>
-                <td>{r['Box Count']}</td>
-                <td>{r['MRP'] || '—'}</td>
-                <td>{r['Unit Cost'] || '—'}</td>
+                <td style={{ textAlign: 'right' }}>{r['PO Qty']}</td>
+                <td style={{ textAlign: 'right' }}>{r['Tonnage']}</td>
+                <td style={{ textAlign: 'right' }}>{r['Box Count']}</td>
+                <td style={{ textAlign: 'right' }}>{r['MRP'] || '—'}</td>
+                <td style={{ textAlign: 'right' }}>{r['Unit Cost'] || '—'}</td>
+                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)'] ? r['Appointment Date(MM-DD-YYYY)'] : <span style={{ color: '#eab308' }}>{r['Status']}</span>}</td>
               </tr>
             ))}
           </tbody>
