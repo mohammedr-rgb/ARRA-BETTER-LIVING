@@ -355,7 +355,7 @@ function DispatchTab({ data, rawCSV }) {
 
   const pendingData = useMemo(() => {
     const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
-    const cols = ['Platform', 'City', 'PO Number', 'Product', 'PO Qty', 'Tonnage', 'Box Count', 'MRP']
+    const cols = ['Platform', 'City', 'PO Number', 'Product', 'PO Qty', 'Tonnage', 'Box Count', 'MRP', 'Status']
     const seenPOs = new Set()
     const rows = []
     for (const r of data) {
