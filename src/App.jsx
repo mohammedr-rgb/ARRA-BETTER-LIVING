@@ -1290,21 +1290,16 @@ function PerformanceTab({ data }) {
     for (const r of poData) {
       const p = r['Product']
       if (!p) continue
-      if (!fillMap[p]) fillMap[p] = { product: p, dispatchFill: [], deliveredFill: [], finalFill: [], count: 0, tonnage: 0 }
-      fillMap[p].dispatchFill.push(parsePct(r['PO Dispatch fill rate']))
-      fillMap[p].deliveredFill.push(parsePct(r['Delivered Fill rate']))
-      fillMap[p].finalFill.push(parsePct(r['Final Fill Rate']))
-      fillMap[p].count++
+      if (!fillMap[p]) fillMap[p] = { product: p, poQty: 0, delQty: 0, tonnage: 0 }
+      fillMap[p].poQty += num(r['PO Qty'])
+      fillMap[p].delQty += num(r['Delivered QTY'])
       fillMap[p].tonnage += toNumKG(r['Dispatch Tonnage'])
     }
     const fillData = Object.values(fillMap).map(x => ({
       product: x.product,
-      avgDispatch: x.dispatchFill.length ? Math.round(x.dispatchFill.reduce((s, v) => s + v, 0) / x.dispatchFill.length) : 0,
-      avgDelivered: x.deliveredFill.length ? Math.round(x.deliveredFill.reduce((s, v) => s + v, 0) / x.deliveredFill.length) : 0,
-      avgFinal: x.finalFill.length ? Math.round(x.finalFill.reduce((s, v) => s + v, 0) / x.finalFill.length) : 0,
-      gap: Math.round((x.dispatchFill.length ? Math.round(x.dispatchFill.reduce((s, v) => s + v, 0) / x.dispatchFill.length) : 0) -
-        (x.finalFill.length ? Math.round(x.finalFill.reduce((s, v) => s + v, 0) / x.finalFill.length) : 0)),
-      samples: x.count,
+      avgFinal: x.poQty ? Math.round(x.delQty / x.poQty * 100) : 0,
+      gap: x.poQty ? 100 - Math.round(x.delQty / x.poQty * 100) : 0,
+      samples: x.poQty,
       tonnage: x.tonnage,
     })).sort((a, b) => a.avgFinal - b.avgFinal)
 
@@ -1324,25 +1319,19 @@ function PerformanceTab({ data }) {
     for (const r of poData) {
       const c = r['City']
       if (!c) continue
-      if (!cityAvail[c]) cityAvail[c] = { city: c, delivered: 0, rto: 0, total: 0 }
-      cityAvail[c].total++
-      const hasGRN = r['GRN details'] && String(r['GRN details']).trim()
-      const rejQty = num(r['Rejected Qty'])
-      if (hasGRN) {
-        cityAvail[c].delivered++
-      } else if (r['Status'] === 'RTO' || rejQty > 0) {
-        cityAvail[c].rto++
-      }
+      if (!cityAvail[c]) cityAvail[c] = { city: c, totalPOQty: 0, totalDelQty: 0 }
+      cityAvail[c].totalPOQty += num(r['PO Qty'])
+      cityAvail[c].totalDelQty += num(r['Delivered QTY'])
     }
     const cityFillData = Object.values(cityAvail).map(x => ({
       city: x.city,
-      avgFinal: (x.delivered + x.rto) ? Math.round(x.delivered / (x.delivered + x.rto) * 100) : null,
-      samples: x.total,
+      avgFinal: x.totalPOQty ? Math.round(x.totalDelQty / x.totalPOQty * 100) : null,
+      samples: x.totalDelQty,
     })).sort((a, b) => a.city.localeCompare(b.city))
 
-    const allFinalFills = []
-    for (const r of poData) { const f = parsePct(r['Final Fill Rate']); if (f > 0) allFinalFills.push(f) }
-    const overallFillRate = allFinalFills.length ? Math.round(allFinalFills.reduce((s, v) => s + v, 0) / allFinalFills.length) : null
+    const totalPOQty = poData.reduce((s, r) => s + num(r['PO Qty']), 0)
+    const totalDelQty = poData.reduce((s, r) => s + num(r['Delivered QTY']), 0)
+    const overallFillRate = totalPOQty ? Math.round(totalDelQty / totalPOQty * 100) : null
     const totalCharge = transportData.reduce((s, x) => s + x.charge, 0)
     const totalTonnage = transportData.reduce((s, x) => s + x.tonnage, 0)
     const overallCostPerKG = totalTonnage ? totalCharge / totalTonnage : null
@@ -1549,8 +1538,6 @@ function PerformanceTab({ data }) {
         <table>
           <thead>
             <tr>
-              <th>Dispatch Fill %</th>
-              <th>Delivered Fill %</th>
               <th>Final Fill %</th>
               <th>Drop-off Gap</th>
               <th>Tonnage (KG)</th>
@@ -1560,8 +1547,6 @@ function PerformanceTab({ data }) {
           <tbody>
             {analysis.fillData.filter(x => x.samples > 1).slice(0, 20).map((row, i) => (
               <tr key={i}>
-                <td><span style={{ color: row.avgDispatch >= 90 ? '#22c55e' : '#eab308', fontWeight: 600 }}>{row.avgDispatch}%</span></td>
-                <td><span style={{ color: row.avgDelivered >= 90 ? '#22c55e' : '#eab308', fontWeight: 600 }}>{row.avgDelivered}%</span></td>
                 <td style={{ fontWeight: 700, color: row.avgFinal >= 90 ? '#22c55e' : row.avgFinal >= 70 ? '#eab308' : '#ef4444' }}>{row.avgFinal}%</td>
                 <td><span style={{ color: row.gap > 10 ? '#ef4444' : row.gap > 5 ? '#eab308' : '#22c55e', fontWeight: 600 }}>{row.gap}%</span></td>
                 <td style={{ fontWeight: 600 }}>{Math.round(row.tonnage).toLocaleString()}</td>
@@ -1954,8 +1939,9 @@ function App() {
 
     const deliveredCount = poData.filter(r => r['Status'] === 'Delivered').length
     const rtoCount = poData.filter(r => r['Status'] === 'RTO').length
-    const completed = deliveredCount + rtoCount
-    const avgFillRate = completed ? Math.round(deliveredCount / completed * 100) : 0
+    const totalPOQty = poData.reduce((s, r) => s + num(r['PO Qty']), 0)
+    const totalDelQty = poData.reduce((s, r) => s + num(r['Delivered QTY']), 0)
+    const avgFillRate = totalPOQty ? Math.round(totalDelQty / totalPOQty * 100) : 0
 
     return {
       totalOrders,
