@@ -506,32 +506,41 @@ function FinanceTab({ data }) {
   const [hoverStat, setHoverStat] = useState(null)
 
   const financeMetrics = useMemo(() => {
-    let totalPOValue = 0, overdueCount = 0, invoiceCount = 0
+    let totalPOValue = 0, totalDN = 0, totalFS = 0, overdueCount = 0, invoiceCount = 0
     const overduePOs = []
     const entityMap = {}
     for (const r of poData) {
       const val = num(r['PO Value with Tax'])
+      const dn = num(r['DN amount'])
+      const fs = num(r['Final Settlement'])
       const overdue = r['Payment Overdue Alert'] || ''
       totalPOValue += val
+      totalDN += dn
+      totalFS += fs
       if (overdue.toLowerCase().includes('overdue') || overdue.toLowerCase().includes('yes')) {
         overdueCount++
         overduePOs.push(r['PO Number'])
       }
       if (r['Invoice No']) invoiceCount++
       const e = r['Entity'] || 'Unknown'
-      if (!entityMap[e]) entityMap[e] = { entity: e, orders: 0, poValue: 0, invoices: 0, overdueCount: 0, overduePOs: [] }
+      if (!entityMap[e]) entityMap[e] = { entity: e, orders: 0, poValue: 0, dn: 0, fs: 0, invoices: 0, overdueCount: 0 }
       entityMap[e].orders++
       entityMap[e].poValue += val
+      entityMap[e].dn += dn
+      entityMap[e].fs += fs
       if (r['Invoice No']) entityMap[e].invoices++
       if (overdue.toLowerCase().includes('overdue') || overdue.toLowerCase().includes('yes')) {
         entityMap[e].overdueCount++
-        entityMap[e].overduePOs.push(r['PO Number'])
       }
     }
     const avgOrderValue = totalPOValue / (poData.length || 1)
+    const pendingSettlement = totalDN - totalFS
     return {
       totalPOValue: Math.round(totalPOValue),
       avgOrderValue: Math.round(avgOrderValue),
+      totalDN: Math.round(totalDN),
+      totalFS: Math.round(totalFS),
+      pendingSettlement: Math.round(pendingSettlement),
       overdueCount,
       overduePOs,
       invoiceCount,
@@ -572,6 +581,22 @@ function FinanceTab({ data }) {
           </div>
           <div className="stat-value">₹{financeMetrics.avgOrderValue.toLocaleString()}</div>
           <div className="stat-change">Average PO value</div>
+        </div>
+        <div className="stat-card" style={{ position: 'relative', cursor: 'pointer' }} onMouseEnter={() => setHoverStat('pending')} onMouseLeave={() => setHoverStat(null)}>
+          <div className="stat-header">
+            <div className="stat-label">Pending Settlement</div>
+            <div className="stat-icon" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>📋</div>
+          </div>
+          <div className="stat-value" style={{ color: financeMetrics.pendingSettlement > 0 ? '#ef4444' : '#22c55e' }}>₹{financeMetrics.pendingSettlement.toLocaleString()}</div>
+          <div className="stat-change">DN − Final Settlement</div>
+          {hoverStat === 'pending' && (
+            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Settlement Details</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>DN Amount: <span style={{ color: '#3b82f6', fontWeight: 600 }}>₹{financeMetrics.totalDN.toLocaleString()}</span></div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Final Settlement: <span style={{ color: '#22c55e', fontWeight: 600 }}>₹{financeMetrics.totalFS.toLocaleString()}</span></div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Pending: <span style={{ color: financeMetrics.pendingSettlement > 0 ? '#ef4444' : '#22c55e', fontWeight: 600 }}>₹{financeMetrics.pendingSettlement.toLocaleString()}</span></div>
+            </div>
+          )}
         </div>
         <div className="stat-card" style={{ position: 'relative', cursor: 'pointer' }} onMouseEnter={() => setHoverStat('overdue')} onMouseLeave={() => setHoverStat(null)}>
           <div className="stat-header">
@@ -620,26 +645,35 @@ function FinanceTab({ data }) {
               <th>Orders</th>
               <th>Invoices</th>
               <th>PO Value</th>
+              <th>DN Amount</th>
+              <th>Final Settlement</th>
+              <th>Pending</th>
               <th>Overdue</th>
             </tr>
           </thead>
           <tbody>
-            {financeMetrics.entityWise.map((row, i) => (
+            {financeMetrics.entityWise.map((row, i) => {
+              const pend = row.dn - row.fs
+              return (
               <tr key={i}>
                 <td style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{row.entity}</td>
                 <td>{row.orders}</td>
                 <td>{row.invoices}</td>
                 <td style={{ textAlign: 'right' }}>₹{Math.round(row.poValue).toLocaleString()}</td>
+                <td style={{ textAlign: 'right' }}>₹{Math.round(row.dn).toLocaleString()}</td>
+                <td style={{ textAlign: 'right' }}>₹{Math.round(row.fs).toLocaleString()}</td>
+                <td style={{ textAlign: 'right', color: pend > 0 ? '#ef4444' : '#22c55e', fontWeight: 600 }}>₹{Math.round(pend).toLocaleString()}</td>
                 <td><span style={{ color: row.overdueCount > 0 ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{row.overdueCount}</span></td>
               </tr>
-            ))}
+            )
+            })}
           </tbody>
         </table>
       </div>
 
       <div className="recent-orders">
         <div className="orders-header">
-          <div className="orders-title">PO-wise Value & Overdue Details</div>
+          <div className="orders-title">PO-wise DN & Settlement Details</div>
           <div className="chart-period">All POs</div>
         </div>
         <table>
@@ -648,20 +682,31 @@ function FinanceTab({ data }) {
               <th>PO #</th>
               <th>Entity</th>
               <th>Invoice</th>
-              <th>PO Value (with Tax)</th>
+              <th>PO Value</th>
+              <th>DN Amount</th>
+              <th>Final Settlement</th>
+              <th>Pending</th>
               <th>Overdue Alert</th>
             </tr>
           </thead>
           <tbody>
-            {poData.map((r, i) => (
+            {poData.map((r, i) => {
+              const dn = num(r['DN amount'])
+              const fs = num(r['Final Settlement'])
+              const pend = dn - fs
+              return (
               <tr key={i}>
                 <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
                 <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Entity']}</td>
                 <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{r['Invoice No'] || '—'}</td>
                 <td style={{ textAlign: 'right' }}>₹{num(r['PO Value with Tax']).toLocaleString()}</td>
+                <td style={{ textAlign: 'right' }}>{dn ? `₹${dn.toLocaleString()}` : '—'}</td>
+                <td style={{ textAlign: 'right' }}>{fs ? `₹${fs.toLocaleString()}` : '—'}</td>
+                <td style={{ textAlign: 'right', color: pend > 0 ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{pend ? `₹${Math.round(pend).toLocaleString()}` : '—'}</td>
                 <td><span style={{ color: (r['Payment Overdue Alert'] || '').toLowerCase().includes('overdue') ? '#ef4444' : '#64748b', fontSize: 12 }}>{r['Payment Overdue Alert'] || '—'}</span></td>
               </tr>
-            ))}
+            )
+            })}
           </tbody>
         </table>
       </div>
