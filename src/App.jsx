@@ -1758,17 +1758,17 @@ function LogisticsTab({ data }) {
       if (!d) return
       if (d < parseDate(dateFrom) || d > parseDate(dateTo)) return
       const c = r['Transporter'] || 'Not Assigned'
-      if (!map[c]) map[c] = { carrier: c, totalPO: new Set(), delivered: 0, rto: 0, inTransit: 0, tonnage: 0, totalValue: 0, transportCharge: 0 }
+      if (!map[c]) map[c] = { carrier: c, totalPO: new Set(), delivered: new Set(), rto: new Set(), inTransit: 0, tonnage: 0, totalValue: 0, transportCharge: 0 }
       map[c].totalPO.add(r['PO Number'])
       map[c].tonnage += num(r['Tonnage'])
       map[c].totalValue += num(r['PO Value with Tax'])
       map[c].transportCharge += num(r['Transport Charge'])
       const status = r['Status'] || ''
-      if (status === 'Delivered') map[c].delivered++
-      else if (status === 'RTO') map[c].rto++
+      if (status === 'Delivered') map[c].delivered.add(r['PO Number'])
+      else if (status === 'RTO') map[c].rto.add(r['PO Number'])
       else if (['In-Transit', 'Pending', 'Processing'].includes(status)) map[c].inTransit++
     })
-    return Object.values(map).map(x => ({ ...x, totalPO: x.totalPO.size })).sort((a, b) => b.totalPO - a.totalPO)
+    return Object.values(map).map(x => ({ ...x, totalPO: x.totalPO.size, delivered: x.delivered.size, rto: x.rto.size })).sort((a, b) => b.totalPO - a.totalPO)
   }, [data, dateFrom, dateTo])
 
   return (
@@ -1811,7 +1811,7 @@ function LogisticsTab({ data }) {
           </thead>
           <tbody>
             {carrierData.map((row, i) => {
-              const deliveryRate = row.totalPO ? (row.delivered / row.totalPO * 100).toFixed(1) : 0
+              const deliveryRate = row.totalPO ? Math.min(100, row.delivered / row.totalPO * 100).toFixed(1) : 0
               const rtoRate = row.totalPO ? (row.rto / row.totalPO * 100).toFixed(1) : 0
               return (
                 <tr key={i}>
