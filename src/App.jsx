@@ -1326,11 +1326,36 @@ function InventoryTab({ data }) {
         </table>
       </div>
 
-      {planData.items && planData.items.length > 0 && (
+      {planData.items && planData.items.length > 0 && (() => {
+        const t = planData.items.reduce((s, r) => ({
+          salesQty: s.salesQty + r.salesQty,
+          planQty: s.planQty + r.planQty,
+          planTonnage: s.planTonnage + r.planTonnage,
+          planBoxes: s.planBoxes + r.planBoxes,
+          totalValue: s.totalValue + r.totalValue,
+        }), { salesQty: 0, planQty: 0, planTonnage: 0, planBoxes: 0, totalValue: 0 })
+        return (
         <div className="recent-orders" style={{ marginTop: 20 }}>
           <div className="orders-header">
             <div className="orders-title">Production Plan — {planData.nextMonth}</div>
             <div className="chart-period">Based on {planData.month} sales • 30% lower projection</div>
+            <button onClick={() => {
+              const rows = ['Production Plan Report']
+              rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan')
+              rows.push('')
+              rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Cities')
+              planData.items.forEach(r => {
+                rows.push(`${r.product},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},₹${r.perUnitCharge},₹${r.totalValue},${r.cities}`)
+              })
+              rows.push('')
+              rows.push(`TOTAL,${t.salesQty},${t.planQty},${t.planTonnage},${t.planBoxes},,₹${t.totalValue.toLocaleString()}`)
+              const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a'); a.href = url; a.download = 'production_plan.csv'; a.click()
+              URL.revokeObjectURL(url)
+            }} style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+              ⬇ Download Plan
+            </button>
           </div>
           <table>
             <thead>
@@ -1369,9 +1394,22 @@ function InventoryTab({ data }) {
                 )
               })}
             </tbody>
+            <tfoot>
+              <tr style={{ background: 'rgba(59,130,246,0.12)' }}>
+                <td style={{ fontWeight: 700 }}>Total</td>
+                <td style={{ fontWeight: 700 }}>{t.salesQty}</td>
+                <td style={{ fontWeight: 700, color: '#3b82f6' }}>{t.planQty}</td>
+                <td style={{ fontWeight: 700 }}>{t.planTonnage} KG</td>
+                <td style={{ fontWeight: 700 }}>{t.planBoxes}</td>
+                <td>—</td>
+                <td style={{ fontWeight: 700 }}>₹{t.totalValue.toLocaleString()}</td>
+                <td style={{ fontWeight: 700 }}>{planData.items.reduce((s, r) => s + r.cities, 0)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
-      )}
+        )
+      })()}
     </>
   )
 }
