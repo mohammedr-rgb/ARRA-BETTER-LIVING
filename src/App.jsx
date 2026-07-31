@@ -137,7 +137,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
     qty: r => num(r['PO Qty']),
     tonnage: r => num(r['Tonnage']),
     value: r => num(r['PO Value with Tax']),
-    released: r => parseDate(r['PO Released Date(MM-DD-YYYY)']),
+    released: r => parseReleaseDate(r['PO Released Date(MM-DD-YYYY)']),
     appt: r => parseDate(r['Appointment Date(MM-DD-YYYY)']),
     apptid: r => r['Appointment ID'],
     status: r => r['Status'],
@@ -501,7 +501,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
         <div className="recent-orders">
         <div className="orders-header">
           <div className="orders-title">Recent PO Releases</div>
-          <div className="chart-period">PO Released within 2 days</div>
+          <div className="chart-period">Latest 10 releases</div>
         </div>
         <table>
           <thead>
@@ -946,6 +946,13 @@ function parseDate(str) {
     month = a - 1
   }
   return new Date(year, month, day)
+}
+
+function parseReleaseDate(str) {
+  if (!str) return null
+  const parts = str.split('-')
+  if (parts.length !== 3) return null
+  return new Date(parseInt(parts[2], 10), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10))
 }
 
 function formatDate(d) {
@@ -2746,16 +2753,13 @@ function App() {
   }, [filteredData])
 
   const recentOrders = useMemo(() => {
-    const now = new Date()
-    const twoDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2)
+    const seen = new Set()
     return filteredData
-      .filter(r => {
-        const released = parseDate(r['PO Released Date(MM-DD-YYYY)'])
-        if (!released) return false
-        if (released < twoDaysAgo || released > now) return false
-        return true
-      })
+      .map(r => ({ r, released: parseReleaseDate(r['PO Released Date(MM-DD-YYYY)']) }))
+      .filter(x => x.released && !seen.has(x.r['PO Number']))
+      .sort((a, b) => b.released - a.released)
       .slice(0, 10)
+      .map(x => x.r)
   }, [filteredData])
 
   if (loading) {
