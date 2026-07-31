@@ -1616,24 +1616,20 @@ function InventoryTab({ data }) {
                 <th rowSpan={2} style={{ verticalAlign: 'middle' }}>Total Value</th>
               </tr>
               <tr>
-                {platformMonthData.months.map(m => (
-                  <th key={'c' + m.key}>Tonnage</th>
-                ))}
-                {platformMonthData.months.map(m => (
-                  <th key={'v' + m.key}>Value</th>
-                ))}
+                {platformMonthData.months.flatMap(m => [
+                  <th key={'c' + m.key}>Tonnage</th>,
+                  <th key={'v' + m.key}>Value</th>,
+                ])}
               </tr>
             </thead>
             <tbody>
               {platformMonthData.rows.map((row, i) => (
                 <tr key={i}>
                   <td style={{ fontWeight: 600 }}>{row.platform}</td>
-                  {row.cells.map((c, j) => (
-                    <td key={j}>{c ? c.tonnage : '—'}</td>
-                  ))}
-                  {row.cells.map((c, j) => (
-                    <td key={'v' + j}>{c ? '₹' + c.value.toLocaleString() : '—'}</td>
-                  ))}
+                  {row.cells.flatMap((c, j) => [
+                    <td key={'t' + j}>{c ? c.tonnage : '—'}</td>,
+                    <td key={'v' + j}>{c ? '₹' + c.value.toLocaleString() : '—'}</td>,
+                  ])}
                   <td style={{ fontWeight: 600 }}>{row.totalTonnage}</td>
                   <td style={{ fontWeight: 600 }}>₹{row.totalValue.toLocaleString()}</td>
                 </tr>
@@ -1642,12 +1638,10 @@ function InventoryTab({ data }) {
             <tfoot>
               <tr style={{ background: 'rgba(59,130,246,0.12)' }}>
                 <td style={{ fontWeight: 700 }}>Grand Total</td>
-                {platformMonthData.monthTotals.map((m, j) => (
-                  <td key={j} style={{ fontWeight: 700 }}>{m.tonnage}</td>
-                ))}
-                {platformMonthData.monthTotals.map((m, j) => (
-                  <td key={'v' + j} style={{ fontWeight: 700 }}>₹{m.value.toLocaleString()}</td>
-                ))}
+                {platformMonthData.monthTotals.flatMap((m, j) => [
+                  <td key={'t' + j} style={{ fontWeight: 700 }}>{m.tonnage}</td>,
+                  <td key={'v' + j} style={{ fontWeight: 700 }}>₹{m.value.toLocaleString()}</td>,
+                ])}
                 <td style={{ fontWeight: 700 }}>{platformMonthData.grand.totalTonnage}</td>
                 <td style={{ fontWeight: 700 }}>₹{platformMonthData.grand.totalValue.toLocaleString()}</td>
               </tr>
