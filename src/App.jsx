@@ -176,7 +176,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
       const d = parseReleaseDate(r['PO Released Date(MM-DD-YYYY)'])
       if (!d) return
       const mk = d.getFullYear() * 12 + d.getMonth()
-      if (!map[mk]) map[mk] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, delivered: new Set(), rto: new Set(), cities: new Set() }
+      if (!map[mk]) map[mk] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, delivered: new Set(), rto: new Set(), cities: new Set(), platforms: {} }
       const cell = map[mk]
       cell.orders.add(r['PO Number'])
       cell.tonnage += num(r['Tonnage'])
@@ -187,10 +187,14 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
       if (r['Status'] === 'Delivered') cell.delivered.add(po)
       if (r['Status'] === 'RTO') cell.rto.add(po)
       if (r['City']) cell.cities.add(r['City'])
+      const p = r['Platform'] || 'Unknown'
+      if (!cell.platforms[p]) cell.platforms[p] = new Set()
+      cell.platforms[p].add(po)
     })
     return Object.entries(map).sort((a, b) => a[0] - b[0]).map(([mk, c]) => {
       const m = mk % 12
       const y = Math.floor(mk / 12)
+      const platforms = Object.entries(c.platforms).map(([name, set]) => ({ name, orders: set.size })).sort((a, b) => b.orders - a.orders)
       return {
         key: String(mk),
         label: `${monthNames[m]} ${String(y).slice(2)}`,
@@ -201,6 +205,8 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
         delivered: c.delivered.size,
         rto: c.rto.size,
         cities: c.cities.size,
+        platforms,
+        platformLabel: platforms.map(x => `${x.name} (${x.orders})`).join(', '),
         deliveryRate: (c.delivered.size + c.rto.size) ? Math.round(c.delivered.size / (c.delivered.size + c.rto.size) * 100) : null,
       }
     })
@@ -209,6 +215,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
   const monthSort = useSort()
   const monthAccessors = {
     label: r => r.label,
+    platforms: r => r.platformLabel,
     orders: r => r.orders,
     tonnage: r => r.tonnage,
     boxes: r => r.boxes,
@@ -410,11 +417,11 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
           <button onClick={() => {
             const rows = ['Month-wise Overview']
             rows.push('')
-            rows.push('Month,Orders,Tonnage KG,Boxes,Value,Delivered,RTO,Delivery Rate %')
+            rows.push('Month,Platforms,Orders,Tonnage KG,Boxes,Value,Delivered,RTO,Delivery Rate %')
             monthData.forEach(r => {
-              rows.push(`${csvEscape(r.label)},${r.orders},${r.tonnage},${r.boxes},${r.value},${r.delivered},${r.rto},${r.deliveryRate === null ? '' : r.deliveryRate}`)
+              rows.push(`${csvEscape(r.label)},${csvEscape(r.platformLabel)},${r.orders},${r.tonnage},${r.boxes},${r.value},${r.delivered},${r.rto},${r.deliveryRate === null ? '' : r.deliveryRate}`)
             })
-            rows.push(`TOTAL,${monthTotals.orders},${monthTotals.tonnage},${monthTotals.boxes},${monthTotals.value},${monthTotals.delivered},${monthTotals.rto},`)
+            rows.push(`TOTAL,,${monthTotals.orders},${monthTotals.tonnage},${monthTotals.boxes},${monthTotals.value},${monthTotals.delivered},${monthTotals.rto},`)
             const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a'); a.href = url; a.download = 'monthly_overview.csv'; a.click()
@@ -437,6 +444,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
                   return (
                     <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
                       <div style={{ fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>{row.label}</div>
+                      <div style={{ color: '#94a3b8' }}>Platforms: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{row.platformLabel}</span></div>
                       <div style={{ color: '#94a3b8' }}>Orders: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{row.orders}</span></div>
                       <div style={{ color: '#94a3b8' }}>Tonnage: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{row.tonnage} KG</span></div>
                       <div style={{ color: '#94a3b8' }}>Value: <span style={{ color: '#22c55e', fontWeight: 600 }}>₹{row.value.toLocaleString()}</span></div>
@@ -455,6 +463,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
           <thead>
             <tr>
               <SortTh label="Month" k="label" sort={monthSort} />
+              <SortTh label="Platforms" k="platforms" sort={monthSort} />
               <SortTh label="Orders" k="orders" sort={monthSort} />
               <SortTh label="Tonnage (KG)" k="tonnage" sort={monthSort} />
               <SortTh label="Boxes" k="boxes" sort={monthSort} />
@@ -468,6 +477,14 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
             {applySort(monthData, monthSort, monthAccessors).map((row, i) => (
               <tr key={i}>
                 <td style={{ fontWeight: 600 }}>{row.label}</td>
+                <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 220 }}>
+                  {row.platforms.map((x, j) => (
+                    <span key={x.name}>
+                      {j > 0 && ' • '}
+                      <span style={{ color: '#3b82f6', fontWeight: 600 }}>{x.name}</span> ({x.orders})
+                    </span>
+                  ))}
+                </td>
                 <td>{row.orders}</td>
                 <td>{row.tonnage}</td>
                 <td>{row.boxes}</td>
@@ -486,6 +503,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
           <tfoot>
             <tr style={{ background: 'rgba(59,130,246,0.12)' }}>
               <td style={{ fontWeight: 700 }}>Total</td>
+              <td style={{ fontSize: 12, color: '#94a3b8' }}>—</td>
               <td style={{ fontWeight: 700 }}>{monthTotals.orders}</td>
               <td style={{ fontWeight: 700 }}>{monthTotals.tonnage}</td>
               <td style={{ fontWeight: 700 }}>{monthTotals.boxes}</td>
