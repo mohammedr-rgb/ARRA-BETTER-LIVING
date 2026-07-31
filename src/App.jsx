@@ -1231,9 +1231,11 @@ function InventoryTab({ data }) {
       const mk = `${d.getFullYear()}-${d.getMonth()}`
       monthSet.add(mk)
       if (!map[p]) map[p] = {}
-      if (!map[p][mk]) map[p][mk] = { tonnage: 0, value: 0 }
+      if (!map[p][mk]) map[p][mk] = { tonnage: 0, poValues: {} }
       map[p][mk].tonnage += num(r['Tonnage'])
-      map[p][mk].value += num(r['Invoice Value'])
+      const po = r['PO Number']
+      const iv = num(r['Invoice Value'])
+      if (po && iv > 0) map[p][mk].poValues[po] = iv
     })
     const months = [...monthSet].sort().map(mk => {
       const [y, m] = mk.split('-').map(Number)
@@ -1244,9 +1246,10 @@ function InventoryTab({ data }) {
       let totalTonnage = 0, totalValue = 0
       const cells = months.map(m => {
         const c = map[p][m.key]
+        const value = c ? Object.values(c.poValues).reduce((s, v) => s + v, 0) : 0
         totalTonnage += c ? c.tonnage : 0
-        totalValue += c ? c.value : 0
-        return c ? { tonnage: Math.round(c.tonnage), value: Math.round(c.value) } : null
+        totalValue += value
+        return c ? { tonnage: Math.round(c.tonnage), value: Math.round(value) } : null
       })
       return { platform: p, cells, totalTonnage, totalValue }
     })
