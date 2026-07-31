@@ -143,17 +143,6 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
     status: r => r['Status'],
   }
 
-  const openMetrics = useMemo(() => {
-    const activePOs = data.filter(r => ['In-Transit', 'Pending', 'Processing'].includes(r['Status'] || ''))
-    const poSet = new Set(activePOs.map(r => r['PO Number']).filter(Boolean))
-    return {
-      orders: poSet.size,
-      value: activePOs.reduce((s, r) => s + num(r['PO Value with Tax']), 0),
-      tonnage: activePOs.reduce((s, r) => s + num(r['Tonnage']), 0),
-      boxes: activePOs.reduce((s, r) => s + num(r['Box Count']), 0),
-    }
-  }, [data])
-
   const platformPerf = useMemo(() => {
     const poData = uniqueByPO(data)
     const map = {}
@@ -234,6 +223,78 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
     rto: s.rto + r.rto,
   }), { orders: 0, tonnage: 0, boxes: 0, value: 0, delivered: 0, rto: 0 }), [monthData])
 
+  const hoverMonthData = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const map = {}
+    data.forEach(r => {
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      if (!d) return
+      const mk = d.getFullYear() * 12 + d.getMonth()
+      if (!map[mk]) map[mk] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, poQty: 0, delQty: 0, platforms: {} }
+      const cell = map[mk]
+      cell.orders.add(r['PO Number'])
+      cell.tonnage += num(r['Tonnage'])
+      cell.boxes += num(r['Box Count'])
+      cell.poQty += num(r['PO Qty'])
+      cell.delQty += num(r['Delivered QTY'])
+      const po = r['PO Number']
+      const pv = num(r['PO Value with Tax'])
+      if (po && pv > 0) cell.poValues[po] = pv
+      const p = r['Platform'] || 'Unknown'
+      if (!cell.platforms[p]) cell.platforms[p] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, poQty: 0, delQty: 0 }
+      const pc = cell.platforms[p]
+      pc.orders.add(po)
+      pc.tonnage += num(r['Tonnage'])
+      pc.boxes += num(r['Box Count'])
+      pc.poQty += num(r['PO Qty'])
+      pc.delQty += num(r['Delivered QTY'])
+      if (po && pv > 0) pc.poValues[po] = pv
+    })
+    const fmt = (c) => ({
+      orders: c.orders.size,
+      value: Math.round(Object.values(c.poValues).reduce((s, v) => s + v, 0)),
+      tonnage: Math.round(c.tonnage),
+      boxes: Math.round(c.boxes),
+      fillRate: c.poQty ? Math.round(c.delQty / c.poQty * 100) : null,
+    })
+    return Object.entries(map).sort((a, b) => b[0] - a[0]).slice(0, 2).map(([mk, c]) => {
+      const m = mk % 12
+      const y = Math.floor(mk / 12)
+      return {
+        label: `${monthNames[m]} ${String(y).slice(2)}`,
+        ...fmt(c),
+        platforms: Object.entries(c.platforms).map(([name, pc]) => ({ name, ...fmt(pc) })).sort((a, b) => b.orders - a.orders),
+      }
+    })
+  }, [data])
+
+  const MetricTooltip = ({ metric, title }) => {
+    const renderVal = (v) => {
+      if (metric === 'orders') return String(v.orders)
+      if (metric === 'value') return '₹' + v.value.toLocaleString()
+      if (metric === 'tonnage') return v.tonnage.toLocaleString() + ' KG'
+      if (metric === 'boxes') return String(v.boxes)
+      if (metric === 'fill') return v.fillRate !== null ? v.fillRate + '%' : '—'
+      return ''
+    }
+    return (
+      <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, minWidth: 280, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+        <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>{title}</div>
+        {hoverMonthData.map((row, i) => (
+          <div key={i} style={{ marginBottom: i < hoverMonthData.length - 1 ? 10 : 0 }}>
+            <div style={{ color: '#3b82f6', fontWeight: 600, fontSize: 12, marginBottom: 4 }}>{row.label}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>Total: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{renderVal(row)}</span></div>
+            {row.platforms.map(p => (
+              <div key={p.name} style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                {p.name}: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{renderVal(p)}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <>
       <header>
@@ -274,14 +335,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
           </div>
           <div className="stat-value">{metrics.totalOrders}</div>
           <div className="stat-change positive">▲ {metrics.deliveredOrders} delivered</div>
-          {hoverStat === 'orders' && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Orders</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>Open Orders: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{openMetrics.orders}</span></div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>Open Value: <span style={{ color: '#22c55e', fontWeight: 600 }}>₹{Math.round(openMetrics.value).toLocaleString()}</span></div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>Open Tonnage: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{Math.round(openMetrics.tonnage)} KG</span></div>
-            </div>
-          )}
+          {hoverStat === 'orders' && <MetricTooltip metric="orders" title="Total Orders — Last 2 Months (Month & Platform-wise)" />}
         </div>
         <div className="stat-card" style={{ position: 'relative', cursor: 'pointer' }} onMouseEnter={() => setHoverStat('value')} onMouseLeave={() => setHoverStat(null)}>
           <div className="stat-header">
@@ -290,13 +344,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
           </div>
           <div className="stat-value">₹{metrics.totalValue.toLocaleString()}</div>
           <div className="stat-change positive">▲ Total value</div>
-          {hoverStat === 'value' && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open PO Value</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>Open Value: <span style={{ color: '#22c55e', fontWeight: 600 }}>₹{Math.round(openMetrics.value).toLocaleString()}</span></div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>Open Tonnage: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{Math.round(openMetrics.tonnage)} KG</span></div>
-            </div>
-          )}
+          {hoverStat === 'value' && <MetricTooltip metric="value" title="PO Value (with Tax) — Last 2 Months (Month & Platform-wise)" />}
         </div>
         <div className="stat-card" style={{ position: 'relative', cursor: 'pointer' }} onMouseEnter={() => setHoverStat('tonnage')} onMouseLeave={() => setHoverStat(null)}>
           <div className="stat-header">
@@ -305,13 +353,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
           </div>
           <div className="stat-value">{metrics.totalTonnage} KG</div>
           <div className="stat-change positive">▲ {metrics.deliveredTonnage} KG delivered</div>
-          {hoverStat === 'tonnage' && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Tonnage</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>Open Tonnage: <span style={{ color: '#a855f7', fontWeight: 600 }}>{Math.round(openMetrics.tonnage)} KG</span></div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>Open Value: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>₹{Math.round(openMetrics.value).toLocaleString()}</span></div>
-            </div>
-          )}
+          {hoverStat === 'tonnage' && <MetricTooltip metric="tonnage" title="Total Tonnage — Last 2 Months (Month & Platform-wise)" />}
         </div>
         <div className="stat-card" style={{ position: 'relative', cursor: 'pointer' }} onMouseEnter={() => setHoverStat('boxes')} onMouseLeave={() => setHoverStat(null)}>
           <div className="stat-header">
@@ -320,13 +362,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
           </div>
           <div className="stat-value">{metrics.totalBoxes}</div>
           <div className="stat-change positive">▲ Total boxes shipped</div>
-          {hoverStat === 'boxes' && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Box Count</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>Open Boxes: <span style={{ color: '#eab308', fontWeight: 600 }}>{Math.round(openMetrics.boxes)}</span></div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>Open Value: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>₹{Math.round(openMetrics.value).toLocaleString()}</span></div>
-            </div>
-          )}
+          {hoverStat === 'boxes' && <MetricTooltip metric="boxes" title="Box Count — Last 2 Months (Month & Platform-wise)" />}
         </div>
         <div className="stat-card" style={{ position: 'relative', cursor: 'pointer' }} onMouseEnter={() => setHoverStat('fillrate')} onMouseLeave={() => setHoverStat(null)}>
           <div className="stat-header">
@@ -335,14 +371,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
           </div>
           <div className="stat-value" style={{ color: metrics.avgFillRate >= 80 ? '#22c55e' : metrics.avgFillRate >= 50 ? '#eab308' : '#ef4444' }}>{metrics.avgFillRate}%</div>
           <div className="stat-change" style={{ color: '#94a3b8' }}>Average fill rate</div>
-          {hoverStat === 'fillrate' && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Delivery Performance</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>Delivered: <span style={{ color: '#22c55e', fontWeight: 600 }}>{metrics.deliveredOrders}</span></div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>RTO: <span style={{ color: '#ef4444', fontWeight: 600 }}>{metrics.rtoOrders}</span></div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>Delivered Tonnage: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{metrics.deliveredTonnage} KG</span></div>
-            </div>
-          )}
+          {hoverStat === 'fillrate' && <MetricTooltip metric="fill" title="Fill Rate — Last 2 Months (Month & Platform-wise)" />}
         </div>
       </div>
 
