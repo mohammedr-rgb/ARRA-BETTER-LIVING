@@ -144,7 +144,12 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
   }
 
   const platformPerf = useMemo(() => {
-    const poData = uniqueByPO(data)
+    const now = new Date()
+    const currentMk = now.getFullYear() * 12 + now.getMonth()
+    const poData = uniqueByPO(data).filter(r => {
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      return d && (d.getFullYear() * 12 + d.getMonth()) === currentMk
+    })
     const map = {}
     for (const r of poData) {
       const p = r['Platform'] || 'Unknown'
