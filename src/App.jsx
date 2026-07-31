@@ -137,8 +137,8 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
     qty: r => num(r['PO Qty']),
     tonnage: r => num(r['Tonnage']),
     value: r => num(r['PO Value with Tax']),
-    released: r => parseReleaseDate(r['PO Released Date(MM-DD-YYYY)']),
-    appt: r => parseDate(r['Appointment Date(MM-DD-YYYY)']),
+    released: r => parseMMDDDate(r['PO Released Date(MM-DD-YYYY)']),
+    appt: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)']),
     apptid: r => r['Appointment ID'],
     status: r => r['Status'],
   }
@@ -173,7 +173,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     const map = {}
     data.forEach(r => {
-      const d = parseReleaseDate(r['PO Released Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
       if (!d) return
       const mk = d.getFullYear() * 12 + d.getMonth()
       if (!map[mk]) map[mk] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, delivered: new Set(), rto: new Set(), cities: new Set(), platforms: {} }
@@ -966,7 +966,7 @@ function parseDate(str) {
   return new Date(year, month, day)
 }
 
-function parseReleaseDate(str) {
+function parseMMDDDate(str) {
   if (!str) return null
   const parts = str.split('-')
   if (parts.length !== 3) return null
@@ -1159,7 +1159,7 @@ function AppointmentView({ data }) {
     facility: r => r['FacilityName'],
     transporter: r => r['Transporter'],
     tonnage: r => num(r._tonnage),
-    apptdate: r => parseDate(r['Appointment Date(MM-DD-YYYY)']),
+    apptdate: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)']),
     apptid: r => r['Appointment ID'],
     status: r => r['Status'],
     remarks: r => r['Remarks'],
@@ -1168,7 +1168,7 @@ function AppointmentView({ data }) {
   const byAppt = useMemo(() => {
     const tMap = new Map(); const tmMap = new Map(); const wMap = new Map()
     data.forEach(r => {
-      const d = parseDate(r['Appointment Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])
       if (!d) return
       const po = r['PO Number']
       const ton = num(r['Tonnage'])
@@ -1187,7 +1187,7 @@ function AppointmentView({ data }) {
     const statusT = {}; const statusTm = {}; const statusW = {}
     const seenTStat = new Set(); const seenTmStat = new Set(); const seenWStat = new Set()
     data.forEach(r => {
-      const d = parseDate(r['Appointment Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])
       if (!d) return
       const po = r['PO Number']
       const s = r['Status'] || 'Unknown'
@@ -1412,7 +1412,7 @@ function InventoryTab({ data }) {
     const monthSet = new Set()
     data.forEach(r => {
       const p = r['Platform'] || 'Unknown'
-      const d = parseReleaseDate(r['PO Released Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
       if (!d) return
       const mk = `${d.getFullYear()}-${d.getMonth()}`
       monthSet.add(mk)
@@ -2440,7 +2440,7 @@ function RTOTab({ data }) {
 
   const rtoAccessors = {
     po: r => r['PO Number'],
-    apptdate: r => parseDate(r['Appointment Date(MM-DD-YYYY)']),
+    apptdate: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)']),
     city: r => r['City'],
     platform: r => r['Platform'],
     product: r => r['Product'],
@@ -2773,7 +2773,7 @@ function App() {
   const recentOrders = useMemo(() => {
     const seen = new Set()
     return filteredData
-      .map(r => ({ r, released: parseReleaseDate(r['PO Released Date(MM-DD-YYYY)']) }))
+      .map(r => ({ r, released: parseMMDDDate(r['PO Released Date(MM-DD-YYYY)']) }))
       .filter(x => x.released && !seen.has(x.r['PO Number']))
       .sort((a, b) => b.released - a.released)
       .slice(0, 10)
