@@ -277,20 +277,45 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
       if (metric === 'fill') return v.fillRate !== null ? v.fillRate + '%' : '—'
       return ''
     }
+    const platformNames = Array.from(new Set(hoverMonthData.flatMap(m => m.platforms.map(p => p.name))))
+      .sort((a, b) => {
+        const get = (name, month) => month.platforms.find(p => p.name === name)
+        const first = hoverMonthData[0]
+        return (get(b, first)?.orders || 0) - (get(a, first)?.orders || 0)
+      })
+    const cellVal = (month, name) => {
+      const p = month.platforms.find(x => x.name === name)
+      return p ? renderVal(p) : '—'
+    }
     return (
-      <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, minWidth: 280, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-        <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>{title}</div>
-        {hoverMonthData.map((row, i) => (
-          <div key={i} style={{ marginBottom: i < hoverMonthData.length - 1 ? 10 : 0 }}>
-            <div style={{ color: '#3b82f6', fontWeight: 600, fontSize: 12, marginBottom: 4 }}>{row.label}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8' }}>Total: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{renderVal(row)}</span></div>
-            {row.platforms.map(p => (
-              <div key={p.name} style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
-                {p.name}: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{renderVal(p)}</span>
-              </div>
+      <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '10px 14px', zIndex: 9999, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+        <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 6 }}>{title}</div>
+        <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', padding: '2px 14px 4px 0', color: '#64748b', fontWeight: 600 }}>Platform</th>
+              {hoverMonthData.map(m => (
+                <th key={m.label} style={{ textAlign: 'right', padding: '2px 0 4px 14px', color: '#3b82f6', fontWeight: 600 }}>{m.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '3px 14px 3px 0', color: '#94a3b8' }}>Total</td>
+              {hoverMonthData.map(m => (
+                <td key={m.label} style={{ textAlign: 'right', padding: '3px 0 3px 14px', color: '#f1f5f9', fontWeight: 600 }}>{renderVal(m)}</td>
+              ))}
+            </tr>
+            {platformNames.map(name => (
+              <tr key={name}>
+                <td style={{ padding: '3px 14px 3px 0', color: '#94a3b8' }}>{name}</td>
+                {hoverMonthData.map(m => (
+                  <td key={m.label} style={{ textAlign: 'right', padding: '3px 0 3px 14px', color: '#f1f5f9', fontWeight: 600 }}>{cellVal(m, name)}</td>
+                ))}
+              </tr>
             ))}
-          </div>
-        ))}
+          </tbody>
+        </table>
       </div>
     )
   }
