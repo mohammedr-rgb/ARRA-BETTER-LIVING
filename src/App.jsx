@@ -1412,7 +1412,7 @@ function InventoryTab({ data }) {
     const monthSet = new Set()
     data.forEach(r => {
       const p = r['Platform'] || 'Unknown'
-      const d = parseDate(r['DATE(MM-DD-YYYY)'])
+      const d = parseReleaseDate(r['PO Released Date(MM-DD-YYYY)'])
       if (!d) return
       const mk = `${d.getFullYear()}-${d.getMonth()}`
       monthSet.add(mk)
