@@ -781,9 +781,17 @@ function parseDate(str) {
   if (!str) return null
   const parts = str.split('-')
   if (parts.length !== 3) return null
-  const month = parseInt(parts[0], 10) - 1
-  const day = parseInt(parts[1], 10)
+  const a = parseInt(parts[0], 10)
+  const b = parseInt(parts[1], 10)
   const year = parseInt(parts[2], 10)
+  let day, month
+  if (b >= 1 && b <= 12) {
+    day = a
+    month = b - 1
+  } else {
+    day = b
+    month = a - 1
+  }
   return new Date(year, month, day)
 }
 
