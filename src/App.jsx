@@ -1409,6 +1409,7 @@ function WoWCityTable({ data, dateFrom, dateTo, platformFilter }) {
 }
 
 function InventoryTab({ data }) {
+  const [hoverSku, setHoverSku] = useState(null)
   const toNumKG = (v) => {
     const s = String(v).replace(/[^0-9.\-]/g, '')
     const n = parseFloat(s)
@@ -1699,7 +1700,13 @@ function InventoryTab({ data }) {
                 const pct = planData.items.length ? (row.planQty / planData.items[0].planQty * 100) : 0
                 return (
                 <tr key={i}>
-                  <td style={{ fontWeight: 600, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.product}</td>
+                  <td style={{ position: 'relative', fontWeight: 600, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} onMouseEnter={() => setHoverSku(row.product)} onMouseLeave={() => setHoverSku(null)}>{row.product}
+                    {hoverSku === row.product && (
+                      <div style={{ position: 'absolute', left: 0, top: '100%', marginTop: 4, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '8px 12px', zIndex: 9999, maxWidth: 420, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                        <span style={{ fontSize: 12, color: '#f1f5f9', fontWeight: 600, wordBreak: 'break-word', whiteSpace: 'normal' }}>{row.product}</span>
+                      </div>
+                    )}
+                  </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 50, height: 5, background: '#334155', borderRadius: 3, overflow: 'hidden' }}>
