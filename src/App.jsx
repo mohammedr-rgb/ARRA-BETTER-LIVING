@@ -617,11 +617,26 @@ function DispatchTab({ data, rawCSV }) {
   const dispatchMetrics = useMemo(() => {
     const dispatched = poData.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes(r['Status'] || ''))
     const allDispatched = data.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes(r['Status'] || ''))
+    const byPlatform = {}
+    const byCity = {}
+    for (const r of allDispatched) {
+      const p = r['Platform'] || 'Unknown'
+      const c = r['City'] || 'Unknown'
+      if (!byPlatform[p]) byPlatform[p] = { boxes: 0, tonnage: 0 }
+      byPlatform[p].boxes += num(r['Box Count'])
+      byPlatform[p].tonnage += num(r['Tonnage'])
+      if (!byCity[c]) byCity[c] = { boxes: 0, tonnage: 0 }
+      byCity[c].boxes += num(r['Box Count'])
+      byCity[c].tonnage += num(r['Tonnage'])
+    }
+    const fmt = (obj) => Object.entries(obj).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.tonnage - a.tonnage)
     return {
       openDispatches: dispatched.length,
       openLines: allDispatched.length,
       openTonnage: dispatched.reduce((s, r) => s + num(r['Tonnage']), 0),
       openCharge: dispatched.reduce((s, r) => s + num(r['Transport Charges']), 0),
+      byPlatform: fmt(byPlatform),
+      byCity: fmt(byCity),
     }
   }, [poData, data])
 
@@ -668,10 +683,53 @@ function DispatchTab({ data, rawCSV }) {
           <div className="stat-value">{dispatchMetrics.openDispatches}</div>
           <div className="stat-change">Pending POs</div>
           {hoverStat === 'dispatches' && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 100, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 9999, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Dispatch Summary</div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>Unique POs: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openDispatches}</span></div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>Total Lines: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openLines}</span></div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>Unique POs: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openDispatches}</span> • Total Lines: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openLines}</span></div>
+              <div style={{ display: 'flex', gap: 24 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: '#3b82f6', fontWeight: 600, marginBottom: 4 }}>Platform-wise</div>
+                  <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: '2px 14px 4px 0', color: '#64748b', fontWeight: 600 }}>Platform</th>
+                        <th style={{ textAlign: 'right', padding: '2px 0 4px 14px', color: '#64748b', fontWeight: 600 }}>Boxes</th>
+                        <th style={{ textAlign: 'right', padding: '2px 0 4px 14px', color: '#64748b', fontWeight: 600 }}>KG</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dispatchMetrics.byPlatform.map(p => (
+                        <tr key={p.name}>
+                          <td style={{ padding: '3px 14px 3px 0', color: '#94a3b8' }}>{p.name}</td>
+                          <td style={{ textAlign: 'right', padding: '3px 0 3px 14px', color: '#f1f5f9', fontWeight: 600 }}>{Math.round(p.boxes).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right', padding: '3px 0 3px 14px', color: '#f1f5f9', fontWeight: 600 }}>{Math.round(p.tonnage).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: '#a855f7', fontWeight: 600, marginBottom: 4 }}>City-wise</div>
+                  <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: '2px 14px 4px 0', color: '#64748b', fontWeight: 600 }}>City</th>
+                        <th style={{ textAlign: 'right', padding: '2px 0 4px 14px', color: '#64748b', fontWeight: 600 }}>Boxes</th>
+                        <th style={{ textAlign: 'right', padding: '2px 0 4px 14px', color: '#64748b', fontWeight: 600 }}>KG</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dispatchMetrics.byCity.map(c => (
+                        <tr key={c.name}>
+                          <td style={{ padding: '3px 14px 3px 0', color: '#94a3b8' }}>{c.name}</td>
+                          <td style={{ textAlign: 'right', padding: '3px 0 3px 14px', color: '#f1f5f9', fontWeight: 600 }}>{Math.round(c.boxes).toLocaleString()}</td>
+                          <td style={{ textAlign: 'right', padding: '3px 0 3px 14px', color: '#f1f5f9', fontWeight: 600 }}>{Math.round(c.tonnage).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
         </div>
