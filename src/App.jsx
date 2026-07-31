@@ -173,7 +173,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     const map = {}
     data.forEach(r => {
-      const d = parseDate(r['DATE(MM-DD-YYYY)'])
+      const d = parseReleaseDate(r['PO Released Date(MM-DD-YYYY)'])
       if (!d) return
       const mk = d.getFullYear() * 12 + d.getMonth()
       if (!map[mk]) map[mk] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, delivered: new Set(), rto: new Set(), cities: new Set() }
