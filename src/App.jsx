@@ -516,12 +516,12 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
         </table>
       </div>
 
-        <div className="recent-orders">
+        <div className="recent-orders" style={{ overflowX: 'auto' }}>
         <div className="orders-header">
           <div className="orders-title">Recent PO Releases</div>
           <div className="chart-period">Latest 10 releases</div>
         </div>
-        <table>
+        <table style={{ minWidth: 1000 }}>
           <thead>
             <tr>
               <SortTh label="PO #" k="po" sort={recentSort} />
