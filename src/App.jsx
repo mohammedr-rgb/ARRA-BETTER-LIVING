@@ -1281,14 +1281,14 @@ function InventoryTab({ data }) {
             rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan')
             rows.push('')
             if (planData.items && planData.items.length) {
-              rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Est Transport,Cost/Unit,Total Value,Cities')
-              let gQty = 0, gTon = 0, gBox = 0, gTrans = 0, gVal = 0
+              rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Cities')
+              let gQty = 0, gTon = 0, gBox = 0, gVal = 0
               planData.items.forEach(r => {
-                rows.push(`${r.product},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},${r.planTransport},₹${r.perUnitCharge},₹${r.totalValue},${r.cities}`)
-                gQty += r.planQty; gTon += r.planTonnage; gBox += r.planBoxes; gTrans += r.planTransport; gVal += r.totalValue
+                rows.push(`${r.product},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},₹${r.perUnitCharge},₹${r.totalValue},${r.cities}`)
+                gQty += r.planQty; gTon += r.planTonnage; gBox += r.planBoxes; gVal += r.totalValue
               })
               rows.push('')
-              rows.push(`GRAND TOTAL,${gQty},${gTon},${gBox},${gTrans},,₹${gVal.toLocaleString()}`)
+              rows.push(`GRAND TOTAL,${gQty},${gTon},${gBox},,₹${gVal.toLocaleString()}`)
             }
             const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
             const url = URL.createObjectURL(blob)
@@ -1340,7 +1340,6 @@ function InventoryTab({ data }) {
                 <th>Plan Qty</th>
                 <th>Plan Tonnage</th>
                 <th>Plan Boxes</th>
-                <th>Est. Transport</th>
                 <th>Cost/Unit</th>
                 <th>Value</th>
                 <th>Cities</th>
@@ -1363,7 +1362,6 @@ function InventoryTab({ data }) {
                   <td style={{ fontWeight: 600, color: '#3b82f6' }}>{row.planQty}</td>
                   <td>{row.planTonnage} KG</td>
                   <td>{row.planBoxes}</td>
-                  <td>₹{row.planTransport.toLocaleString()}</td>
                   <td style={{ fontSize: 12, color: '#94a3b8' }}>₹{row.perUnitCharge}</td>
                   <td style={{ fontSize: 12, color: '#94a3b8' }}>₹{row.totalValue.toLocaleString()}</td>
                   <td style={{ fontSize: 12, color: '#64748b' }}>{row.cities}</td>
