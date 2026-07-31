@@ -615,6 +615,38 @@ function DispatchTab({ data, rawCSV }) {
     })
   }, [data])
 
+  const pendingPlatformData = useMemo(() => {
+    const poSet = new Set(pendingData.map(r => r['PO Number']).filter(Boolean))
+    const map = {}
+    for (const r of pendingData) {
+      const p = r['Platform'] || 'Unknown'
+      if (!map[p]) map[p] = { platform: p, pos: new Set() }
+      map[p].pos.add(r['PO Number'])
+    }
+    const statusCounts = {}
+    data.forEach(r => {
+      const po = r['PO Number']
+      if (!po || !poSet.has(po)) return
+      const s = r['Status'] || ''
+      if (!statusCounts[po]) statusCounts[po] = { delivered: 0, inTransit: 0, rto: 0 }
+      if (s === 'Delivered') statusCounts[po].delivered++
+      else if (s === 'In-Transit') statusCounts[po].inTransit++
+      else if (s === 'RTO') statusCounts[po].rto++
+    })
+    return Object.values(map).map(x => {
+      let delivered = 0
+      let inTransit = 0
+      let rto = 0
+      x.pos.forEach(po => {
+        const sc = statusCounts[po] || {}
+        delivered += sc.delivered || 0
+        inTransit += sc.inTransit || 0
+        rto += sc.rto || 0
+      })
+      return { platform: x.platform, pos: x.pos.size, delivered, inTransit, rto }
+    }).sort((a, b) => b.pos - a.pos)
+  }, [pendingData, data])
+
   const dispatchMetrics = useMemo(() => {
     const dispatched = poData.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes(r['Status'] || ''))
     const allDispatched = data.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes(r['Status'] || ''))
@@ -805,7 +837,14 @@ function DispatchTab({ data, rawCSV }) {
       <div className="recent-orders">
         <div className="orders-header">
           <div className="orders-title">Pending for Dispatch / Schedule</div>
-          <div className="chart-period">{pendingData.length} POs</div>
+          <div className="chart-period">{dispatchMetrics.openDispatches} POs</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          {pendingPlatformData.map(p => (
+            <span key={p.platform} style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', whiteSpace: 'nowrap' }}>
+              {p.platform} • {p.pos} POs • {p.delivered} Delivered · {p.inTransit} In-Transit · {p.rto} RTO
+            </span>
+          ))}
         </div>
         <table>
           <thead>
