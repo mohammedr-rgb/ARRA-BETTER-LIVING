@@ -102,6 +102,11 @@ function applySort(rows, sort, accessors) {
   })
 }
 
+function csvEscape(v) {
+  const s = String(v ?? '')
+  return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
 const STATUS_COLORS = {
   Delivered: '#22c55e',
   'In-Transit': '#3b82f6',
@@ -1215,6 +1220,47 @@ function InventoryTab({ data }) {
     return Object.values(map).sort((a, b) => b.tonnage - a.tonnage)
   }, [data])
 
+  const platformMonthData = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const map = {}
+    const monthSet = new Set()
+    data.forEach(r => {
+      const p = r['Platform'] || 'Unknown'
+      const d = parseDate(r['DATE(MM-DD-YYYY)'])
+      if (!d) return
+      const mk = `${d.getFullYear()}-${d.getMonth()}`
+      monthSet.add(mk)
+      if (!map[p]) map[p] = {}
+      if (!map[p][mk]) map[p][mk] = { tonnage: 0, value: 0 }
+      map[p][mk].tonnage += num(r['Tonnage'])
+      map[p][mk].value += num(r['Invoice Value'])
+    })
+    const months = [...monthSet].sort().map(mk => {
+      const [y, m] = mk.split('-').map(Number)
+      return { key: mk, label: `${monthNames[m]} ${String(y).slice(2)}` }
+    })
+    const platforms = Object.keys(map).sort()
+    const rows = platforms.map(p => {
+      let totalTonnage = 0, totalValue = 0
+      const cells = months.map(m => {
+        const c = map[p][m.key]
+        totalTonnage += c ? c.tonnage : 0
+        totalValue += c ? c.value : 0
+        return c ? { tonnage: Math.round(c.tonnage), value: Math.round(c.value) } : null
+      })
+      return { platform: p, cells, totalTonnage, totalValue }
+    })
+    const grand = rows.reduce((s, r) => ({
+      totalTonnage: s.totalTonnage + r.totalTonnage,
+      totalValue: s.totalValue + r.totalValue,
+    }), { totalTonnage: 0, totalValue: 0 })
+    const monthTotals = months.map((m, i) => rows.reduce((s, r) => {
+      const c = r.cells[i]
+      return { tonnage: s.tonnage + (c ? c.tonnage : 0), value: s.value + (c ? c.value : 0) }
+    }, { tonnage: 0, value: 0 }))
+    return { months, rows, grand, monthTotals }
+  }, [data])
+
   const planData = useMemo(() => {
     const now = new Date()
     const thisMonth = now.getMonth()
@@ -1284,11 +1330,11 @@ function InventoryTab({ data }) {
               rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Cities')
               let gQty = 0, gTon = 0, gBox = 0, gVal = 0
               planData.items.forEach(r => {
-                rows.push(`${r.product},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},₹${r.perUnitCharge},₹${r.totalValue},${r.cities}`)
+                rows.push(`${csvEscape(r.product)},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},${r.perUnitCharge},${r.totalValue},${r.cities}`)
                 gQty += r.planQty; gTon += r.planTonnage; gBox += r.planBoxes; gVal += r.totalValue
               })
               rows.push('')
-              rows.push(`GRAND TOTAL,${gQty},${gTon},${gBox},,₹${gVal.toLocaleString()}`)
+              rows.push(`GRAND TOTAL,${gQty},${gTon},${gBox},,${gVal}`)
             }
             const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
             const url = URL.createObjectURL(blob)
@@ -1326,6 +1372,78 @@ function InventoryTab({ data }) {
         </table>
       </div>
 
+      {platformMonthData.rows.length > 0 && (
+        <div className="recent-orders" style={{ marginTop: 20 }}>
+          <div className="orders-header">
+            <div className="orders-title">Platform &amp; Month-wise Sales</div>
+            <div className="chart-period">Tonnage (KG) • Invoice Value</div>
+            <button onClick={() => {
+              const rows = ['Platform & Month-wise Sales']
+              rows.push('')
+              rows.push('Platform,' + platformMonthData.months.map(m => `${m.label} Tonnage`).join(',') + ',' + platformMonthData.months.map(m => `${m.label} Value`).join(',') + ',Total Tonnage,Total Value')
+              platformMonthData.rows.forEach(r => {
+                rows.push(csvEscape(r.platform) + ',' + r.cells.map(c => c ? c.tonnage : '').join(',') + ',' + r.cells.map(c => c ? c.value : '').join(',') + ',' + r.totalTonnage + ',' + r.totalValue)
+              })
+              rows.push('TOTAL,' + platformMonthData.monthTotals.map(m => m.tonnage).join(',') + ',' + platformMonthData.monthTotals.map(m => m.value).join(',') + ',' + platformMonthData.grand.totalTonnage + ',' + platformMonthData.grand.totalValue)
+              const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a'); a.href = url; a.download = 'platform_month_sales.csv'; a.click()
+              URL.revokeObjectURL(url)
+            }} style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+              ⬇ Download CSV
+            </button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th rowSpan={2} style={{ verticalAlign: 'middle' }}>Platform</th>
+                {platformMonthData.months.map(m => (
+                  <th key={m.key} colSpan={2} style={{ textAlign: 'center' }}>{m.label}</th>
+                ))}
+                <th rowSpan={2} style={{ verticalAlign: 'middle' }}>Total Tonnage</th>
+                <th rowSpan={2} style={{ verticalAlign: 'middle' }}>Total Value</th>
+              </tr>
+              <tr>
+                {platformMonthData.months.map(m => (
+                  <th key={'c' + m.key}>Tonnage</th>
+                ))}
+                {platformMonthData.months.map(m => (
+                  <th key={'v' + m.key}>Value</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {platformMonthData.rows.map((row, i) => (
+                <tr key={i}>
+                  <td style={{ fontWeight: 600 }}>{row.platform}</td>
+                  {row.cells.map((c, j) => (
+                    <td key={j}>{c ? c.tonnage : '—'}</td>
+                  ))}
+                  {row.cells.map((c, j) => (
+                    <td key={'v' + j}>{c ? '₹' + c.value.toLocaleString() : '—'}</td>
+                  ))}
+                  <td style={{ fontWeight: 600 }}>{row.totalTonnage}</td>
+                  <td style={{ fontWeight: 600 }}>₹{row.totalValue.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ background: 'rgba(59,130,246,0.12)' }}>
+                <td style={{ fontWeight: 700 }}>Grand Total</td>
+                {platformMonthData.monthTotals.map((m, j) => (
+                  <td key={j} style={{ fontWeight: 700 }}>{m.tonnage}</td>
+                ))}
+                {platformMonthData.monthTotals.map((m, j) => (
+                  <td key={'v' + j} style={{ fontWeight: 700 }}>₹{m.value.toLocaleString()}</td>
+                ))}
+                <td style={{ fontWeight: 700 }}>{platformMonthData.grand.totalTonnage}</td>
+                <td style={{ fontWeight: 700 }}>₹{platformMonthData.grand.totalValue.toLocaleString()}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
       {planData.items && planData.items.length > 0 && (() => {
         const t = planData.items.reduce((s, r) => ({
           salesQty: s.salesQty + r.salesQty,
@@ -1345,10 +1463,10 @@ function InventoryTab({ data }) {
               rows.push('')
               rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Cities')
               planData.items.forEach(r => {
-                rows.push(`${r.product},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},₹${r.perUnitCharge},₹${r.totalValue},${r.cities}`)
+                rows.push(`${csvEscape(r.product)},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},${r.perUnitCharge},${r.totalValue},${r.cities}`)
               })
               rows.push('')
-              rows.push(`TOTAL,${t.salesQty},${t.planQty},${t.planTonnage},${t.planBoxes},,₹${t.totalValue.toLocaleString()}`)
+              rows.push(`TOTAL,${t.salesQty},${t.planQty},${t.planTonnage},${t.planBoxes},,${t.totalValue}`)
               const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
               const url = URL.createObjectURL(blob)
               const a = document.createElement('a'); a.href = url; a.download = 'production_plan.csv'; a.click()
