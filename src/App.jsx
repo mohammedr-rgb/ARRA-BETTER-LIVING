@@ -69,6 +69,39 @@ function sumByPO(arr, field) {
   return Object.values(map).reduce((s, v) => s + v, 0)
 }
 
+function useSort() {
+  const [sort, setSort] = useState({ key: '', dir: 'asc' })
+  const toggle = (key) => {
+    setSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' })
+  }
+  return { ...sort, toggle }
+}
+
+function SortTh({ label, k, sort, style }) {
+  const active = sort.key === k
+  return (
+    <th onClick={() => sort.toggle(k)} style={{ cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none', ...style }}>
+      {label}
+      <span style={{ marginLeft: 4, fontSize: 10, color: active ? '#3b82f6' : '#475569' }}>{active ? (sort.dir === 'asc' ? '▲' : '▼') : '⇅'}</span>
+    </th>
+  )
+}
+
+function applySort(rows, sort, accessors) {
+  if (!sort.key) return rows
+  const getVal = accessors[sort.key]
+  const dir = sort.dir === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    const av = getVal ? getVal(a) : a[sort.key]
+    const bv = getVal ? getVal(b) : b[sort.key]
+    if (av === bv) return 0
+    if (av === null || av === undefined || av === '') return 1
+    if (bv === null || bv === undefined || bv === '') return -1
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+    return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir
+  })
+}
+
 const STATUS_COLORS = {
   Delivered: '#22c55e',
   'In-Transit': '#3b82f6',
@@ -89,6 +122,21 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [hoverStat, setHoverStat] = useState(null)
+  const recentSort = useSort()
+
+  const recentAccessors = {
+    po: r => r['PO Number'],
+    city: r => r['City'],
+    platform: r => r['Platform'],
+    product: r => r['Product'],
+    qty: r => num(r['PO Qty']),
+    tonnage: r => num(r['Tonnage']),
+    value: r => num(r['PO Value with Tax']),
+    released: r => parseDate(r['PO Released Date(MM-DD-YYYY)']),
+    appt: r => parseDate(r['Appointment Date(MM-DD-YYYY)']),
+    apptid: r => r['Appointment ID'],
+    status: r => r['Status'],
+  }
 
   const openMetrics = useMemo(() => {
     const activePOs = data.filter(r => ['In-Transit', 'Pending', 'Processing'].includes(r['Status'] || ''))
@@ -300,23 +348,25 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
         <table>
           <thead>
             <tr>
-              <th>PO #</th>
-              <th>City</th>
-              <th>Product</th>
-              <th>Qty</th>
-              <th>Tonnage</th>
-              <th>Value</th>
-              <th>Released Date</th>
-              <th>Appt Date</th>
-              <th>Appt ID</th>
-              <th>Status</th>
+              <SortTh label="PO #" k="po" sort={recentSort} />
+              <SortTh label="City" k="city" sort={recentSort} />
+              <SortTh label="Platform" k="platform" sort={recentSort} />
+              <SortTh label="Product" k="product" sort={recentSort} />
+              <SortTh label="Qty" k="qty" sort={recentSort} />
+              <SortTh label="Tonnage" k="tonnage" sort={recentSort} />
+              <SortTh label="Value" k="value" sort={recentSort} />
+              <SortTh label="Released Date" k="released" sort={recentSort} />
+              <SortTh label="Appt Date" k="appt" sort={recentSort} />
+              <SortTh label="Appt ID" k="apptid" sort={recentSort} />
+              <SortTh label="Status" k="status" sort={recentSort} />
             </tr>
           </thead>
           <tbody>
-            {recentOrders.map((row, i) => (
+            {applySort(recentOrders, recentSort, recentAccessors).map((row, i) => (
               <tr key={i}>
                 <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{row['PO Number']}</td>
                 <td>{row['City']}</td>
+                <td>{row['Platform']}</td>
                 <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row['Product']}</td>
                 <td>{row['PO Qty']}</td>
                 <td>{row['Tonnage']}</td>
@@ -341,6 +391,20 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
 function DispatchTab({ data, rawCSV }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [hoverStat, setHoverStat] = useState(null)
+  const pendingSort = useSort()
+
+  const pendingAccessors = {
+    po: r => r['PO Number'],
+    city: r => r['City'],
+    platform: r => r['Platform'],
+    product: r => r['Product'],
+    qty: r => num(r['PO Qty']),
+    tonnage: r => num(r['Tonnage']),
+    box: r => num(r['Box Count']),
+    mrp: r => num(r['MRP']),
+    cost: r => num(r['Unit Cost']),
+    appt: r => r['Appointment Date(MM-DD-YYYY)'] || r['Status'],
+  }
 
   const pendingData = useMemo(() => {
     const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
@@ -454,22 +518,22 @@ function DispatchTab({ data, rawCSV }) {
         <table>
           <thead>
             <tr>
-              <th>PO #</th>
-              <th>City</th>
-              <th>Platform</th>
-              <th>Product</th>
-              <th>PO Qty</th>
-              <th>Tonnage</th>
-              <th>Box</th>
-              <th>MRP</th>
-              <th>Unit Cost</th>
-              <th>Appointment / Status</th>
+              <SortTh label="PO #" k="po" sort={pendingSort} />
+              <SortTh label="City" k="city" sort={pendingSort} />
+              <SortTh label="Platform" k="platform" sort={pendingSort} />
+              <SortTh label="Product" k="product" sort={pendingSort} />
+              <SortTh label="PO Qty" k="qty" sort={pendingSort} />
+              <SortTh label="Tonnage" k="tonnage" sort={pendingSort} />
+              <SortTh label="Box" k="box" sort={pendingSort} />
+              <SortTh label="MRP" k="mrp" sort={pendingSort} />
+              <SortTh label="Unit Cost" k="cost" sort={pendingSort} />
+              <SortTh label="Appointment / Status" k="appt" sort={pendingSort} />
             </tr>
           </thead>
           <tbody>
             {pendingData.length === 0 ? (
               <tr><td colSpan={10} style={{ textAlign: 'center', color: '#64748b', padding: 20, fontSize: 13 }}>No pending records</td></tr>
-            ) : pendingData.map((r, i) => (
+            ) : applySort(pendingData, pendingSort, pendingAccessors).map((r, i) => (
               <tr key={i}>
                 <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
                 <td>{r['City']}</td>
@@ -493,6 +557,17 @@ function DispatchTab({ data, rawCSV }) {
 function FinanceTab({ data }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [hoverStat, setHoverStat] = useState(null)
+  const poSort = useSort()
+
+  const poAccessors = {
+    po: r => r['PO Number'],
+    entity: r => r['Entity'],
+    invoice: r => r['Invoice No'],
+    value: r => num(r['PO Value with Tax']),
+    dn: r => num(r['DN amount']),
+    fs: r => num(r['Final Settlement']),
+    overdue: r => r['Payment Overdue Alert'],
+  }
 
   const financeMetrics = useMemo(() => {
     let totalPOValue = 0, totalDN = 0, totalFS = 0, overdueCount = 0, invoiceCount = 0
@@ -636,13 +711,11 @@ function FinanceTab({ data }) {
               <th>PO Value</th>
               <th>DN Amount</th>
               <th>Final Settlement</th>
-              <th>Pending</th>
               <th>Overdue</th>
             </tr>
           </thead>
           <tbody>
             {financeMetrics.entityWise.map((row, i) => {
-              const pend = row.dn - row.fs
               return (
               <tr key={i}>
                 <td style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{row.entity}</td>
@@ -651,7 +724,6 @@ function FinanceTab({ data }) {
                 <td style={{ textAlign: 'right' }}>₹{Math.round(row.poValue).toLocaleString()}</td>
                 <td style={{ textAlign: 'right' }}>₹{Math.round(row.dn).toLocaleString()}</td>
                 <td style={{ textAlign: 'right' }}>₹{Math.round(row.fs).toLocaleString()}</td>
-                <td style={{ textAlign: 'right', color: pend > 0 ? '#ef4444' : '#22c55e', fontWeight: 600 }}>₹{Math.round(pend).toLocaleString()}</td>
                 <td><span style={{ color: row.overdueCount > 0 ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{row.overdueCount}</span></td>
               </tr>
             )
@@ -668,21 +740,19 @@ function FinanceTab({ data }) {
         <table>
           <thead>
             <tr>
-              <th>PO #</th>
-              <th>Entity</th>
-              <th>Invoice</th>
-              <th>PO Value</th>
-              <th>DN Amount</th>
-              <th>Final Settlement</th>
-              <th>Pending</th>
-              <th>Overdue Alert</th>
+              <SortTh label="PO #" k="po" sort={poSort} />
+              <SortTh label="Entity" k="entity" sort={poSort} />
+              <SortTh label="Invoice" k="invoice" sort={poSort} />
+              <SortTh label="PO Value" k="value" sort={poSort} />
+              <SortTh label="DN Amount" k="dn" sort={poSort} />
+              <SortTh label="Final Settlement" k="fs" sort={poSort} />
+              <SortTh label="Overdue Alert" k="overdue" sort={poSort} />
             </tr>
           </thead>
           <tbody>
-            {poData.map((r, i) => {
+            {applySort(poData, poSort, poAccessors).map((r, i) => {
               const dn = num(r['DN amount'])
               const fs = num(r['Final Settlement'])
-              const pend = dn - fs
               return (
               <tr key={i}>
                 <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
@@ -691,7 +761,6 @@ function FinanceTab({ data }) {
                 <td style={{ textAlign: 'right' }}>₹{num(r['PO Value with Tax']).toLocaleString()}</td>
                 <td style={{ textAlign: 'right' }}>{dn ? `₹${dn.toLocaleString()}` : '—'}</td>
                 <td style={{ textAlign: 'right' }}>{fs ? `₹${fs.toLocaleString()}` : '—'}</td>
-                <td style={{ textAlign: 'right', color: pend > 0 ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{pend ? `₹${Math.round(pend).toLocaleString()}` : '—'}</td>
                 <td><span style={{ color: (r['Payment Overdue Alert'] || '').toLowerCase().includes('overdue') ? '#ef4444' : '#64748b', fontSize: 12 }}>{r['Payment Overdue Alert'] || '—'}</span></td>
               </tr>
             )
@@ -889,6 +958,21 @@ function AppointmentView({ data }) {
   const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
   const tomorrowStr = formatDate(tomorrow)
   const weekEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7)
+  const todaySort = useSort()
+  const tomorrowSort = useSort()
+  const weekSort = useSort()
+
+  const apptAccessors = {
+    po: r => r['PO Number'],
+    city: r => r['City'],
+    facility: r => r['FacilityName'],
+    transporter: r => r['Transporter'],
+    tonnage: r => num(r._tonnage),
+    apptdate: r => parseDate(r['Appointment Date(MM-DD-YYYY)']),
+    apptid: r => r['Appointment ID'],
+    status: r => r['Status'],
+    remarks: r => r['Remarks'],
+  }
 
   const byAppt = useMemo(() => {
     const tMap = new Map(); const tmMap = new Map(); const wMap = new Map()
@@ -925,25 +1009,25 @@ function AppointmentView({ data }) {
     return { today: sortByCity([...tMap.values()]), tomorrow: sortByCity([...tmMap.values()]), week: sortByCity([...wMap.values()]).slice(0, 20), statusT, statusTm, statusW }
   }, [data, todayStr, tomorrowStr, weekEnd])
 
-  const renderTable = (rows, label) => {
-    if (!rows.length) return <div style={{ padding: 16, textAlign: 'center', color: '#64748b', fontSize: 13 }}>No {label.toLowerCase()} appointments</div>
+  const renderTable = (rows, sort) => {
+    if (!rows.length) return <div style={{ padding: 16, textAlign: 'center', color: '#64748b', fontSize: 13 }}>No appointments</div>
     return (
       <table>
         <thead>
           <tr>
-            <th>PO #</th>
-            <th>City</th>
-            <th>Facility</th>
-            <th>Transporter</th>
-            <th>Tonnage (KG)</th>
-            <th>Appt Date</th>
-            <th>Appt ID</th>
-            <th>Status</th>
-            <th>Remarks</th>
+            <SortTh label="PO #" k="po" sort={sort} />
+            <SortTh label="City" k="city" sort={sort} />
+            <SortTh label="Facility" k="facility" sort={sort} />
+            <SortTh label="Transporter" k="transporter" sort={sort} />
+            <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} />
+            <SortTh label="Appt Date" k="apptdate" sort={sort} />
+            <SortTh label="Appt ID" k="apptid" sort={sort} />
+            <SortTh label="Status" k="status" sort={sort} />
+            <SortTh label="Remarks" k="remarks" sort={sort} />
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
+          {applySort(rows, sort, apptAccessors).map((r, i) => (
             <tr key={i}>
               <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
               <td>{r['City']}</td>
@@ -968,7 +1052,7 @@ function AppointmentView({ data }) {
           <div className="orders-title">📅 Today's Appointments ({byAppt.today.length})</div>
           <div className="chart-period">{todayStr} — Total: {byAppt.today.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusT['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusT['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusT['RTO'] || 0} RTO</span></div>
         </div>
-        {renderTable(byAppt.today, 'Today')}
+        {renderTable(byAppt.today, todaySort)}
       </div>
 
       <div className="recent-orders" style={{ marginTop: 20 }}>
@@ -976,7 +1060,7 @@ function AppointmentView({ data }) {
           <div className="orders-title">📅 Tomorrow's Appointments ({byAppt.tomorrow.length})</div>
           <div className="chart-period">{tomorrowStr} — Total: {byAppt.tomorrow.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusTm['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusTm['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusTm['RTO'] || 0} RTO</span></div>
         </div>
-        {renderTable(byAppt.tomorrow, 'Tomorrow')}
+        {renderTable(byAppt.tomorrow, tomorrowSort)}
       </div>
 
       <div className="recent-orders" style={{ marginTop: 20 }}>
@@ -984,7 +1068,7 @@ function AppointmentView({ data }) {
           <div className="orders-title">📅 Weekly Appointments (Next 7 Days) ({byAppt.week.length})</div>
           <div className="chart-period">{todayStr} → {formatDate(weekEnd)} — Total: {byAppt.week.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusW['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusW['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusW['RTO'] || 0} RTO</span></div>
         </div>
-        {renderTable(byAppt.week, 'Weekly')}
+        {renderTable(byAppt.week, weekSort)}
       </div>
     </>
   )
@@ -2011,6 +2095,18 @@ function RTOTab({ data }) {
   }
   const poData = useMemo(() => uniqueByPO(data), [data])
   const rtoPOs = useMemo(() => poData.filter(r => r['Status'] === 'RTO'), [poData])
+  const rtoSort = useSort()
+
+  const rtoAccessors = {
+    po: r => r['PO Number'],
+    apptdate: r => parseDate(r['Appointment Date(MM-DD-YYYY)']),
+    city: r => r['City'],
+    platform: r => r['Platform'],
+    product: r => r['Product'],
+    reason: r => r['RTO Reason'],
+    tonnage: r => toNumKG(r['RTO Tonnage (MT)']),
+    value: r => toNumKG(r['RTO Value at Risk']),
+  }
 
   const rtoMetrics = useMemo(() => {
     const totalRTO = rtoPOs.length
@@ -2209,18 +2305,18 @@ function RTOTab({ data }) {
         <table>
           <thead>
             <tr>
-              <th>PO #</th>
-              <th>Appt Date</th>
-              <th>City</th>
-              <th>Platform</th>
-              <th>Product</th>
-              <th>RTO Reason</th>
-              <th>Tonnage Lost</th>
-              <th>Value at Risk</th>
+              <SortTh label="PO #" k="po" sort={rtoSort} />
+              <SortTh label="Appt Date" k="apptdate" sort={rtoSort} />
+              <SortTh label="City" k="city" sort={rtoSort} />
+              <SortTh label="Platform" k="platform" sort={rtoSort} />
+              <SortTh label="Product" k="product" sort={rtoSort} />
+              <SortTh label="RTO Reason" k="reason" sort={rtoSort} />
+              <SortTh label="Tonnage Lost" k="tonnage" sort={rtoSort} />
+              <SortTh label="Value at Risk" k="value" sort={rtoSort} />
             </tr>
           </thead>
           <tbody>
-            {rtoPOs.slice(0, 50).map((r, i) => (
+            {applySort(rtoPOs, rtoSort, rtoAccessors).slice(0, 50).map((r, i) => (
               <tr key={i}>
                 <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
                 <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)'] || '—'}</td>
