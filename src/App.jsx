@@ -1216,11 +1216,9 @@ function InventoryTab({ data }) {
   }, [data])
 
   const planData = useMemo(() => {
-    const dates = data.map(r => parseDate(r['DATE(MM-DD-YYYY)'])).filter(Boolean)
-    if (!dates.length) return { month: '', nextMonth: '', cities: [] }
-    const maxDate = new Date(Math.max(...dates))
-    const thisMonth = maxDate.getMonth()
-    const thisYear = maxDate.getFullYear()
+    const now = new Date()
+    const thisMonth = now.getMonth()
+    const thisYear = now.getFullYear()
 
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
