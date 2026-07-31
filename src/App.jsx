@@ -587,6 +587,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
 function DispatchTab({ data, rawCSV }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [hoverStat, setHoverStat] = useState(null)
+  const [dispatchFilters, setDispatchFilters] = useState(new Set())
   const pendingSort = useSort()
 
   const pendingAccessors = {
@@ -625,9 +626,10 @@ function DispatchTab({ data, rawCSV }) {
       if (!byPlatform[p]) byPlatform[p] = { boxes: 0, tonnage: 0 }
       byPlatform[p].boxes += num(r['Box Count'])
       byPlatform[p].tonnage += num(r['Tonnage'])
-      if (!byCity[c]) byCity[c] = { boxes: 0, tonnage: 0 }
-      byCity[c].boxes += num(r['Box Count'])
-      byCity[c].tonnage += num(r['Tonnage'])
+      if (!byCity[c]) byCity[c] = { platforms: {} }
+      if (!byCity[c].platforms[p]) byCity[c].platforms[p] = { boxes: 0, tonnage: 0 }
+      byCity[c].platforms[p].boxes += num(r['Box Count'])
+      byCity[c].platforms[p].tonnage += num(r['Tonnage'])
     }
     const fmt = (obj) => Object.entries(obj).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.tonnage - a.tonnage)
     return {
@@ -639,6 +641,31 @@ function DispatchTab({ data, rawCSV }) {
       byCity: fmt(byCity),
     }
   }, [poData, data])
+
+  const toggleDispatchFilter = (name) => {
+    setDispatchFilters(prev => {
+      const all = new Set(dispatchMetrics.byPlatform.map(p => p.name))
+      if (prev.has(name)) {
+        const next = new Set(prev)
+        next.delete(name)
+        return next
+      }
+      const next = new Set(prev)
+      next.add(name)
+      if (next.size === all.size) return new Set()
+      return next
+    })
+  }
+
+  const filteredCityData = useMemo(() => {
+    if (!dispatchFilters.size) return dispatchMetrics.byCity
+    return dispatchMetrics.byCity.map(c => {
+      const t = Object.entries(c.platforms)
+        .filter(([p]) => dispatchFilters.has(p))
+        .reduce((s, [, v]) => ({ boxes: s.boxes + v.boxes, tonnage: s.tonnage + v.tonnage }), { boxes: 0, tonnage: 0 })
+      return { name: c.name, ...t }
+    }).filter(x => x.boxes > 0 || x.tonnage > 0).sort((a, b) => b.tonnage - a.tonnage)
+  }, [dispatchMetrics, dispatchFilters])
 
   return (
     <>
@@ -686,6 +713,17 @@ function DispatchTab({ data, rawCSV }) {
             <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 16px', zIndex: 9999, whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Dispatch Summary</div>
               <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>Unique POs: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openDispatches}</span> • Total Lines: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openLines}</span></div>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+                {dispatchMetrics.byPlatform.map(p => {
+                  const checked = !dispatchFilters.size || dispatchFilters.has(p.name)
+                  return (
+                    <label key={p.name} style={{ fontSize: 12, color: checked ? '#3b82f6' : '#64748b', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontWeight: 600 }}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleDispatchFilter(p.name)} style={{ cursor: 'pointer' }} />
+                      {p.name}
+                    </label>
+                  )
+                })}
+              </div>
               <div style={{ display: 'flex', gap: 24 }}>
                 <div>
                   <div style={{ fontSize: 12, color: '#3b82f6', fontWeight: 600, marginBottom: 4 }}>Platform-wise</div>
@@ -698,7 +736,7 @@ function DispatchTab({ data, rawCSV }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {dispatchMetrics.byPlatform.map(p => (
+                      {dispatchMetrics.byPlatform.filter(p => !dispatchFilters.size || dispatchFilters.has(p.name)).map(p => (
                         <tr key={p.name}>
                           <td style={{ padding: '3px 14px 3px 0', color: '#94a3b8' }}>{p.name}</td>
                           <td style={{ textAlign: 'right', padding: '3px 0 3px 14px', color: '#f1f5f9', fontWeight: 600 }}>{Math.round(p.boxes).toLocaleString()}</td>
@@ -719,7 +757,7 @@ function DispatchTab({ data, rawCSV }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {dispatchMetrics.byCity.map(c => (
+                      {filteredCityData.map(c => (
                         <tr key={c.name}>
                           <td style={{ padding: '3px 14px 3px 0', color: '#94a3b8' }}>{c.name}</td>
                           <td style={{ textAlign: 'right', padding: '3px 0 3px 14px', color: '#f1f5f9', fontWeight: 600 }}>{Math.round(c.boxes).toLocaleString()}</td>
