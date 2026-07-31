@@ -169,6 +169,64 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
     return Object.values(map).sort((a, b) => b.orders - a.orders)
   }, [data])
 
+  const monthData = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const map = {}
+    data.forEach(r => {
+      const d = parseDate(r['DATE(MM-DD-YYYY)'])
+      if (!d) return
+      const mk = d.getFullYear() * 12 + d.getMonth()
+      if (!map[mk]) map[mk] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, delivered: new Set(), rto: new Set(), cities: new Set() }
+      const cell = map[mk]
+      cell.orders.add(r['PO Number'])
+      cell.tonnage += num(r['Tonnage'])
+      cell.boxes += num(r['Box Count'])
+      const po = r['PO Number']
+      const pv = num(r['PO Value with Tax'])
+      if (po && pv > 0) cell.poValues[po] = pv
+      if (r['Status'] === 'Delivered') cell.delivered.add(po)
+      if (r['Status'] === 'RTO') cell.rto.add(po)
+      if (r['City']) cell.cities.add(r['City'])
+    })
+    return Object.entries(map).sort((a, b) => a[0] - b[0]).map(([mk, c]) => {
+      const m = mk % 12
+      const y = Math.floor(mk / 12)
+      return {
+        key: String(mk),
+        label: `${monthNames[m]} ${String(y).slice(2)}`,
+        orders: c.orders.size,
+        tonnage: Math.round(c.tonnage),
+        boxes: Math.round(c.boxes),
+        value: Math.round(Object.values(c.poValues).reduce((s, v) => s + v, 0)),
+        delivered: c.delivered.size,
+        rto: c.rto.size,
+        cities: c.cities.size,
+        deliveryRate: (c.delivered.size + c.rto.size) ? Math.round(c.delivered.size / (c.delivered.size + c.rto.size) * 100) : null,
+      }
+    })
+  }, [data])
+
+  const monthSort = useSort()
+  const monthAccessors = {
+    label: r => r.label,
+    orders: r => r.orders,
+    tonnage: r => r.tonnage,
+    boxes: r => r.boxes,
+    value: r => r.value,
+    delivered: r => r.delivered,
+    rto: r => r.rto,
+    rate: r => r.deliveryRate,
+  }
+
+  const monthTotals = useMemo(() => monthData.reduce((s, r) => ({
+    orders: s.orders + r.orders,
+    tonnage: s.tonnage + r.tonnage,
+    boxes: s.boxes + r.boxes,
+    value: s.value + r.value,
+    delivered: s.delivered + r.delivered,
+    rto: s.rto + r.rto,
+  }), { orders: 0, tonnage: 0, boxes: 0, value: 0, delivered: 0, rto: 0 }), [monthData])
+
   return (
     <>
       <header>
@@ -343,6 +401,101 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
             </PieChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+        <div className="recent-orders" style={{ marginTop: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">Month-wise Overview</div>
+          <div className="chart-period">Monthly sales performance</div>
+          <button onClick={() => {
+            const rows = ['Month-wise Overview']
+            rows.push('')
+            rows.push('Month,Orders,Tonnage KG,Boxes,Value,Delivered,RTO,Delivery Rate %')
+            monthData.forEach(r => {
+              rows.push(`${csvEscape(r.label)},${r.orders},${r.tonnage},${r.boxes},${r.value},${r.delivered},${r.rto},${r.deliveryRate === null ? '' : r.deliveryRate}`)
+            })
+            rows.push(`TOTAL,${monthTotals.orders},${monthTotals.tonnage},${monthTotals.boxes},${monthTotals.value},${monthTotals.delivered},${monthTotals.rto},`)
+            const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a'); a.href = url; a.download = 'monthly_overview.csv'; a.click()
+            URL.revokeObjectURL(url)
+          }} style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+            ⬇ Download CSV
+          </button>
+        </div>
+        {monthData.length > 0 && (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={monthData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="label" stroke="#64748b" tick={{ fontSize: 12 }} />
+              <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null
+                  const row = payload[0].payload
+                  return (
+                    <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
+                      <div style={{ fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>{row.label}</div>
+                      <div style={{ color: '#94a3b8' }}>Orders: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{row.orders}</span></div>
+                      <div style={{ color: '#94a3b8' }}>Tonnage: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{row.tonnage} KG</span></div>
+                      <div style={{ color: '#94a3b8' }}>Value: <span style={{ color: '#22c55e', fontWeight: 600 }}>₹{row.value.toLocaleString()}</span></div>
+                      <div style={{ color: '#94a3b8' }}>Delivered: <span style={{ color: '#22c55e', fontWeight: 600 }}>{row.delivered}</span></div>
+                      <div style={{ color: '#94a3b8' }}>RTO: <span style={{ color: '#ef4444', fontWeight: 600 }}>{row.rto}</span></div>
+                      <div style={{ color: '#94a3b8' }}>Delivery Rate: <span style={{ color: row.deliveryRate !== null && row.deliveryRate >= 80 ? '#22c55e' : '#eab308', fontWeight: 600 }}>{row.deliveryRate !== null ? row.deliveryRate + '%' : '—'}</span></div>
+                    </div>
+                  )
+                }}
+              />
+              <Bar dataKey="tonnage" fill="#3b82f6" radius={[6, 6, 0, 0]} name="tonnage" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+        <table style={{ marginTop: 16 }}>
+          <thead>
+            <tr>
+              <SortTh label="Month" k="label" sort={monthSort} />
+              <SortTh label="Orders" k="orders" sort={monthSort} />
+              <SortTh label="Tonnage (KG)" k="tonnage" sort={monthSort} />
+              <SortTh label="Boxes" k="boxes" sort={monthSort} />
+              <SortTh label="Value" k="value" sort={monthSort} />
+              <SortTh label="Delivered" k="delivered" sort={monthSort} />
+              <SortTh label="RTO" k="rto" sort={monthSort} />
+              <SortTh label="Delivery Rate" k="rate" sort={monthSort} />
+            </tr>
+          </thead>
+          <tbody>
+            {applySort(monthData, monthSort, monthAccessors).map((row, i) => (
+              <tr key={i}>
+                <td style={{ fontWeight: 600 }}>{row.label}</td>
+                <td>{row.orders}</td>
+                <td>{row.tonnage}</td>
+                <td>{row.boxes}</td>
+                <td>₹{row.value.toLocaleString()}</td>
+                <td style={{ color: '#22c55e' }}>{row.delivered}</td>
+                <td style={{ color: '#ef4444' }}>{row.rto}</td>
+                <td>
+                  {row.deliveryRate !== null && (
+                    <span style={{ color: row.deliveryRate >= 80 ? '#22c55e' : '#eab308', fontWeight: 600 }}>{row.deliveryRate}%</span>
+                  )}
+                  {row.deliveryRate === null && '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr style={{ background: 'rgba(59,130,246,0.12)' }}>
+              <td style={{ fontWeight: 700 }}>Total</td>
+              <td style={{ fontWeight: 700 }}>{monthTotals.orders}</td>
+              <td style={{ fontWeight: 700 }}>{monthTotals.tonnage}</td>
+              <td style={{ fontWeight: 700 }}>{monthTotals.boxes}</td>
+              <td style={{ fontWeight: 700 }}>₹{monthTotals.value.toLocaleString()}</td>
+              <td style={{ fontWeight: 700, color: '#22c55e' }}>{monthTotals.delivered}</td>
+              <td style={{ fontWeight: 700, color: '#ef4444' }}>{monthTotals.rto}</td>
+              <td style={{ fontWeight: 700 }}>{(monthTotals.delivered + monthTotals.rto) ? Math.round(monthTotals.delivered / (monthTotals.delivered + monthTotals.rto) * 100) + '%' : '—'}</td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
 
         <div className="recent-orders">
