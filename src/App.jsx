@@ -2864,8 +2864,16 @@ function App() {
 
     const deliveredCount = poData.filter(r => r['Status'] === 'Delivered').length
     const rtoCount = poData.filter(r => r['Status'] === 'RTO').length
-    const totalPOQty = poData.reduce((s, r) => s + num(r['PO Qty']), 0)
-    const totalDelQty = poData.reduce((s, r) => s + num(r['Delivered QTY']), 0)
+    const qtyByPO = {}
+    for (const r of filteredData) {
+      const po = r['PO Number']
+      if (!po) continue
+      if (!qtyByPO[po]) qtyByPO[po] = { qty: 0, delQty: 0 }
+      qtyByPO[po].qty += num(r['PO Qty'])
+      qtyByPO[po].delQty += num(r['Delivered QTY'])
+    }
+    const totalPOQty = Object.values(qtyByPO).reduce((s, v) => s + v.qty, 0)
+    const totalDelQty = Object.values(qtyByPO).reduce((s, v) => s + v.delQty, 0)
     const avgFillRate = totalPOQty ? Math.round(totalDelQty / totalPOQty * 100) : 0
 
     return {
