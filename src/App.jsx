@@ -1156,6 +1156,7 @@ function AppointmentView({ data }) {
   const apptAccessors = {
     po: r => r['PO Number'],
     city: r => r['City'],
+    platform: r => r['Platform'],
     facility: r => r['FacilityName'],
     transporter: r => r['Transporter'],
     tonnage: r => num(r._tonnage),
@@ -1208,6 +1209,7 @@ function AppointmentView({ data }) {
           <tr>
             <SortTh label="PO #" k="po" sort={sort} />
             <SortTh label="City" k="city" sort={sort} />
+            <SortTh label="Platform" k="platform" sort={sort} />
             <SortTh label="Facility" k="facility" sort={sort} />
             <SortTh label="Transporter" k="transporter" sort={sort} />
             <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} />
@@ -1222,6 +1224,7 @@ function AppointmentView({ data }) {
             <tr key={i}>
               <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
               <td>{r['City']}</td>
+              <td style={{ color: '#3b82f6', fontWeight: 600 }}>{r['Platform']}</td>
               <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['FacilityName'] || '—'}</td>
               <td>{r['Transporter'] || '—'}</td>
               <td style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
