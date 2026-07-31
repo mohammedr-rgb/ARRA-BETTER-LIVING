@@ -410,7 +410,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
         </div>
       </div>
 
-        <div className="recent-orders" style={{ marginTop: 20 }}>
+        <div className="recent-orders" style={{ marginTop: 20, overflowX: 'auto' }}>
         <div className="orders-header">
           <div className="orders-title">Month-wise Overview</div>
           <div className="chart-period">Monthly sales performance</div>
