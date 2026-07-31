@@ -1647,31 +1647,6 @@ function InventoryTab({ data }) {
               </tr>
             </tfoot>
           </table>
-          <table style={{ marginTop: 12, minWidth: 320 }}>
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th>Total Tonnage (KG)</th>
-                <th>Total Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {platformMonthData.months.map((m, j) => (
-                <tr key={m.key}>
-                  <td style={{ fontWeight: 600 }}>{m.label}</td>
-                  <td>{platformMonthData.monthTotals[j].tonnage}</td>
-                  <td>₹{platformMonthData.monthTotals[j].value.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ background: 'rgba(59,130,246,0.12)' }}>
-                <td style={{ fontWeight: 700 }}>TOTAL</td>
-                <td style={{ fontWeight: 700 }}>{platformMonthData.grand.totalTonnage}</td>
-                <td style={{ fontWeight: 700 }}>₹{platformMonthData.grand.totalValue.toLocaleString()}</td>
-              </tr>
-            </tfoot>
-          </table>
         </div>
       )}
 
