@@ -6,6 +6,7 @@ import {
 import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, productSummary } from '../lib/utils'
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
+import { PONumberLink } from '../components/PONumberLink'
 
 const PIE_COLORS = {
   Delivered: '#22c55e',
@@ -67,7 +68,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
   }, [data, drill])
 
   const drillColumns = [
-    { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+    { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
     { key: 'city', label: 'City', accessor: r => r['City'] },
     { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
     { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
@@ -427,7 +428,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
             </div>
             <DataTable
               columns={[
-                { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+                { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
                 { key: 'matched', label: 'Matched On', accessor: r => matchedOn(r) },
                 { key: 'city', label: 'City', accessor: r => r['City'] },
                 { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
@@ -879,7 +880,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         </div>
         <DataTable
           columns={[
-            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
             { key: 'city', label: 'City', accessor: r => r['City'] },
             { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
             { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { num, parseDate, parseMMDDDate, formatDate, uniqueByPO, sumPOField, sumField, csvEscape, statusFilters } from '../lib/utils'
 import { useSort, applySort } from '../lib/useSort'
 import { Tooltip, StatusPill, EmptyState, DateRangePicker, RangePresets, CSVButton, ProfileSection, SortTh } from '../components/ui'
+import { PONumberLink } from '../components/PONumberLink'
 
 export default function OrdersTab({ data, platformFilter, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
@@ -199,7 +200,7 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
                   onMouseEnter={onOpenPO ? (e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)' } : undefined}
                   onMouseLeave={onOpenPO ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}
                 >
-                  <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{row['PO Number']}</td>
+                  <td><PONumberLink row={row} onOpenPO={onOpenPO} /></td>
                   <td>{row['City']}</td>
                   <td style={{ color: '#3b82f6', fontWeight: 600 }}>{row['Platform']}</td>
                   <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row['Product']}</td>
@@ -347,7 +348,7 @@ function AppointmentView({ data, onOpenPO }) {
               onMouseEnter={onOpenPO ? (e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)' } : undefined}
               onMouseLeave={onOpenPO ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}
             >
-              <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
+              <td><PONumberLink row={r} onOpenPO={onOpenPO} /></td>
               <td>{r['City']}</td>
               <td style={{ color: '#3b82f6', fontWeight: 600 }}>{r['Platform']}</td>
               <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['FacilityName'] || '—'}</td>

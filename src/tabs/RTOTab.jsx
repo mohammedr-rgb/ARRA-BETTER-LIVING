@@ -6,6 +6,7 @@ import {
 import { toNumKG, uniqueByPO } from '../lib/utils'
 import { EmptyState, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
+import { PONumberLink } from '../components/PONumberLink'
 
 const REASONS_COLORS = ['#ef4444', '#f97316', '#eab308', '#a855f7', '#3b82f6', '#22c55e', '#06b6d4', '#8b5cf6']
 
@@ -286,7 +287,7 @@ export default function RTOTab({ data, onOpenPO }) {
         </div>
         <DataTable
           columns={[
-            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
             { key: 'apptdate', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
             { key: 'city', label: 'City', accessor: r => r['City'] || '—' },
             { key: 'platform', label: 'Platform', accessor: r => r['Platform'] || '—' },

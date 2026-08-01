@@ -11,7 +11,7 @@ import RTOTab from './tabs/RTOTab'
 import FinanceTab from './tabs/FinanceTab'
 import PerformanceTab from './tabs/PerformanceTab'
 import SettingsTab from './tabs/SettingsTab'
-import { PODrawer } from './components/PODrawer'
+import { PODetailsPage } from './components/PODetailsPage'
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
 
@@ -29,7 +29,11 @@ function App() {
   const [mobileMenu, setMobileMenu] = useState(false)
   const [globalPlatform, setGlobalPlatform] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
-  const [drawerPO, setDrawerPO] = useState(null)
+  const [viewPO, setViewPO] = useState(null)
+
+  const openPO = useCallback((row) => {
+    if (row && row['PO Number']) setViewPO(row['PO Number'])
+  }, [])
 
   const loadData = useCallback(() => {
     setIsRefreshing(true)
@@ -263,20 +267,24 @@ function App() {
 
       <UserContext.Provider value={{ userEmail, setUserEmail }}>
         <div className="main-content">
-          {tab === 'dashboard' && <DashboardTab data={searchedData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={setDrawerPO} />}
-          {tab === 'orders' && <OrdersTab data={searchedData} platformFilter={globalPlatform} onOpenPO={setDrawerPO} />}
-          {tab === 'inventory' && <InventoryTab data={searchedData} />}
-          {tab === 'logistics' && <LogisticsTab data={searchedData} onOpenPO={setDrawerPO} />}
-          {tab === 'dispatch' && <DispatchTab data={searchedData} onOpenPO={setDrawerPO} />}
-          {tab === 'reports' && <ReportsTab data={searchedData} platformFilter={globalPlatform} />}
-          {tab === 'rto' && <RTOTab data={searchedData} onOpenPO={setDrawerPO} />}
-          {tab === 'finance' && <FinanceTab data={searchedData} onOpenPO={setDrawerPO} />}
-          {tab === 'performance' && <PerformanceTab data={searchedData} platformFilter={globalPlatform} />}
-          {tab === 'settings' && <SettingsTab />}
+          {viewPO ? (
+            <PODetailsPage po={viewPO} data={data} onBack={() => setViewPO(null)} />
+          ) : (
+            <>
+              {tab === 'dashboard' && <DashboardTab data={searchedData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />}
+              {tab === 'orders' && <OrdersTab data={searchedData} platformFilter={globalPlatform} onOpenPO={openPO} />}
+              {tab === 'inventory' && <InventoryTab data={searchedData} />}
+              {tab === 'logistics' && <LogisticsTab data={searchedData} onOpenPO={openPO} />}
+              {tab === 'dispatch' && <DispatchTab data={searchedData} onOpenPO={openPO} />}
+              {tab === 'reports' && <ReportsTab data={searchedData} platformFilter={globalPlatform} />}
+              {tab === 'rto' && <RTOTab data={searchedData} onOpenPO={openPO} />}
+              {tab === 'finance' && <FinanceTab data={searchedData} onOpenPO={openPO} />}
+              {tab === 'performance' && <PerformanceTab data={searchedData} platformFilter={globalPlatform} />}
+              {tab === 'settings' && <SettingsTab />}
+            </>
+          )}
         </div>
       </UserContext.Provider>
-
-      <PODrawer po={drawerPO} data={data} onClose={() => setDrawerPO(null)} />
     </>
   )
 }

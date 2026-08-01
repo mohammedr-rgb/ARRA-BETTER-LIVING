@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { num, uniqueByPO } from '../lib/utils'
 import { TooltipRow, StatCard } from '../components/ui'
 import { DataTable } from '../components/DataTable'
+import { PONumberLink } from '../components/PONumberLink'
 
 export default function FinanceTab({ data, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
@@ -153,7 +154,7 @@ export default function FinanceTab({ data, onOpenPO }) {
         </div>
         <DataTable
           columns={[
-            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
             { key: 'entity', label: 'Entity', accessor: r => r['Entity'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Entity']}</span> },
             { key: 'invoice', label: 'Invoice', accessor: r => r['Invoice No'] || '—', render: r => <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{r['Invoice No'] || '—'}</span> },
             { key: 'value', label: 'PO Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },

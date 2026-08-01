@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { num, uniqueByPO, sumField } from '../lib/utils'
 import { TooltipRow, StatCard } from '../components/ui'
 import { DataTable } from '../components/DataTable'
+import { PONumberLink } from '../components/PONumberLink'
 
 export default function DispatchTab({ data, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
@@ -229,7 +230,7 @@ export default function DispatchTab({ data, onOpenPO }) {
         </div>
         <DataTable
           columns={[
-            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
             { key: 'city', label: 'City', accessor: r => r['City'] },
             { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
             { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
