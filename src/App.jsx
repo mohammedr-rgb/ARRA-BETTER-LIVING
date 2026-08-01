@@ -1841,15 +1841,33 @@ function InventoryTab({ data }) {
             <div className="chart-period">Based on {planData.month} sales • 30% lower projection</div>
             <button onClick={() => {
               const rows = ['Production Plan Report']
-              rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan')
-              rows.push('Platform: ' + planPlatform + ' • City: ' + planCity)
+              rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan (2-week stock arrangement)')
               rows.push('')
-              rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Platforms,Cities')
-              planItems.forEach(r => {
-                rows.push(`${csvEscape(r.product)},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},${r.perUnitCharge},${r.totalValue},${r.platforms.map(([n, q]) => n + ' (' + q + ')').join(' | ')},${r.cities.map(([n, q]) => n + ' (' + q + ')').join(' | ')}`)
+              rows.push('CITY WISE × PRODUCT WISE × PLATFORM WISE')
+              rows.push('City,Product,Platform,Sales Qty (2M),Plan Qty (70%)')
+              const detail = []
+              const prodTotals = {}
+              for (const r of planData.baseItems) {
+                for (const c in r.combo) {
+                  for (const pl in r.combo[c]) {
+                    const qty = r.combo[c][pl]
+                    if (qty <= 0) continue
+                    detail.push([c, r.product, pl, qty, Math.round(qty * 0.7)])
+                    prodTotals[r.product] = (prodTotals[r.product] || 0) + qty
+                  }
+                }
+              }
+              detail.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]) || a[2].localeCompare(b[2]))
+              detail.forEach(d => rows.push(d.map(x => csvEscape(String(x))).join(',')))
+              rows.push('')
+              rows.push('PRODUCT SUMMARY (UNIQUE PRODUCT - OVERALL PLAN COUNT)')
+              rows.push('Product,Total Sales Qty (2M),Total Plan Qty (70%)')
+              Object.entries(prodTotals).sort((a, b) => b[1] - a[1]).forEach(([p, q]) => {
+                rows.push(`${csvEscape(p)},${q},${Math.round(q * 0.7)}`)
               })
+              const grand = Object.values(prodTotals).reduce((s, v) => s + v, 0)
               rows.push('')
-              rows.push(`TOTAL,${t.salesQty},${t.planQty},${t.planTonnage},${t.planBoxes},,${t.totalValue}`)
+              rows.push(`GRAND TOTAL,${grand},${Math.round(grand * 0.7)}`)
               const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
               const url = URL.createObjectURL(blob)
               const a = document.createElement('a'); a.href = url; a.download = 'production_plan.csv'; a.click()
@@ -1861,24 +1879,6 @@ function InventoryTab({ data }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
             {['All', ...planData.platformOptions].map(p => chip(p === planPlatform, () => setPlanPlatform(p), 'Platform: ' + p))}
             {['All', ...planData.cityOptions].map(c => chip(c === planCity, () => setPlanCity(c), 'City: ' + c))}
-            <button onClick={() => {
-              const rows = ['Production Plan Report']
-              rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan')
-              rows.push('Platform: ' + planPlatform + ' • City: ' + planCity)
-              rows.push('')
-              rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Platforms,Cities')
-              planItems.forEach(r => {
-                rows.push(`${csvEscape(r.product)},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},${r.perUnitCharge},${r.totalValue},${r.platforms.map(([n, q]) => n + ' (' + q + ')').join(' | ')},${r.cities.map(([n, q]) => n + ' (' + q + ')').join(' | ')}`)
-              })
-              rows.push('')
-              rows.push(`TOTAL,${t.salesQty},${t.planQty},${t.planTonnage},${t.planBoxes},,${t.totalValue}`)
-              const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement('a'); a.href = url; a.download = 'production_plan.csv'; a.click()
-              URL.revokeObjectURL(url)
-            }} style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-              ⬇ Download Filtered Plan
-            </button>
           </div>
           <div style={{ overflowX: 'auto' }}>
           <table style={{ minWidth: 980 }}>
