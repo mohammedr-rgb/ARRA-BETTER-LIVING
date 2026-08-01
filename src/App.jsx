@@ -689,10 +689,21 @@ function DispatchTab({ data, rawCSV }) {
             const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
             const filtered = data.filter(r => statuses.has(r['Status']))
             if (!filtered.length) return
-            const headers = Object.keys(filtered[0])
-            const header = headers.join(',')
-            const body = filtered.map(r => headers.map(h => {
-              const v = r[h] || ''
+            const cols = [
+              ['City', 'City'],
+              ['Platform', 'Platform'],
+              ['PO Number', 'PO Number'],
+              ['Product', 'Product'],
+              ['PO Qty', 'QTY'],
+              ['Tonnage', 'Tonnage'],
+              ['Box Count', 'Box Count'],
+              ['MRP', 'MRP'],
+              ['Expiry Date(MM-DD-YYYY)', 'PO Expiry Date'],
+              ['Appointment Date(MM-DD-YYYY)', 'Appointment Date'],
+            ]
+            const header = cols.map(c => c[1]).join(',')
+            const body = filtered.map(r => cols.map(([k]) => {
+              const v = r[k] || ''
               return /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
             }).join(',')).join('\n')
             const blob = new Blob([header + '\n' + body], { type: 'text/csv' })
