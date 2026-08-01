@@ -1579,18 +1579,19 @@ function InventoryTab({ data }) {
   const planData = useMemo(() => {
     const now = new Date()
     const thisYear = now.getFullYear()
-    const prev2 = new Date(thisYear, now.getMonth() - 1, 1)
-    const prev1 = new Date(thisYear, now.getMonth() - 2, 1)
+    const prev3 = new Date(thisYear, now.getMonth() - 3, 1)
+    const prev2 = new Date(thisYear, now.getMonth() - 2, 1)
+    const prev1 = new Date(thisYear, now.getMonth() - 1, 1)
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-    const last2MonthOrders = data.filter(r => {
+    const last3MonthOrders = data.filter(r => {
       const d = parseMMDDDate(r['DATE(MM-DD-YYYY)'])
       if (!d) return false
-      return (d.getMonth() === prev2.getMonth() && d.getFullYear() === prev2.getFullYear()) || (d.getMonth() === prev1.getMonth() && d.getFullYear() === prev1.getFullYear())
+      return (d.getMonth() === prev1.getMonth() && d.getFullYear() === prev1.getFullYear()) || (d.getMonth() === prev2.getMonth() && d.getFullYear() === prev2.getFullYear()) || (d.getMonth() === prev3.getMonth() && d.getFullYear() === prev3.getFullYear())
     })
 
     const skuMap = {}
-    last2MonthOrders.forEach(r => {
+    last3MonthOrders.forEach(r => {
       const p = r['Product']
       if (!p) return
       if (!skuMap[p]) skuMap[p] = { product: p, salesQty: 0, salesTonnage: 0, salesBoxes: 0, transportCharge: 0, totalValue: 0, combo: {} }
@@ -1608,9 +1609,9 @@ function InventoryTab({ data }) {
       sku.combo[c][pl].boxes += num(r['Box Count'])
     })
 
-    const nextMonth = (prev2.getMonth() + 1) % 12
+    const nextMonth = (prev1.getMonth() + 1) % 12
     const nextMonthName = monthNames[nextMonth]
-    const periodLabel = `${monthNames[prev1.getMonth()]}–${monthNames[prev2.getMonth()]}`
+    const periodLabel = `${monthNames[prev3.getMonth()]}–${monthNames[prev1.getMonth()]}`
 
     const platformOptions = [...new Set(Object.values(skuMap).flatMap(s => Object.keys(s.combo).flatMap(c => Object.keys(s.combo[c]))))]
     const cityOptions = [...new Set(Object.values(skuMap).flatMap(s => Object.keys(s.combo)))]
@@ -1675,7 +1676,7 @@ function InventoryTab({ data }) {
     }
     return planData.baseItems.map(r => {
       const qty = filterQty(r)
-      const planQty = Math.round(qty * 0.7)
+      const planQty = Math.round(qty * 0.95)
       const platforms = platformQty(r)
       const cities = cityQty(r)
       return {
@@ -1711,7 +1712,7 @@ function InventoryTab({ data }) {
               rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Platforms,Cities')
               let gQty = 0, gTon = 0, gBox = 0, gVal = 0
               planData.baseItems.forEach(r => {
-                const planQty = Math.round(r.salesQty * 0.7)
+                const planQty = Math.round(r.salesQty * 0.95)
                 rows.push(`${csvEscape(r.product)},${r.salesQty},${planQty},${Math.round(planQty * r.perUnitTonnage)},${Math.round(planQty * r.perUnitBoxes)},${r.perUnitCharge.toFixed(2)},${r.totalValue}`)
                 gQty += planQty; gTon += Math.round(planQty * r.perUnitTonnage); gBox += Math.round(planQty * r.perUnitBoxes); gVal += r.totalValue
               })
@@ -1837,7 +1838,7 @@ function InventoryTab({ data }) {
         <div className="recent-orders" style={{ marginTop: 20 }}>
           <div className="orders-header">
             <div className="orders-title">Production Plan — {planData.nextMonth}</div>
-            <div className="chart-period">Based on {planData.month} sales • 30% lower projection</div>
+            <div className="chart-period">Based on {planData.month} sales • 5% lower projection</div>
             <button onClick={() => {
               const rows = ['Production Plan Report']
               rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan (2-week stock arrangement)')
@@ -1850,7 +1851,7 @@ function InventoryTab({ data }) {
                 return weekKeys.map((_, i) => b + (i < r ? 1 : 0))
               }
               const weekCols = weekKeys.flatMap(w => [w + ' Plan Qty', w + ' Plan Boxes'])
-              rows.push('City,Product,Platform,Sales Qty (2M),Plan Qty (70%),Plan Boxes,' + weekCols.join(','))
+              rows.push('City,Product,Platform,Sales Qty (3M),Plan Qty (95%),Plan Boxes,' + weekCols.join(','))
               const detail = []
               const prodTotals = {}
               for (const r of planData.baseItems) {
@@ -1858,7 +1859,7 @@ function InventoryTab({ data }) {
                   for (const pl in r.combo[c]) {
                     const cell = r.combo[c][pl]
                     if (cell.qty <= 0) continue
-                    const planQty = Math.round(cell.qty * 0.7)
+                    const planQty = Math.round(cell.qty * 0.95)
                     const planBoxes = Math.round(planQty * r.perUnitBoxes)
                     const wkQty = splitWeeks(planQty)
                     const wkBoxes = splitWeeks(planBoxes)
@@ -1873,13 +1874,13 @@ function InventoryTab({ data }) {
               detail.forEach(d => rows.push(d.map(x => csvEscape(String(x))).join(',')))
               rows.push('')
               rows.push('PRODUCT SUMMARY (UNIQUE PRODUCT - OVERALL PLAN COUNT)')
-              rows.push('Product,Total Sales Qty (2M),Total Plan Qty (70%),Total Plan Boxes,' + weekCols.join(','))
+              rows.push('Product,Total Sales Qty (3M),Total Plan Qty (95%),Total Plan Boxes,' + weekCols.join(','))
               const prodBoxes = {}
               for (const r of planData.baseItems) {
-                prodBoxes[r.product] = Math.round(r.salesQty * 0.7 * r.perUnitBoxes)
+                prodBoxes[r.product] = Math.round(r.salesQty * 0.95 * r.perUnitBoxes)
               }
               Object.entries(prodTotals).sort((a, b) => b[1] - a[1]).forEach(([p, q]) => {
-                const pq = Math.round(q * 0.7)
+                const pq = Math.round(q * 0.95)
                 const wkQty = splitWeeks(pq)
                 const wkBoxes = splitWeeks(prodBoxes[p] || 0)
                 const cols = []
@@ -1888,11 +1889,11 @@ function InventoryTab({ data }) {
               })
               rows.push('')
               rows.push('WEEK WISE PLAN')
-              rows.push('Week,Plan Qty (70%),Plan Boxes')
+              rows.push('Week,Plan Qty (95%),Plan Boxes')
               const weekQty = [0, 0, 0, 0]
               const weekBoxes = [0, 0, 0, 0]
               for (const r of planData.baseItems) {
-                const pq = Math.round(r.salesQty * 0.7)
+                const pq = Math.round(r.salesQty * 0.95)
                 const pb = Math.round(pq * r.perUnitBoxes)
                 splitWeeks(pq).forEach((v, i) => { weekQty[i] += v })
                 splitWeeks(pb).forEach((v, i) => { weekBoxes[i] += v })
@@ -1901,7 +1902,7 @@ function InventoryTab({ data }) {
               const grand = Object.values(prodTotals).reduce((s, v) => s + v, 0)
               const grandBoxes = Object.values(prodBoxes).reduce((s, v) => s + v, 0)
               rows.push('')
-              rows.push(`GRAND TOTAL,${grand},${Math.round(grand * 0.7)},${grandBoxes}`)
+              rows.push(`GRAND TOTAL,${grand},${Math.round(grand * 0.95)},${grandBoxes}`)
               const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
               const url = URL.createObjectURL(blob)
               const a = document.createElement('a'); a.href = url; a.download = 'production_plan.csv'; a.click()
