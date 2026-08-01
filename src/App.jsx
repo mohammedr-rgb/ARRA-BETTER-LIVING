@@ -1858,9 +1858,27 @@ function InventoryTab({ data }) {
               ⬇ Download Plan
             </button>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
             {['All', ...planData.platformOptions].map(p => chip(p === planPlatform, () => setPlanPlatform(p), 'Platform: ' + p))}
             {['All', ...planData.cityOptions].map(c => chip(c === planCity, () => setPlanCity(c), 'City: ' + c))}
+            <button onClick={() => {
+              const rows = ['Production Plan Report']
+              rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan')
+              rows.push('Platform: ' + planPlatform + ' • City: ' + planCity)
+              rows.push('')
+              rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Platforms,Cities')
+              planItems.forEach(r => {
+                rows.push(`${csvEscape(r.product)},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},${r.perUnitCharge},${r.totalValue},${r.platforms.map(([n, q]) => n + ' (' + q + ')').join(' | ')},${r.cities.map(([n, q]) => n + ' (' + q + ')').join(' | ')}`)
+              })
+              rows.push('')
+              rows.push(`TOTAL,${t.salesQty},${t.planQty},${t.planTonnage},${t.planBoxes},,${t.totalValue}`)
+              const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a'); a.href = url; a.download = 'production_plan.csv'; a.click()
+              URL.revokeObjectURL(url)
+            }} style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+              ⬇ Download Filtered Plan
+            </button>
           </div>
           <div style={{ overflowX: 'auto' }}>
           <table style={{ minWidth: 980 }}>
