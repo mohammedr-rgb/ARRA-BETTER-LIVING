@@ -1882,10 +1882,6 @@ function InventoryTab({ data }) {
               ⬇ Download Plan
             </button>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
-            {['All', ...planData.platformOptions].map(p => chip(p === planPlatform, () => setPlanPlatform(p), 'Platform: ' + p))}
-            {['All', ...planData.cityOptions].map(c => chip(c === planCity, () => setPlanCity(c), 'City: ' + c))}
-          </div>
           <div style={{ overflowX: 'auto' }}>
           <table style={{ minWidth: 980 }}>
             <thead>
