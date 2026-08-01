@@ -4,8 +4,8 @@ import {
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
 import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, productSummary } from '../lib/utils'
-import { useSort, applySort } from '../lib/useSort'
-import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, EmptyState, ProfileSection, SortTh } from '../components/ui'
+import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection } from '../components/ui'
+import { DataTable } from '../components/DataTable'
 
 const PIE_COLORS = {
   Delivered: '#22c55e',
@@ -18,23 +18,38 @@ const PIE_COLORS = {
 
 const PLATFORM_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#eab308', '#f97316', '#06b6d4', '#ef4444', '#8b5cf6']
 
-export default function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter }) {
+export default function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
-  const recentSort = useSort()
+  const [drill, setDrill] = useState(null)
 
-  const recentAccessors = {
-    po: r => r['PO Number'],
-    city: r => r['City'],
-    platform: r => r['Platform'],
-    product: r => r['Product'],
-    qty: r => num(r['PO Qty']),
-    tonnage: r => num(r['Tonnage']),
-    value: r => num(r['PO Value with Tax']),
-    released: r => parseMMDDDate(r['PO Released Date(MM-DD-YYYY)']),
-    appt: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)']),
-    apptid: r => r['Appointment ID'],
-    status: r => r['Status'],
-  }
+  const drillPOs = useMemo(() => {
+    if (!drill) return []
+    const poSet = new Set()
+    for (const r of data) {
+      if (drill.city && r['City'] !== drill.city) continue
+      if (drill.status && (r['Status'] || '') !== drill.status) continue
+      poSet.add(r['PO Number'])
+    }
+    const seen = new Set()
+    return data.filter(r => {
+      const po = r['PO Number']
+      if (!po || !poSet.has(po) || seen.has(po)) return false
+      seen.add(po)
+      return true
+    })
+  }, [data, drill])
+
+  const drillColumns = [
+    { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+    { key: 'city', label: 'City', accessor: r => r['City'] },
+    { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
+    { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
+    { key: 'qty', label: 'Qty', accessor: r => num(r['PO Qty']), align: 'right' },
+    { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
+    { key: 'value', label: 'Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
+    { key: 'released', label: 'Released', accessor: r => r['PO Released Date(MM-DD-YYYY)'] },
+    { key: 'status', label: 'Status', accessor: r => r['Status'], render: r => <StatusPill status={r['Status']} /> },
+  ]
 
   const platformPerf = useMemo(() => {
     const now = new Date()
@@ -453,7 +468,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
                   )
                 }}
               />
-              <Bar dataKey="orders" fill="#3b82f6" radius={[6, 6, 0, 0]} name="orders" />
+              <Bar dataKey="orders" fill="#3b82f6" radius={[6, 6, 0, 0]} name="orders" onClick={(d) => d && d.payload && setDrill({ city: d.payload.city, status: null })} style={{ cursor: 'pointer' }} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -473,6 +488,8 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
                 dataKey="value"
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 labelLine
+                onClick={(d) => d && d.payload && setDrill({ city: null, status: d.payload.name })}
+                style={{ cursor: 'pointer' }}
               >
                 {statusData.map((entry) => (
                   <Cell key={entry.name} fill={PIE_COLORS[entry.name] || '#64748b'} />
@@ -484,6 +501,29 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
           </ResponsiveContainer>
         </div>
       </div>
+
+      {drill && (
+        <div className="recent-orders" style={{ marginTop: 20 }}>
+          <div className="orders-header">
+            <div className="orders-title">
+              {drill.city ? <>📍 Orders in <span style={{ color: '#3b82f6' }}>{drill.city}</span></> : <>🔎 {drill.status} Orders</>}
+              <span style={{ marginLeft: 8, fontSize: 12, color: '#64748b', fontWeight: 400 }}>{uniqueByPO(drillPOs).length} unique POs</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div className="chart-period">Click a row for full PO details</div>
+              <button onClick={() => setDrill(null)} style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, color: '#ef4444', padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✕ Clear</button>
+            </div>
+          </div>
+          <DataTable
+            columns={drillColumns}
+            rows={drillPOs}
+            pageSize={10}
+            filename={drill.city ? `orders_${drill.city.replace(/[^A-Za-z0-9]/g, '_')}.csv` : `orders_${drill.status.replace(/[^A-Za-z0-9]/g, '_')}.csv`}
+            onRowClick={onOpenPO}
+            emptyMessage="No matching POs"
+          />
+        </div>
+      )}
 
       {trendMonths.length > 1 && (
         <div className="chart-card" style={{ width: '100%', marginTop: 20 }}>
@@ -718,47 +758,31 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         </table>
       </div>
 
-      <div className="recent-orders" style={{ overflowX: 'auto' }}>
+      <div className="recent-orders">
         <div className="orders-header">
           <div className="orders-title">Recent PO Releases</div>
-          <div className="chart-period">Latest 10 releases</div>
+          <div className="chart-period">Latest {recentOrders.length} releases • click a row for details</div>
         </div>
-        <table style={{ minWidth: 1000 }}>
-          <thead>
-            <tr>
-              <SortTh label="PO #" k="po" sort={recentSort} />
-              <SortTh label="City" k="city" sort={recentSort} />
-              <SortTh label="Platform" k="platform" sort={recentSort} />
-              <SortTh label="Product" k="product" sort={recentSort} />
-              <SortTh label="Qty" k="qty" sort={recentSort} />
-              <SortTh label="Tonnage" k="tonnage" sort={recentSort} />
-              <SortTh label="Value" k="value" sort={recentSort} />
-              <SortTh label="Released Date" k="released" sort={recentSort} />
-              <SortTh label="Appt Date" k="appt" sort={recentSort} />
-              <SortTh label="Appt ID" k="apptid" sort={recentSort} />
-              <SortTh label="Status" k="status" sort={recentSort} />
-            </tr>
-          </thead>
-          <tbody>
-            {recentOrders.length === 0 ? (
-              <tr><td colSpan={11}><EmptyState /></td></tr>
-            ) : applySort(recentOrders, recentSort, recentAccessors).map((row, i) => (
-              <tr key={i}>
-                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{row['PO Number']}</td>
-                <td>{row['City']}</td>
-                <td>{row['Platform']}</td>
-                <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row['Product']}</td>
-                <td>{row['PO Qty']}</td>
-                <td>{row['Tonnage']}</td>
-                <td>₹{num(row['PO Value with Tax']).toLocaleString()}</td>
-                <td style={{ fontSize: 12, color: '#94a3b8' }}>{row['PO Released Date(MM-DD-YYYY)']}</td>
-                <td style={{ fontSize: 12, color: '#94a3b8' }}>{row['Appointment Date(MM-DD-YYYY)'] || '—'}</td>
-                <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{row['Appointment ID'] || '—'}</td>
-                <td><StatusPill status={row['Status']} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          columns={[
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+            { key: 'city', label: 'City', accessor: r => r['City'] },
+            { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
+            { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
+            { key: 'qty', label: 'Qty', accessor: r => num(r['PO Qty']), align: 'right' },
+            { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
+            { key: 'value', label: 'Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
+            { key: 'released', label: 'Released', accessor: r => r['PO Released Date(MM-DD-YYYY)'] },
+            { key: 'appt', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
+            { key: 'apptid', label: 'Appt ID', accessor: r => r['Appointment ID'] || '—' },
+            { key: 'status', label: 'Status', accessor: r => r['Status'], render: r => <StatusPill status={r['Status']} /> },
+          ]}
+          rows={recentOrders}
+          pageSize={10}
+          filename="recent_po_releases.csv"
+          onRowClick={onOpenPO}
+          emptyMessage="No recent releases"
+        />
       </div>
     </>
   )

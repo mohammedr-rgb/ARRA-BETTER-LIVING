@@ -1,25 +1,11 @@
 import { useState, useMemo } from 'react'
 import { num, uniqueByPO, sumField } from '../lib/utils'
-import { useSort, applySort } from '../lib/useSort'
-import { TooltipRow, StatCard, EmptyState, SortTh } from '../components/ui'
+import { TooltipRow, StatCard } from '../components/ui'
+import { DataTable } from '../components/DataTable'
 
-export default function DispatchTab({ data }) {
+export default function DispatchTab({ data, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [dispatchFilters, setDispatchFilters] = useState(new Set())
-  const pendingSort = useSort()
-
-  const pendingAccessors = {
-    po: r => r['PO Number'],
-    city: r => r['City'],
-    platform: r => r['Platform'],
-    product: r => r['Product'],
-    qty: r => num(r['PO Qty']),
-    tonnage: r => num(r['Tonnage']),
-    box: r => num(r['Box Count']),
-    mrp: r => num(r['MRP']),
-    cost: r => num(r['Unit Cost']),
-    appt: r => r['Appointment Date(MM-DD-YYYY)'] || r['Status'],
-  }
 
   const pendingData = useMemo(() => {
     const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
@@ -241,40 +227,25 @@ export default function DispatchTab({ data }) {
             </span>
           ))}
         </div>
-        <table>
-          <thead>
-            <tr>
-              <SortTh label="PO #" k="po" sort={pendingSort} />
-              <SortTh label="City" k="city" sort={pendingSort} />
-              <SortTh label="Platform" k="platform" sort={pendingSort} />
-              <SortTh label="Product" k="product" sort={pendingSort} />
-              <SortTh label="PO Qty" k="qty" sort={pendingSort} />
-              <SortTh label="Tonnage" k="tonnage" sort={pendingSort} />
-              <SortTh label="Box" k="box" sort={pendingSort} />
-              <SortTh label="MRP" k="mrp" sort={pendingSort} />
-              <SortTh label="Unit Cost" k="cost" sort={pendingSort} />
-              <SortTh label="Appointment / Status" k="appt" sort={pendingSort} />
-            </tr>
-          </thead>
-          <tbody>
-            {pendingData.length === 0 ? (
-              <tr><td colSpan={10}><EmptyState message="No pending records" /></td></tr>
-            ) : applySort(pendingData, pendingSort, pendingAccessors).map((r, i) => (
-              <tr key={i}>
-                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
-                <td>{r['City']}</td>
-                <td>{r['Platform']}</td>
-                <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product']}</td>
-                <td style={{ textAlign: 'right' }}>{r['PO Qty']}</td>
-                <td style={{ textAlign: 'right' }}>{r['Tonnage']}</td>
-                <td style={{ textAlign: 'right' }}>{r['Box Count']}</td>
-                <td style={{ textAlign: 'right' }}>{r['MRP'] || '—'}</td>
-                <td style={{ textAlign: 'right' }}>{r['Unit Cost'] || '—'}</td>
-                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)'] ? r['Appointment Date(MM-DD-YYYY)'] : <span style={{ color: '#eab308' }}>{r['Status']}</span>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          columns={[
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+            { key: 'city', label: 'City', accessor: r => r['City'] },
+            { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
+            { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
+            { key: 'qty', label: 'PO Qty', accessor: r => num(r['PO Qty']), align: 'right' },
+            { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
+            { key: 'box', label: 'Box', accessor: r => num(r['Box Count']), align: 'right' },
+            { key: 'mrp', label: 'MRP', accessor: r => r['MRP'] || '—', align: 'right' },
+            { key: 'cost', label: 'Unit Cost', accessor: r => r['Unit Cost'] || '—', align: 'right' },
+            { key: 'appt', label: 'Appointment / Status', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || r['Status'], render: r => r['Appointment Date(MM-DD-YYYY)'] ? r['Appointment Date(MM-DD-YYYY)'] : <span style={{ color: '#eab308' }}>{r['Status']}</span> },
+          ]}
+          rows={pendingData}
+          pageSize={10}
+          filename="pending_dispatch_schedule.csv"
+          onRowClick={onOpenPO}
+          emptyMessage="No pending records"
+        />
       </div>
     </>
   )

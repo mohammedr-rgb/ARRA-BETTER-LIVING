@@ -1,21 +1,10 @@
 import { useMemo } from 'react'
 import { num, uniqueByPO } from '../lib/utils'
-import { useSort, applySort } from '../lib/useSort'
-import { TooltipRow, StatCard, EmptyState, SortTh } from '../components/ui'
+import { TooltipRow, StatCard } from '../components/ui'
+import { DataTable } from '../components/DataTable'
 
-export default function FinanceTab({ data }) {
+export default function FinanceTab({ data, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
-  const poSort = useSort()
-
-  const poAccessors = {
-    po: r => r['PO Number'],
-    entity: r => r['Entity'],
-    invoice: r => r['Invoice No'],
-    value: r => num(r['PO Value with Tax']),
-    dn: r => num(r['DN amount']),
-    fs: r => num(r['Final Settlement']),
-    overdue: r => r['Payment Overdue Alert'],
-  }
 
   const financeMetrics = useMemo(() => {
     let totalPOValue = 0, totalDN = 0, totalFS = 0, overdueCount = 0, invoiceCount = 0
@@ -160,40 +149,24 @@ export default function FinanceTab({ data }) {
       <div className="recent-orders">
         <div className="orders-header">
           <div className="orders-title">PO-wise DN & Settlement Details</div>
-          <div className="chart-period">All POs</div>
+          <div className="chart-period">All POs • click a row for details</div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <SortTh label="PO #" k="po" sort={poSort} />
-              <SortTh label="Entity" k="entity" sort={poSort} />
-              <SortTh label="Invoice" k="invoice" sort={poSort} />
-              <SortTh label="PO Value" k="value" sort={poSort} />
-              <SortTh label="DN Amount" k="dn" sort={poSort} />
-              <SortTh label="Final Settlement" k="fs" sort={poSort} />
-              <SortTh label="Overdue Alert" k="overdue" sort={poSort} />
-            </tr>
-          </thead>
-          <tbody>
-            {poData.length === 0 ? (
-              <tr><td colSpan={7}><EmptyState /></td></tr>
-            ) : applySort(poData, poSort, poAccessors).map((r, i) => {
-              const dn = num(r['DN amount'])
-              const fs = num(r['Final Settlement'])
-              return (
-                <tr key={i}>
-                  <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
-                  <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Entity']}</td>
-                  <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{r['Invoice No'] || '—'}</td>
-                  <td style={{ textAlign: 'right' }}>₹{num(r['PO Value with Tax']).toLocaleString()}</td>
-                  <td style={{ textAlign: 'right' }}>{dn ? `₹${dn.toLocaleString()}` : '—'}</td>
-                  <td style={{ textAlign: 'right' }}>{fs ? `₹${fs.toLocaleString()}` : '—'}</td>
-                  <td><span style={{ color: (r['Payment Overdue Alert'] || '').toLowerCase().includes('overdue') ? '#ef4444' : '#64748b', fontSize: 12 }}>{r['Payment Overdue Alert'] || '—'}</span></td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          columns={[
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+            { key: 'entity', label: 'Entity', accessor: r => r['Entity'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Entity']}</span> },
+            { key: 'invoice', label: 'Invoice', accessor: r => r['Invoice No'] || '—', render: r => <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{r['Invoice No'] || '—'}</span> },
+            { key: 'value', label: 'PO Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
+            { key: 'dn', label: 'DN Amount', accessor: r => num(r['DN amount']), align: 'right', render: r => num(r['DN amount']) ? '₹' + num(r['DN amount']).toLocaleString() : '—' },
+            { key: 'fs', label: 'Final Settlement', accessor: r => num(r['Final Settlement']), align: 'right', render: r => num(r['Final Settlement']) ? '₹' + num(r['Final Settlement']).toLocaleString() : '—' },
+            { key: 'overdue', label: 'Overdue Alert', accessor: r => r['Payment Overdue Alert'] || '—', render: r => <span style={{ color: (r['Payment Overdue Alert'] || '').toLowerCase().includes('overdue') ? '#ef4444' : '#64748b', fontSize: 12 }}>{r['Payment Overdue Alert'] || '—'}</span> },
+          ]}
+          rows={poData}
+          pageSize={10}
+          filename="finance_po_settlement.csv"
+          onRowClick={onOpenPO}
+          emptyMessage="No POs"
+        />
       </div>
     </>
   )

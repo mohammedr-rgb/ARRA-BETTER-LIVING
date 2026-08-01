@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react'
 import { num, parseDate, parseMMDDDate, formatDate, uniqueByPO, sumPOField, sumField, csvEscape, statusFilters } from '../lib/utils'
 import { useSort, applySort } from '../lib/useSort'
-import { Tooltip, StatusPill, EmptyState, DateRangePicker, CSVButton, ProfileSection, SortTh } from '../components/ui'
+import { Tooltip, StatusPill, EmptyState, DateRangePicker, RangePresets, CSVButton, ProfileSection, SortTh } from '../components/ui'
 
-export default function OrdersTab({ data, platformFilter }) {
+export default function OrdersTab({ data, platformFilter, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const today = useMemo(() => new Date(), [])
   const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
@@ -157,7 +157,8 @@ export default function OrdersTab({ data, platformFilter }) {
             </div>
           ))}
         </div>
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <RangePresets onFrom={setDateFrom} onTo={setDateTo} />
           <DateRangePicker from={dateFrom} to={dateTo} onFrom={setDateFrom} onTo={setDateTo} />
         </div>
       </div>
@@ -184,7 +185,13 @@ export default function OrdersTab({ data, platformFilter }) {
             </thead>
             <tbody>
               {todayReleased.map((row, i) => (
-                <tr key={i}>
+                <tr
+                  key={i}
+                  onClick={() => onOpenPO && onOpenPO(row)}
+                  style={onOpenPO ? { cursor: 'pointer' } : undefined}
+                  onMouseEnter={onOpenPO ? (e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)' } : undefined}
+                  onMouseLeave={onOpenPO ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}
+                >
                   <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{row['PO Number']}</td>
                   <td>{row['City']}</td>
                   <td style={{ color: '#3b82f6', fontWeight: 600 }}>{row['Platform']}</td>
@@ -243,12 +250,12 @@ export default function OrdersTab({ data, platformFilter }) {
         </table>
       </div>
 
-      <AppointmentView data={data} />
+      <AppointmentView data={data} onOpenPO={onOpenPO} />
     </>
   )
 }
 
-function AppointmentView({ data }) {
+function AppointmentView({ data, onOpenPO }) {
   const today = useMemo(() => new Date(), [])
   const todayStr = formatDate(today)
   const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
@@ -326,7 +333,13 @@ function AppointmentView({ data }) {
         </thead>
         <tbody>
           {applySort(rows, sort, apptAccessors).map((r, i) => (
-            <tr key={i}>
+            <tr
+              key={i}
+              onClick={() => onOpenPO && onOpenPO(r)}
+              style={onOpenPO ? { cursor: 'pointer' } : undefined}
+              onMouseEnter={onOpenPO ? (e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)' } : undefined}
+              onMouseLeave={onOpenPO ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}
+            >
               <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
               <td>{r['City']}</td>
               <td style={{ color: '#3b82f6', fontWeight: 600 }}>{r['Platform']}</td>

@@ -85,6 +85,40 @@ export function DateRangePicker({ from, to, onFrom, onTo, style }) {
   )
 }
 
+const mdm = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${d.getFullYear()}`
+
+export function RangePresets({ onFrom, onTo, style }) {
+  const today = new Date()
+  const presets = [
+    { label: '7D', days: 7 },
+    { label: '30D', days: 30 },
+    { label: '90D', days: 90 },
+    { label: 'QTD', q: true },
+    { label: 'YTD', y: true },
+    { label: 'All', all: true },
+  ]
+  const apply = (p) => {
+    if (p.days) onFrom(mdm(new Date(today.getFullYear(), today.getMonth(), today.getDate() - (p.days - 1))))
+    else if (p.q) onFrom(mdm(new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1)))
+    else if (p.y) onFrom(mdm(new Date(today.getFullYear(), 0, 1)))
+    else if (p.all) onFrom(mdm(new Date(2000, 0, 1)))
+    onTo(mdm(today))
+  }
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', ...style }}>
+      {presets.map(p => (
+        <button
+          key={p.label}
+          onClick={() => apply(p)}
+          style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #334155', background: '#1e293b', color: '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function CSVButton({ makeRows, filename, children = '⬇ Download CSV', style }) {
   return (
     <button

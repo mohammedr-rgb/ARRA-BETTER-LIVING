@@ -11,8 +11,11 @@ import RTOTab from './tabs/RTOTab'
 import FinanceTab from './tabs/FinanceTab'
 import PerformanceTab from './tabs/PerformanceTab'
 import SettingsTab from './tabs/SettingsTab'
+import { PODrawer } from './components/PODrawer'
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
+
+const SEARCH_FIELDS = ['PO Number', 'Product', 'City', 'Platform', 'Appointment ID', 'FacilityName', 'Transporter', 'Entity', 'Invoice No', 'RTO Reason']
 
 function App() {
   const [data, setData] = useState([])
@@ -25,6 +28,8 @@ function App() {
   const [userEmail, setUserEmail] = useState('mohammed.r@gemedible.com')
   const [mobileMenu, setMobileMenu] = useState(false)
   const [globalPlatform, setGlobalPlatform] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [drawerPO, setDrawerPO] = useState(null)
 
   const loadData = useCallback(() => {
     setIsRefreshing(true)
@@ -63,6 +68,12 @@ function App() {
     if (globalPlatform === 'All') return data
     return data.filter(r => r['Platform'] === globalPlatform)
   }, [data, globalPlatform])
+
+  const searchedData = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return filteredData
+    return filteredData.filter(r => SEARCH_FIELDS.some(f => String(r[f] || '').toLowerCase().includes(q)))
+  }, [filteredData, searchQuery])
 
   const metrics = useMemo(() => {
     const poData = uniqueByPO(filteredData)
@@ -201,6 +212,20 @@ function App() {
             {platforms.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
+        <div style={{ padding: '8px 16px 12px' }}>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Global Search</div>
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="🔍 PO #, product, city…"
+            style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, outline: 'none' }}
+          />
+          {searchQuery && (
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>
+              {uniqueByPO(searchedData).length} matching orders — <a href="#" onClick={e => { e.preventDefault(); setSearchQuery('') }} style={{ color: '#3b82f6', textDecoration: 'none' }}>clear</a>
+            </div>
+          )}
+        </div>
         <nav>
           {navItem('dashboard', '📈', 'Dashboard')}
           {navItem('orders', '📦', 'Orders')}
@@ -233,18 +258,20 @@ function App() {
 
       <UserContext.Provider value={{ userEmail, setUserEmail }}>
         <div className="main-content">
-          {tab === 'dashboard' && <DashboardTab data={filteredData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} />}
-          {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} />}
-          {tab === 'inventory' && <InventoryTab data={filteredData} />}
-          {tab === 'logistics' && <LogisticsTab data={filteredData} />}
-          {tab === 'dispatch' && <DispatchTab data={filteredData} />}
-          {tab === 'reports' && <ReportsTab data={filteredData} platformFilter={globalPlatform} />}
-          {tab === 'rto' && <RTOTab data={filteredData} />}
-          {tab === 'finance' && <FinanceTab data={filteredData} />}
-          {tab === 'performance' && <PerformanceTab data={filteredData} platformFilter={globalPlatform} />}
+          {tab === 'dashboard' && <DashboardTab data={searchedData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={setDrawerPO} />}
+          {tab === 'orders' && <OrdersTab data={searchedData} platformFilter={globalPlatform} onOpenPO={setDrawerPO} />}
+          {tab === 'inventory' && <InventoryTab data={searchedData} />}
+          {tab === 'logistics' && <LogisticsTab data={searchedData} onOpenPO={setDrawerPO} />}
+          {tab === 'dispatch' && <DispatchTab data={searchedData} onOpenPO={setDrawerPO} />}
+          {tab === 'reports' && <ReportsTab data={searchedData} platformFilter={globalPlatform} />}
+          {tab === 'rto' && <RTOTab data={searchedData} onOpenPO={setDrawerPO} />}
+          {tab === 'finance' && <FinanceTab data={searchedData} onOpenPO={setDrawerPO} />}
+          {tab === 'performance' && <PerformanceTab data={searchedData} platformFilter={globalPlatform} />}
           {tab === 'settings' && <SettingsTab />}
         </div>
       </UserContext.Provider>
+
+      <PODrawer po={drawerPO} data={data} onClose={() => setDrawerPO(null)} />
     </>
   )
 }

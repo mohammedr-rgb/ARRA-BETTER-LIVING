@@ -3,27 +3,15 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts'
-import { toNumKG, parseMMDDDate, uniqueByPO } from '../lib/utils'
-import { useSort, applySort } from '../lib/useSort'
-import { EmptyState, ProfileSection, SortTh } from '../components/ui'
+import { toNumKG, uniqueByPO } from '../lib/utils'
+import { EmptyState, ProfileSection } from '../components/ui'
+import { DataTable } from '../components/DataTable'
 
 const REASONS_COLORS = ['#ef4444', '#f97316', '#eab308', '#a855f7', '#3b82f6', '#22c55e', '#06b6d4', '#8b5cf6']
 
-export default function RTOTab({ data }) {
+export default function RTOTab({ data, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const rtoPOs = useMemo(() => poData.filter(r => r['Status'] === 'RTO'), [poData])
-  const rtoSort = useSort()
-
-  const rtoAccessors = {
-    po: r => r['PO Number'],
-    apptdate: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)']),
-    city: r => r['City'],
-    platform: r => r['Platform'],
-    product: r => r['Product'],
-    reason: r => r['RTO Reason'],
-    tonnage: r => toNumKG(r['RTO Tonnage (MT)']),
-    value: r => toNumKG(r['RTO Value at Risk']),
-  }
 
   const rtoMetrics = useMemo(() => {
     const totalRTO = rtoPOs.length
@@ -294,38 +282,25 @@ export default function RTOTab({ data }) {
       <div className="recent-orders" style={{ marginBottom: 20 }}>
         <div className="orders-header">
           <div className="orders-title">Recent RTO Orders</div>
-          <div className="chart-period">Last 50 returned orders</div>
+          <div className="chart-period">All returned orders • click a row for details</div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <SortTh label="PO #" k="po" sort={rtoSort} />
-              <SortTh label="Appt Date" k="apptdate" sort={rtoSort} />
-              <SortTh label="City" k="city" sort={rtoSort} />
-              <SortTh label="Platform" k="platform" sort={rtoSort} />
-              <SortTh label="Product" k="product" sort={rtoSort} />
-              <SortTh label="RTO Reason" k="reason" sort={rtoSort} />
-              <SortTh label="Tonnage Lost" k="tonnage" sort={rtoSort} />
-              <SortTh label="Value at Risk" k="value" sort={rtoSort} />
-            </tr>
-          </thead>
-          <tbody>
-            {rtoPOs.length === 0 ? (
-              <tr><td colSpan={8}><EmptyState /></td></tr>
-            ) : applySort(rtoPOs, rtoSort, rtoAccessors).slice(0, 50).map((r, i) => (
-              <tr key={i}>
-                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
-                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)'] || '—'}</td>
-                <td>{r['City'] || '—'}</td>
-                <td>{r['Platform'] || '—'}</td>
-                <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Product'] || '—'}</td>
-                <td style={{ color: '#ef4444' }}>{r['RTO Reason'] || '—'}</td>
-                <td>{Math.round(toNumKG(r['RTO Tonnage (MT)'])).toLocaleString()} KG</td>
-                <td style={{ color: '#ef4444', fontWeight: 600 }}>₹{Math.round(toNumKG(r['RTO Value at Risk'])).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          columns={[
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+            { key: 'apptdate', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
+            { key: 'city', label: 'City', accessor: r => r['City'] || '—' },
+            { key: 'platform', label: 'Platform', accessor: r => r['Platform'] || '—' },
+            { key: 'product', label: 'Product', accessor: r => r['Product'] || '—', render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product'] || '—'}</span> },
+            { key: 'reason', label: 'RTO Reason', accessor: r => r['RTO Reason'] || '—', render: r => <span style={{ color: '#ef4444' }}>{r['RTO Reason'] || '—'}</span> },
+            { key: 'tonnage', label: 'Tonnage Lost', accessor: r => toNumKG(r['RTO Tonnage (MT)']), align: 'right', render: r => Math.round(toNumKG(r['RTO Tonnage (MT)'])).toLocaleString() + ' KG' },
+            { key: 'value', label: 'Value at Risk', accessor: r => toNumKG(r['RTO Value at Risk']), align: 'right', render: r => <span style={{ color: '#ef4444', fontWeight: 600 }}>₹{Math.round(toNumKG(r['RTO Value at Risk'])).toLocaleString()}</span> },
+          ]}
+          rows={rtoPOs}
+          pageSize={10}
+          filename="rto_orders.csv"
+          onRowClick={onOpenPO}
+          emptyMessage="No RTO orders"
+        />
       </div>
     </>
   )
