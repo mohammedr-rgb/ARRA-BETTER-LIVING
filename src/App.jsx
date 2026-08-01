@@ -107,6 +107,16 @@ function csvEscape(v) {
   return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
+function isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  const dayNum = (t.getUTCDay() + 6) % 7
+  t.setUTCDate(t.getUTCDate() - dayNum + 3)
+  const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4))
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3)
+  return 1 + Math.round((t - firstThursday) / (7 * 24 * 3600 * 1000))
+}
+
 const STATUS_COLORS = {
   Delivered: '#22c55e',
   'In-Transit': '#3b82f6',
@@ -1602,10 +1612,13 @@ function InventoryTab({ data }) {
       sku.totalValue += num(r['PO Value with Tax'])
       const c = r['City'] || 'Unknown'
       const pl = r['Platform'] || 'Unknown'
+      const dd = parseMMDDDate(r['DATE(MM-DD-YYYY)'])
+      const wk = dd ? 'W' + isoWeek(dd) : 'W?'
       if (!sku.combo[c]) sku.combo[c] = {}
-      if (!sku.combo[c][pl]) sku.combo[c][pl] = { qty: 0, boxes: 0 }
+      if (!sku.combo[c][pl]) sku.combo[c][pl] = { qty: 0, boxes: 0, weeks: {} }
       sku.combo[c][pl].qty += num(r['PO Qty'])
       sku.combo[c][pl].boxes += num(r['Box Count'])
+      sku.combo[c][pl].weeks[wk] = (sku.combo[c][pl].weeks[wk] || 0) + num(r['PO Qty'])
     })
 
     const nextMonth = (prev2.getMonth() + 1) % 12
@@ -1843,9 +1856,19 @@ function InventoryTab({ data }) {
               rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan (2-week stock arrangement)')
               rows.push('')
               rows.push('CITY WISE × PRODUCT WISE × PLATFORM WISE')
-              rows.push('City,Product,Platform,Sales Qty (2M),Plan Qty (70%),Plan Boxes')
+              const weekSet = {}
+              for (const r of planData.baseItems) {
+                for (const c in r.combo) {
+                  for (const pl in r.combo[c]) {
+                    for (const wk in r.combo[c][pl].weeks) weekSet[wk] = true
+                  }
+                }
+              }
+              const weekKeys = Object.keys(weekSet).sort((a, b) => a.localeCompare(b))
+              rows.push('City,Product,Platform,Sales Qty (2M),Plan Qty (70%),Plan Boxes' + weekKeys.map(w => ',' + w + ' Plan').join(''))
               const detail = []
               const prodTotals = {}
+              const prodWeekTotals = {}
               for (const r of planData.baseItems) {
                 for (const c in r.combo) {
                   for (const pl in r.combo[c]) {
@@ -1853,8 +1876,10 @@ function InventoryTab({ data }) {
                     if (cell.qty <= 0) continue
                     const planQty = Math.round(cell.qty * 0.7)
                     const planBoxes = Math.round(planQty * r.perUnitBoxes)
-                    detail.push([c, r.product, pl, cell.qty, planQty, planBoxes])
+                    detail.push([c, r.product, pl, cell.qty, planQty, planBoxes].concat(weekKeys.map(wk => Math.round((cell.weeks[wk] || 0) * 0.7))))
                     prodTotals[r.product] = (prodTotals[r.product] || 0) + cell.qty
+                    if (!prodWeekTotals[r.product]) prodWeekTotals[r.product] = {}
+                    for (const wk in cell.weeks) prodWeekTotals[r.product][wk] = (prodWeekTotals[r.product][wk] || 0) + cell.weeks[wk]
                   }
                 }
               }
@@ -1862,14 +1887,30 @@ function InventoryTab({ data }) {
               detail.forEach(d => rows.push(d.map(x => csvEscape(String(x))).join(',')))
               rows.push('')
               rows.push('PRODUCT SUMMARY (UNIQUE PRODUCT - OVERALL PLAN COUNT)')
-              rows.push('Product,Total Sales Qty (2M),Total Plan Qty (70%),Total Plan Boxes')
+              rows.push('Product,Total Sales Qty (2M),Total Plan Qty (70%),Total Plan Boxes' + weekKeys.map(w => ',' + w + ' Plan').join(''))
               const prodBoxes = {}
               for (const r of planData.baseItems) {
                 prodBoxes[r.product] = Math.round(r.salesQty * 0.7 * r.perUnitBoxes)
               }
               Object.entries(prodTotals).sort((a, b) => b[1] - a[1]).forEach(([p, q]) => {
-                rows.push(`${csvEscape(p)},${q},${Math.round(q * 0.7)},${prodBoxes[p] || 0}`)
+                const pw = prodWeekTotals[p] || {}
+                rows.push(`${csvEscape(p)},${q},${Math.round(q * 0.7)},${prodBoxes[p] || 0}` + weekKeys.map(wk => ',' + Math.round((pw[wk] || 0) * 0.7)).join(''))
               })
+              rows.push('')
+              rows.push('WEEK WISE PLAN')
+              rows.push('Week,Plan Qty (70%),Plan Boxes')
+              for (const wk of weekKeys) {
+                let wq = 0
+                let wb = 0
+                for (const p in prodWeekTotals) {
+                  const q = (prodWeekTotals[p] || {})[wk] || 0
+                  if (!q) continue
+                  wq += Math.round(q * 0.7)
+                  const r = planData.baseItems.find(x => x.product === p)
+                  wb += Math.round(q * 0.7 * (r ? r.perUnitBoxes : 0))
+                }
+                rows.push(`${wk},${wq},${wb}`)
+              }
               const grand = Object.values(prodTotals).reduce((s, v) => s + v, 0)
               const grandBoxes = Object.values(prodBoxes).reduce((s, v) => s + v, 0)
               rows.push('')
