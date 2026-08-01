@@ -436,9 +436,9 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
                 { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
                 { key: 'value', label: 'Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
                 { key: 'invoice', label: 'Invoice No', accessor: r => r['Invoice No'] || '—' },
+                { key: 'boxes', label: 'Box Count', accessor: r => num(r['Box Count']), align: 'right' },
                 { key: 'transporter', label: 'Transporter', accessor: r => r['Transporter'] || '—' },
                 { key: 'appt', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
-                { key: 'apptid', label: 'Appt ID', accessor: r => r['Appointment ID'] || '—' },
                 { key: 'status', label: 'Status', accessor: r => r['Status'], render: r => <StatusPill status={r['Status']} /> },
               ]}
               rows={searchResults}
