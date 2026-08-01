@@ -1174,6 +1174,22 @@ function OrdersTab({ data, platformFilter }) {
     tonnage: citySummary.reduce((s, c) => s + c.tonnage, 0),
   }), [citySummary])
 
+  const todayReleased = useMemo(() => {
+    const todayStr = formatDate(today)
+    const seen = new Set()
+    const rows = []
+    data.forEach(r => {
+      if (platformFilter !== 'All' && r['Platform'] !== platformFilter) return
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      if (!d || formatDate(d) !== todayStr) return
+      const po = r['PO Number']
+      if (seen.has(po)) return
+      seen.add(po)
+      rows.push(r)
+    })
+    return rows.sort((a, b) => (a['City'] || '').localeCompare(b['City'] || ''))
+  }, [data, platformFilter, today])
+
   return (
     <>
       <header>
@@ -1216,6 +1232,45 @@ function OrdersTab({ data, platformFilter }) {
           <label style={{ color: '#94a3b8', fontSize: 13, fontWeight: 500 }}>To</label>
           <input type="date" value={(() => { const p = dateTo.split('-'); return `${p[2]}-${p[0]}-${p[1]}` })()} onChange={e => { const p = e.target.value.split('-'); setDateTo(`${p[1]}-${p[2]}-${p[0]}`) }} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', padding: '8px 12px', fontSize: 13 }} />
         </div>
+      </div>
+
+      <div className="recent-orders" style={{ marginTop: 0 }}>
+        <div className="orders-header">
+          <div className="orders-title">📌 Today Released POs ({todayReleased.length})</div>
+          <div className="chart-period">{formatDate(today)} — {todayReleased.reduce((s, r) => s + num(r['PO Qty']), 0)} units • ₹{Math.round(todayReleased.reduce((s, r) => s + num(r['PO Value with Tax']), 0)).toLocaleString()}</div>
+        </div>
+        {todayReleased.length ? (
+          <table style={{ minWidth: 900 }}>
+            <thead>
+              <tr>
+                <th>PO #</th>
+                <th>City</th>
+                <th>Platform</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Tonnage</th>
+                <th>Value</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {todayReleased.map((row, i) => (
+                <tr key={i}>
+                  <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{row['PO Number']}</td>
+                  <td>{row['City']}</td>
+                  <td style={{ color: '#3b82f6', fontWeight: 600 }}>{row['Platform']}</td>
+                  <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row['Product']}</td>
+                  <td>{num(row['PO Qty'])}</td>
+                  <td>{num(row['Tonnage'])}</td>
+                  <td>₹{num(row['PO Value with Tax']).toLocaleString()}</td>
+                  <td><span className={`status ${(row['Status'] || '').toLowerCase().replace(/\s+/g, '')}`}>{row['Status'] || 'N/A'}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ padding: 16, textAlign: 'center', color: '#64748b', fontSize: 13 }}>No POs released today</div>
+        )}
       </div>
 
       <div className="recent-orders" style={{ marginTop: 0 }}>
