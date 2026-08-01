@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react'
+import { useState, useContext, useId } from 'react'
 import { UserContext } from '../lib/userContext'
 import { mdmToISO, isoToMdm } from '../lib/utils'
 
@@ -11,8 +11,8 @@ const dateInputStyle = {
   fontSize: 13,
 }
 
-export function Tooltip({ children, style }) {
-  return <div className="popover" style={style}>{children}</div>
+export function Tooltip({ children, style, role = 'tooltip', id }) {
+  return <div className="popover" style={style} role={role} id={id}>{children}</div>
 }
 
 export function TooltipRow({ label, value, valueColor = '#f1f5f9' }) {
@@ -24,13 +24,27 @@ export function TooltipRow({ label, value, valueColor = '#f1f5f9' }) {
 }
 
 export function StatCard({ label, icon, color = '#3b82f6', value, valueColor, change, changeColor = '#94a3b8', delta, deltaTitle = 'vs previous 30 days', tooltip, tooltipStyle, style }) {
-  const [hover, setHover] = useState(false)
+  const [open, setOpen] = useState(false)
+  const tid = useId()
+  const show = tooltip ? open : false
   return (
     <div
       className="stat-card"
       style={{ position: 'relative', cursor: tooltip ? 'pointer' : undefined, ...style }}
-      onMouseEnter={() => tooltip && setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      tabIndex={tooltip ? 0 : undefined}
+      role={tooltip ? 'button' : undefined}
+      aria-haspopup={tooltip ? 'true' : undefined}
+      aria-expanded={tooltip ? show : undefined}
+      aria-describedby={show ? tid : undefined}
+      onMouseEnter={() => tooltip && setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => tooltip && setOpen(true)}
+      onBlur={() => setOpen(false)}
+      onKeyDown={e => {
+        if (!tooltip) return
+        if (e.key === 'Escape') setOpen(false)
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(v => !v) }
+      }}
     >
       <div className="stat-header">
         <div className="stat-label">{label}</div>
@@ -45,7 +59,7 @@ export function StatCard({ label, icon, color = '#3b82f6', value, valueColor, ch
           </span>
         )}
       </div>
-      {hover && <Tooltip style={tooltipStyle}>{tooltip}</Tooltip>}
+      {show && <Tooltip style={tooltipStyle} id={tid}>{tooltip}</Tooltip>}
     </div>
   )
 }

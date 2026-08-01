@@ -143,7 +143,14 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', position: 'relative' }}>
           {statusFilters.map(s => (
             <div key={s} style={{ position: 'relative' }} onMouseEnter={() => setHoverFilter(s)} onMouseLeave={() => setHoverFilter(null)}>
-              <button onClick={() => setStatusFilter(s)} style={{ background: statusFilter === s ? '#3b82f6' : '#1e293b', border: '1px solid ' + (statusFilter === s ? '#3b82f6' : '#334155'), borderRadius: 8, color: '#f1f5f9', padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              <button
+                onClick={() => setStatusFilter(s)}
+                onFocus={() => setHoverFilter(s)}
+                onBlur={() => setHoverFilter(null)}
+                onKeyDown={e => { if (e.key === 'Escape') setHoverFilter(null) }}
+                aria-expanded={hoverFilter === s}
+                style={{ background: statusFilter === s ? '#3b82f6' : '#1e293b', border: '1px solid ' + (statusFilter === s ? '#3b82f6' : '#334155'), borderRadius: 8, color: '#f1f5f9', padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
                 {s}
               </button>
               {hoverFilter === s && (

@@ -21,6 +21,7 @@ const PLATFORM_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#eab308', '#f97316', 
 export default function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
+  const [cityMetric, setCityMetric] = useState('orders')
 
   const drillPOs = useMemo(() => {
     if (!drill) return []
@@ -327,12 +328,25 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             {platformPerf.map(p => {
               const dr = (p.delivered + p.rto) ? (p.delivered / (p.delivered + p.rto) * 100).toFixed(0) : '—'
+              const show = hoverPlatform === p.platform
               return (
-                <div key={p.platform} style={{ position: 'relative' }} onMouseEnter={() => setHoverPlatform(p.platform)} onMouseLeave={() => setHoverPlatform(null)}>
+                <div
+                  key={p.platform}
+                  style={{ position: 'relative' }}
+                  tabIndex={0}
+                  role="button"
+                  aria-haspopup="true"
+                  aria-expanded={show}
+                  onMouseEnter={() => setHoverPlatform(p.platform)}
+                  onMouseLeave={() => setHoverPlatform(null)}
+                  onFocus={() => setHoverPlatform(p.platform)}
+                  onBlur={() => setHoverPlatform(null)}
+                  onKeyDown={e => { if (e.key === 'Escape') setHoverPlatform(null) }}
+                >
                   <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', cursor: 'default' }}>
                     {p.platform} • {p.orders} • {Math.round(p.tonnage)}KG • {dr}{dr !== '—' ? '%' : ''}
                   </span>
-                  {hoverPlatform === p.platform && (
+                  {show && (
                     <Tooltip style={tooltipBox}>
                       <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>{p.platform}</div>
                       <TooltipRow label="Orders" value={p.orders} />
@@ -445,30 +459,42 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         <div className="chart-card">
           <div className="chart-header">
             <div className="chart-title">Orders by City</div>
-            <div className="chart-period">All time</div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {[['orders', 'Orders'], ['tonnage', 'Tonnage'], ['value', 'Value']].map(([k, lbl]) => (
+                <button
+                  key={k}
+                  onClick={() => setCityMetric(k)}
+                  style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid ' + (cityMetric === k ? '#3b82f6' : '#334155'), background: cityMetric === k ? 'rgba(59,130,246,0.15)' : '#1e293b', color: cityMetric === k ? '#3b82f6' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={cityData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="city" stroke="#64748b" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={80} interval={0} />
-              <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
+              <YAxis stroke="#64748b" tick={{ fontSize: 12 }} tickFormatter={v => cityMetric === 'value' ? '₹' + (v / 1000 >= 100 ? Math.round(v / 100000) + 'L' : (v / 1000).toFixed(0) + 'k') : v.toLocaleString()} />
               <ReTooltip
                 contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null
                   const row = payload[0].payload
+                  const metricVal = cityMetric === 'value' ? '₹' + row.value.toLocaleString() : cityMetric === 'tonnage' ? Math.round(row.tonnage).toLocaleString() + ' KG' : row.orders
+                  const metricColor = cityMetric === 'value' ? '#22c55e' : cityMetric === 'tonnage' ? '#a855f7' : '#3b82f6'
                   return (
                     <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
                       <div style={{ fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>{row.city}</div>
-                      <div style={{ color: '#94a3b8' }}>Orders: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{row.orders}</span></div>
-                      <div style={{ color: '#94a3b8' }}>Delivered: <span style={{ color: '#22c55e', fontWeight: 600 }}>{row.delivered}</span></div>
-                      <div style={{ color: '#94a3b8' }}>Tonnage: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{Math.round(row.tonnage)} KG</span></div>
-                      <div style={{ color: '#94a3b8' }}>Delivered Tonnage: <span style={{ color: '#22c55e', fontWeight: 600 }}>{Math.round(row.deliveredTonnage)} KG</span></div>
+                      <div style={{ color: '#94a3b8' }}>Orders: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{row.orders}</span></div>
+                      <div style={{ color: '#94a3b8' }}>Tonnage: <span style={{ color: '#a855f7', fontWeight: 600 }}>{Math.round(row.tonnage)} KG</span></div>
+                      <div style={{ color: '#94a3b8' }}>Value: <span style={{ color: '#22c55e', fontWeight: 600 }}>₹{row.value.toLocaleString()}</span></div>
+                      <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid #334155', color: '#94a3b8', fontSize: 12 }}>Metric: <span style={{ color: metricColor, fontWeight: 600 }}>{metricVal}</span></div>
                     </div>
                   )
                 }}
               />
-              <Bar dataKey="orders" fill="#3b82f6" radius={[6, 6, 0, 0]} name="orders" onClick={(d) => d && d.payload && setDrill({ city: d.payload.city, status: null })} style={{ cursor: 'pointer' }} />
+              <Bar dataKey={cityMetric} fill={cityMetric === 'value' ? '#22c55e' : cityMetric === 'tonnage' ? '#a855f7' : '#3b82f6'} radius={[6, 6, 0, 0]} name={cityMetric} onClick={(d) => d && d.payload && setDrill({ city: d.payload.city, status: null })} style={{ cursor: 'pointer' }} />
             </BarChart>
           </ResponsiveContainer>
         </div>

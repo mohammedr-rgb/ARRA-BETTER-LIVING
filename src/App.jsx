@@ -126,15 +126,20 @@ function App() {
     const map = {}
     for (const r of filteredData) {
       const c = r['City']; if (!c) continue
-      if (!map[c]) map[c] = { city: c, orders: new Set(), tonnage: 0, delivered: 0, deliveredTonnage: 0 }
+      if (!map[c]) map[c] = { city: c, orders: new Set(), tonnage: 0, delivered: 0, deliveredTonnage: 0, poValues: {} }
       map[c].orders.add(r['PO Number'])
       map[c].tonnage += num(r['Tonnage'])
+      const po = r['PO Number']
+      const v = num(r['PO Value with Tax'])
+      if (po && v > 0 && v > (map[c].poValues[po] || 0)) map[c].poValues[po] = v
       if (r['Status'] === 'Delivered') {
         map[c].delivered++
         map[c].deliveredTonnage += num(r['Tonnage'])
       }
     }
-    return Object.values(map).map(x => ({ ...x, orders: x.orders.size })).sort((a, b) => b.orders - a.orders)
+    return Object.values(map)
+      .map(x => ({ ...x, orders: x.orders.size, value: Math.round(Object.values(x.poValues).reduce((s, v) => s + v, 0)) }))
+      .sort((a, b) => b.orders - a.orders)
   }, [filteredData])
 
   const statusData = useMemo(() => {
