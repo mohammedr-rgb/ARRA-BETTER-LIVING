@@ -1603,7 +1603,9 @@ function InventoryTab({ data }) {
       const c = r['City'] || 'Unknown'
       const pl = r['Platform'] || 'Unknown'
       if (!sku.combo[c]) sku.combo[c] = {}
-      sku.combo[c][pl] = (sku.combo[c][pl] || 0) + num(r['PO Qty'])
+      if (!sku.combo[c][pl]) sku.combo[c][pl] = { qty: 0, boxes: 0 }
+      sku.combo[c][pl].qty += num(r['PO Qty'])
+      sku.combo[c][pl].boxes += num(r['Box Count'])
     })
 
     const nextMonth = (prev2.getMonth() + 1) % 12
@@ -1641,7 +1643,7 @@ function InventoryTab({ data }) {
         for (const pl in sku.combo[c]) {
           if (planPlatform !== 'All' && pl !== planPlatform) continue
           if (planCity !== 'All' && c !== planCity) continue
-          qty += sku.combo[c][pl]
+          qty += sku.combo[c][pl].qty
         }
       }
       return qty
@@ -1651,7 +1653,7 @@ function InventoryTab({ data }) {
       for (const c in sku.combo) {
         for (const pl in sku.combo[c]) {
           if (planCity !== 'All' && c !== planCity) continue
-          map[pl] = (map[pl] || 0) + sku.combo[c][pl]
+          map[pl] = (map[pl] || 0) + sku.combo[c][pl].qty
         }
       }
       return Object.entries(map).sort((a, b) => b[1] - a[1])
@@ -1661,12 +1663,12 @@ function InventoryTab({ data }) {
       for (const c in sku.combo) {
         if (planPlatform !== 'All') continue
         for (const pl in sku.combo[c]) {
-          map[c] = (map[c] || 0) + sku.combo[c][pl]
+          map[c] = (map[c] || 0) + sku.combo[c][pl].qty
         }
       }
       if (planPlatform !== 'All') {
         for (const c in sku.combo) {
-          if (sku.combo[c][planPlatform]) map[c] = (map[c] || 0) + sku.combo[c][planPlatform]
+          if (sku.combo[c][planPlatform]) map[c] = (map[c] || 0) + sku.combo[c][planPlatform].qty
         }
       }
       return Object.entries(map).sort((a, b) => b[1] - a[1])
@@ -1841,16 +1843,18 @@ function InventoryTab({ data }) {
               rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan (2-week stock arrangement)')
               rows.push('')
               rows.push('CITY WISE × PRODUCT WISE × PLATFORM WISE')
-              rows.push('City,Product,Platform,Sales Qty (2M),Plan Qty (70%)')
+              rows.push('City,Product,Platform,Sales Qty (2M),Plan Qty (70%),Plan Boxes')
               const detail = []
               const prodTotals = {}
               for (const r of planData.baseItems) {
                 for (const c in r.combo) {
                   for (const pl in r.combo[c]) {
-                    const qty = r.combo[c][pl]
-                    if (qty <= 0) continue
-                    detail.push([c, r.product, pl, qty, Math.round(qty * 0.7)])
-                    prodTotals[r.product] = (prodTotals[r.product] || 0) + qty
+                    const cell = r.combo[c][pl]
+                    if (cell.qty <= 0) continue
+                    const planQty = Math.round(cell.qty * 0.7)
+                    const planBoxes = Math.round(planQty * r.perUnitBoxes)
+                    detail.push([c, r.product, pl, cell.qty, planQty, planBoxes])
+                    prodTotals[r.product] = (prodTotals[r.product] || 0) + cell.qty
                   }
                 }
               }
@@ -1858,13 +1862,18 @@ function InventoryTab({ data }) {
               detail.forEach(d => rows.push(d.map(x => csvEscape(String(x))).join(',')))
               rows.push('')
               rows.push('PRODUCT SUMMARY (UNIQUE PRODUCT - OVERALL PLAN COUNT)')
-              rows.push('Product,Total Sales Qty (2M),Total Plan Qty (70%)')
+              rows.push('Product,Total Sales Qty (2M),Total Plan Qty (70%),Total Plan Boxes')
+              const prodBoxes = {}
+              for (const r of planData.baseItems) {
+                prodBoxes[r.product] = Math.round(r.salesQty * 0.7 * r.perUnitBoxes)
+              }
               Object.entries(prodTotals).sort((a, b) => b[1] - a[1]).forEach(([p, q]) => {
-                rows.push(`${csvEscape(p)},${q},${Math.round(q * 0.7)}`)
+                rows.push(`${csvEscape(p)},${q},${Math.round(q * 0.7)},${prodBoxes[p] || 0}`)
               })
               const grand = Object.values(prodTotals).reduce((s, v) => s + v, 0)
+              const grandBoxes = Object.values(prodBoxes).reduce((s, v) => s + v, 0)
               rows.push('')
-              rows.push(`GRAND TOTAL,${grand},${Math.round(grand * 0.7)}`)
+              rows.push(`GRAND TOTAL,${grand},${Math.round(grand * 0.7)},${grandBoxes}`)
               const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
               const url = URL.createObjectURL(blob)
               const a = document.createElement('a'); a.href = url; a.download = 'production_plan.csv'; a.click()
