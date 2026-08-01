@@ -680,6 +680,7 @@ function DispatchTab({ data, rawCSV }) {
               ['MRP', 'MRP'],
               ['Expiry Date(MM-DD-YYYY)', 'PO Expiry Date'],
               ['Appointment Date(MM-DD-YYYY)', 'Appointment Date'],
+              ['PO Released Date(MM-DD-YYYY)', 'PO Released Date'],
             ]
             const header = cols.map(c => c[1]).join(',')
             const body = filtered.map(r => cols.map(([k]) => {
