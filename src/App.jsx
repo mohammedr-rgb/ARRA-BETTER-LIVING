@@ -1578,18 +1578,15 @@ function InventoryTab({ data }) {
 
   const planData = useMemo(() => {
     const now = new Date()
-    const thisMonth = now.getMonth()
     const thisYear = now.getFullYear()
-    const prev = new Date(thisYear, thisMonth - 1, 1)
-    const prevMonth = prev.getMonth()
-    const prevYear = prev.getFullYear()
-
+    const prev2 = new Date(thisYear, now.getMonth() - 1, 1)
+    const prev1 = new Date(thisYear, now.getMonth() - 2, 1)
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
     const last2MonthOrders = data.filter(r => {
-      const d = parseDate(r['DATE(MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['DATE(MM-DD-YYYY)'])
       if (!d) return false
-      return (d.getMonth() === thisMonth && d.getFullYear() === thisYear) || (d.getMonth() === prevMonth && d.getFullYear() === prevYear)
+      return (d.getMonth() === prev2.getMonth() && d.getFullYear() === prev2.getFullYear()) || (d.getMonth() === prev1.getMonth() && d.getFullYear() === prev1.getFullYear())
     })
 
     const skuMap = {}
@@ -1609,9 +1606,9 @@ function InventoryTab({ data }) {
       sku.combo[c][pl] = (sku.combo[c][pl] || 0) + num(r['PO Qty'])
     })
 
-    const nextMonth = (thisMonth + 1) % 12
+    const nextMonth = (prev2.getMonth() + 1) % 12
     const nextMonthName = monthNames[nextMonth]
-    const periodLabel = `${monthNames[prevMonth]}–${monthNames[thisMonth]}`
+    const periodLabel = `${monthNames[prev1.getMonth()]}–${monthNames[prev2.getMonth()]}`
 
     const platformOptions = [...new Set(Object.values(skuMap).flatMap(s => Object.keys(s.combo).flatMap(c => Object.keys(s.combo[c]))))]
     const cityOptions = [...new Set(Object.values(skuMap).flatMap(s => Object.keys(s.combo)))]
