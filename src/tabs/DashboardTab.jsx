@@ -22,6 +22,32 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
+  const [search, setSearch] = useState('')
+
+  const searchActive = search.trim() !== ''
+
+  const searchResults = useMemo(() => {
+    if (!searchActive) return []
+    const q = search.trim().toLowerCase()
+    return data.filter(r => Object.values(r).some(v => String(v || '').toLowerCase().includes(q)))
+  }, [data, search, searchActive])
+
+  const searchSummary = useMemo(() => {
+    const po = uniqueByPO(searchResults)
+    return {
+      orders: po.length,
+      tonnage: Math.round(sumField(searchResults, 'Tonnage')),
+      value: Math.round(sumPOField(searchResults, 'PO Value with Tax')),
+      delivered: po.filter(r => r['Status'] === 'Delivered').length,
+    }
+  }, [searchResults])
+
+  const matchedOn = (r) => {
+    if (!searchActive) return ''
+    const q = search.trim().toLowerCase()
+    const field = Object.keys(r).find(f => String(r[f] || '').toLowerCase().includes(q))
+    return field || '—'
+  }
 
   const drillPOs = useMemo(() => {
     if (!drill) return []
@@ -365,6 +391,68 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         <ProfileSection />
       </header>
 
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 15, opacity: 0.7 }}>🔍</span>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Universal search — PO #, product, city, platform, transporter, invoice, appointment ID, status…"
+            style={{ width: '100%', boxSizing: 'border-box', background: '#0f172a', border: '2px solid #3b82f6', borderRadius: 12, color: '#f1f5f9', padding: '14px 42px 14px 42px', fontSize: 15, outline: 'none' }}
+          />
+          {searchActive && (
+            <button onClick={() => setSearch('')} title="Clear search" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: '#334155', border: 'none', borderRadius: '50%', color: '#f1f5f9', width: 26, height: 26, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          )}
+        </div>
+        {searchActive && (
+          <div className="recent-orders" style={{ marginTop: 16 }}>
+            <div className="orders-header">
+              <div className="orders-title">🔎 Search Results — “{search.trim()}”</div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span className="chart-period">{searchResults.length} matching rows • {searchSummary.orders} unique POs • click a row for full details</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+              {[
+                { label: 'Orders', value: searchSummary.orders, color: '#3b82f6' },
+                { label: 'Tonnage', value: searchSummary.tonnage.toLocaleString() + ' KG', color: '#a855f7' },
+                { label: 'Value', value: '₹' + searchSummary.value.toLocaleString(), color: '#22c55e' },
+                { label: 'Delivered', value: searchSummary.delivered, color: '#22c55e' },
+              ].map(s => (
+                <div key={s.label} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '8px 14px' }}>
+                  <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: s.color }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+            <DataTable
+              columns={[
+                { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+                { key: 'matched', label: 'Matched On', accessor: r => matchedOn(r) },
+                { key: 'city', label: 'City', accessor: r => r['City'] },
+                { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
+                { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
+                { key: 'qty', label: 'Qty', accessor: r => num(r['PO Qty']), align: 'right' },
+                { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
+                { key: 'value', label: 'Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
+                { key: 'invoice', label: 'Invoice No', accessor: r => r['Invoice No'] || '—' },
+                { key: 'transporter', label: 'Transporter', accessor: r => r['Transporter'] || '—' },
+                { key: 'appt', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
+                { key: 'apptid', label: 'Appt ID', accessor: r => r['Appointment ID'] || '—' },
+                { key: 'status', label: 'Status', accessor: r => r['Status'], render: r => <StatusPill status={r['Status']} /> },
+              ]}
+              rows={searchResults}
+              pageSize={10}
+              filename="search_results.csv"
+              onRowClick={onOpenPO}
+              emptyMessage="No matches found — try a different detail"
+            />
+          </div>
+        )}
+      </div>
+
+      {searchActive ? null : (
+      <>
       {insights.length > 0 && (
         <div style={{ marginBottom: 20, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 12, padding: '16px 20px' }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 12 }}>💡 Data Insights</div>
@@ -810,6 +898,8 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
           emptyMessage="No recent releases"
         />
       </div>
+      </>
+      )}
     </>
   )
 }
