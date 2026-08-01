@@ -1849,7 +1849,8 @@ function InventoryTab({ data }) {
                 const r = q % 4
                 return weekKeys.map((_, i) => b + (i < r ? 1 : 0))
               }
-              rows.push('City,Product,Platform,Sales Qty (2M),Plan Qty (70%),Plan Boxes,Week 1 Plan,Week 2 Plan,Week 3 Plan,Week 4 Plan')
+              const weekCols = weekKeys.flatMap(w => [w + ' Plan Qty', w + ' Plan Boxes'])
+              rows.push('City,Product,Platform,Sales Qty (2M),Plan Qty (70%),Plan Boxes,' + weekCols.join(','))
               const detail = []
               const prodTotals = {}
               for (const r of planData.baseItems) {
@@ -1859,7 +1860,11 @@ function InventoryTab({ data }) {
                     if (cell.qty <= 0) continue
                     const planQty = Math.round(cell.qty * 0.7)
                     const planBoxes = Math.round(planQty * r.perUnitBoxes)
-                    detail.push([c, r.product, pl, cell.qty, planQty, planBoxes].concat(splitWeeks(planQty)))
+                    const wkQty = splitWeeks(planQty)
+                    const wkBoxes = splitWeeks(planBoxes)
+                    const cols = []
+                    weekKeys.forEach((_, i) => cols.push(wkQty[i], wkBoxes[i]))
+                    detail.push([c, r.product, pl, cell.qty, planQty, planBoxes].concat(cols))
                     prodTotals[r.product] = (prodTotals[r.product] || 0) + cell.qty
                   }
                 }
@@ -1868,14 +1873,18 @@ function InventoryTab({ data }) {
               detail.forEach(d => rows.push(d.map(x => csvEscape(String(x))).join(',')))
               rows.push('')
               rows.push('PRODUCT SUMMARY (UNIQUE PRODUCT - OVERALL PLAN COUNT)')
-              rows.push('Product,Total Sales Qty (2M),Total Plan Qty (70%),Total Plan Boxes,Week 1 Plan,Week 2 Plan,Week 3 Plan,Week 4 Plan')
+              rows.push('Product,Total Sales Qty (2M),Total Plan Qty (70%),Total Plan Boxes,' + weekCols.join(','))
               const prodBoxes = {}
               for (const r of planData.baseItems) {
                 prodBoxes[r.product] = Math.round(r.salesQty * 0.7 * r.perUnitBoxes)
               }
               Object.entries(prodTotals).sort((a, b) => b[1] - a[1]).forEach(([p, q]) => {
                 const pq = Math.round(q * 0.7)
-                rows.push(`${csvEscape(p)},${q},${pq},${prodBoxes[p] || 0},${splitWeeks(pq).join(',')}`)
+                const wkQty = splitWeeks(pq)
+                const wkBoxes = splitWeeks(prodBoxes[p] || 0)
+                const cols = []
+                weekKeys.forEach((_, i) => cols.push(wkQty[i], wkBoxes[i]))
+                rows.push(`${csvEscape(p)},${q},${pq},${prodBoxes[p] || 0},${cols.join(',')}`)
               })
               rows.push('')
               rows.push('WEEK WISE PLAN')
