@@ -1573,37 +1573,50 @@ function InventoryTab({ data }) {
     return { months, rows, grand, monthTotals }
   }, [data])
 
+  const [planPlatform, setPlanPlatform] = useState('All')
+  const [planCity, setPlanCity] = useState('All')
+
   const planData = useMemo(() => {
     const now = new Date()
     const thisMonth = now.getMonth()
     const thisYear = now.getFullYear()
+    const prev = new Date(thisYear, thisMonth - 1, 1)
+    const prevMonth = prev.getMonth()
+    const prevYear = prev.getFullYear()
 
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-    const thisMonthOrders = data.filter(r => {
+    const last2MonthOrders = data.filter(r => {
       const d = parseDate(r['DATE(MM-DD-YYYY)'])
-      return d && d.getMonth() === thisMonth && d.getFullYear() === thisYear
+      if (!d) return false
+      return (d.getMonth() === thisMonth && d.getFullYear() === thisYear) || (d.getMonth() === prevMonth && d.getFullYear() === prevYear)
     })
 
     const skuMap = {}
-    thisMonthOrders.forEach(r => {
+    last2MonthOrders.forEach(r => {
       const p = r['Product']
       if (!p) return
-      if (!skuMap[p]) skuMap[p] = { product: p, salesQty: 0, salesTonnage: 0, salesBoxes: 0, transportCharge: 0, totalValue: 0, cities: new Set() }
-      skuMap[p].salesQty += num(r['PO Qty'])
-      skuMap[p].salesTonnage += num(r['Tonnage'])
-      skuMap[p].salesBoxes += num(r['Box Count'])
-      skuMap[p].transportCharge += toNumKG(r['Transport Charge'])
-      skuMap[p].totalValue += num(r['PO Value with Tax'])
-      if (r['City']) skuMap[p].cities.add(r['City'])
+      if (!skuMap[p]) skuMap[p] = { product: p, salesQty: 0, salesTonnage: 0, salesBoxes: 0, transportCharge: 0, totalValue: 0, combo: {} }
+      const sku = skuMap[p]
+      sku.salesQty += num(r['PO Qty'])
+      sku.salesTonnage += num(r['Tonnage'])
+      sku.salesBoxes += num(r['Box Count'])
+      sku.transportCharge += toNumKG(r['Transport Charge'])
+      sku.totalValue += num(r['PO Value with Tax'])
+      const c = r['City'] || 'Unknown'
+      const pl = r['Platform'] || 'Unknown'
+      if (!sku.combo[c]) sku.combo[c] = {}
+      sku.combo[c][pl] = (sku.combo[c][pl] || 0) + num(r['PO Qty'])
     })
 
     const nextMonth = (thisMonth + 1) % 12
     const nextMonthName = monthNames[nextMonth]
-    const thisMonthName = monthNames[thisMonth]
+    const periodLabel = `${monthNames[prevMonth]}–${monthNames[thisMonth]}`
 
-    const items = Object.values(skuMap).map(r => {
-      const planQty = Math.round(r.salesQty * 0.7)
+    const platformOptions = [...new Set(Object.values(skuMap).flatMap(s => Object.keys(s.combo).flatMap(c => Object.keys(s.combo[c]))))]
+    const cityOptions = [...new Set(Object.values(skuMap).flatMap(s => Object.keys(s.combo)))]
+
+    const baseItems = Object.values(skuMap).map(r => {
       const perUnitTonnage = r.salesQty ? r.salesTonnage / r.salesQty : 0
       const perUnitBoxes = r.salesQty ? r.salesBoxes / r.salesQty : 0
       const perUnitCharge = r.salesQty ? r.transportCharge / r.salesQty : 0
@@ -1614,17 +1627,74 @@ function InventoryTab({ data }) {
         salesBoxes: r.salesBoxes,
         transportCharge: Math.round(r.transportCharge),
         totalValue: Math.round(r.totalValue),
-        planQty,
-        planTonnage: Math.round(planQty * perUnitTonnage),
-        planBoxes: Math.round(planQty * perUnitBoxes),
-        planTransport: Math.round(planQty * perUnitCharge),
-        perUnitCharge: perUnitCharge.toFixed(2),
-        cities: r.cities.size,
+        perUnitTonnage,
+        perUnitBoxes,
+        perUnitCharge,
+        combo: r.combo,
       }
-    }).sort((a, b) => b.planQty - a.planQty)
+    })
 
-    return { month: thisMonthName, nextMonth: nextMonthName, items }
+    return { month: periodLabel, nextMonth: nextMonthName, baseItems, platformOptions, cityOptions }
   }, [data])
+
+  const planItems = useMemo(() => {
+    const filterQty = (sku) => {
+      let qty = 0
+      for (const c in sku.combo) {
+        for (const pl in sku.combo[c]) {
+          if (planPlatform !== 'All' && pl !== planPlatform) continue
+          if (planCity !== 'All' && c !== planCity) continue
+          qty += sku.combo[c][pl]
+        }
+      }
+      return qty
+    }
+    const platformQty = (sku) => {
+      const map = {}
+      for (const c in sku.combo) {
+        for (const pl in sku.combo[c]) {
+          if (planCity !== 'All' && c !== planCity) continue
+          map[pl] = (map[pl] || 0) + sku.combo[c][pl]
+        }
+      }
+      return Object.entries(map).sort((a, b) => b[1] - a[1])
+    }
+    const cityQty = (sku) => {
+      const map = {}
+      for (const c in sku.combo) {
+        if (planPlatform !== 'All') continue
+        for (const pl in sku.combo[c]) {
+          map[c] = (map[c] || 0) + sku.combo[c][pl]
+        }
+      }
+      if (planPlatform !== 'All') {
+        for (const c in sku.combo) {
+          if (sku.combo[c][planPlatform]) map[c] = (map[c] || 0) + sku.combo[c][planPlatform]
+        }
+      }
+      return Object.entries(map).sort((a, b) => b[1] - a[1])
+    }
+    return planData.baseItems.map(r => {
+      const qty = filterQty(r)
+      const planQty = Math.round(qty * 0.7)
+      const platforms = platformQty(r)
+      const cities = cityQty(r)
+      return {
+        product: r.product,
+        salesQty: qty,
+        salesTonnage: Math.round(r.salesTonnage),
+        salesBoxes: r.salesBoxes,
+        totalValue: Math.round(r.totalValue),
+        planQty,
+        planTonnage: Math.round(planQty * r.perUnitTonnage),
+        planBoxes: Math.round(planQty * r.perUnitBoxes),
+        planTransport: Math.round(planQty * r.perUnitCharge),
+        perUnitCharge: r.perUnitCharge.toFixed(2),
+        platforms,
+        cities,
+      }
+    }).filter(x => x.salesQty > 0).sort((a, b) => b.planQty - a.planQty)
+  }, [planData, planPlatform, planCity])
 
   return (
     <>
@@ -1638,12 +1708,13 @@ function InventoryTab({ data }) {
             const rows = ['Production Plan Report']
             rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan')
             rows.push('')
-            if (planData.items && planData.items.length) {
-              rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Cities')
+            if (planData.baseItems && planData.baseItems.length) {
+              rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Platforms,Cities')
               let gQty = 0, gTon = 0, gBox = 0, gVal = 0
-              planData.items.forEach(r => {
-                rows.push(`${csvEscape(r.product)},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},${r.perUnitCharge},${r.totalValue},${r.cities}`)
-                gQty += r.planQty; gTon += r.planTonnage; gBox += r.planBoxes; gVal += r.totalValue
+              planData.baseItems.forEach(r => {
+                const planQty = Math.round(r.salesQty * 0.7)
+                rows.push(`${csvEscape(r.product)},${r.salesQty},${planQty},${Math.round(planQty * r.perUnitTonnage)},${Math.round(planQty * r.perUnitBoxes)},${r.perUnitCharge.toFixed(2)},${r.totalValue}`)
+                gQty += planQty; gTon += Math.round(planQty * r.perUnitTonnage); gBox += Math.round(planQty * r.perUnitBoxes); gVal += r.totalValue
               })
               rows.push('')
               rows.push(`GRAND TOTAL,${gQty},${gTon},${gBox},,${gVal}`)
@@ -1750,14 +1821,19 @@ function InventoryTab({ data }) {
         </div>
       )}
 
-      {planData.items && planData.items.length > 0 && (() => {
-        const t = planData.items.reduce((s, r) => ({
+      {planItems.length > 0 && (() => {
+        const t = planItems.reduce((s, r) => ({
           salesQty: s.salesQty + r.salesQty,
           planQty: s.planQty + r.planQty,
           planTonnage: s.planTonnage + r.planTonnage,
           planBoxes: s.planBoxes + r.planBoxes,
           totalValue: s.totalValue + r.totalValue,
         }), { salesQty: 0, planQty: 0, planTonnage: 0, planBoxes: 0, totalValue: 0 })
+        const chip = (active, onClick, label) => (
+          <button key={label} onClick={onClick} style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(59,130,246,0.25)' : 'rgba(59,130,246,0.1)', color: active ? '#f1f5f9' : '#3b82f6', border: active ? '1px solid rgba(59,130,246,0.6)' : '1px solid rgba(59,130,246,0.2)' }}>
+            {label}
+          </button>
+        )
         return (
         <div className="recent-orders" style={{ marginTop: 20 }}>
           <div className="orders-header">
@@ -1766,10 +1842,11 @@ function InventoryTab({ data }) {
             <button onClick={() => {
               const rows = ['Production Plan Report']
               rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan')
+              rows.push('Platform: ' + planPlatform + ' • City: ' + planCity)
               rows.push('')
-              rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Cities')
-              planData.items.forEach(r => {
-                rows.push(`${csvEscape(r.product)},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},${r.perUnitCharge},${r.totalValue},${r.cities}`)
+              rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Platforms,Cities')
+              planItems.forEach(r => {
+                rows.push(`${csvEscape(r.product)},${r.salesQty},${r.planQty},${r.planTonnage},${r.planBoxes},${r.perUnitCharge},${r.totalValue},${r.platforms.map(([n, q]) => n + ' (' + q + ')').join(' | ')},${r.cities.map(([n, q]) => n + ' (' + q + ')').join(' | ')}`)
               })
               rows.push('')
               rows.push(`TOTAL,${t.salesQty},${t.planQty},${t.planTonnage},${t.planBoxes},,${t.totalValue}`)
@@ -1781,7 +1858,12 @@ function InventoryTab({ data }) {
               ⬇ Download Plan
             </button>
           </div>
-          <table>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+            {['All', ...planData.platformOptions].map(p => chip(p === planPlatform, () => setPlanPlatform(p), 'Platform: ' + p))}
+            {['All', ...planData.cityOptions].map(c => chip(c === planCity, () => setPlanCity(c), 'City: ' + c))}
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ minWidth: 980 }}>
             <thead>
               <tr>
                 <th>SKU</th>
@@ -1791,12 +1873,13 @@ function InventoryTab({ data }) {
                 <th>Plan Boxes</th>
                 <th>Cost/Unit</th>
                 <th>Value</th>
+                <th>Platforms</th>
                 <th>Cities</th>
               </tr>
             </thead>
             <tbody>
-              {planData.items.map((row, i) => {
-                const pct = planData.items.length ? (row.planQty / planData.items[0].planQty * 100) : 0
+              {planItems.map((row, i) => {
+                const pct = planItems.length ? (row.planQty / planItems[0].planQty * 100) : 0
                 return (
                 <tr key={i}>
                   <td style={{ position: 'relative', fontWeight: 600, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} onMouseEnter={() => setHoverSku(row.product)} onMouseLeave={() => setHoverSku(null)}>{row.product}
@@ -1819,7 +1902,8 @@ function InventoryTab({ data }) {
                   <td>{row.planBoxes}</td>
                   <td style={{ fontSize: 12, color: '#94a3b8' }}>₹{row.perUnitCharge}</td>
                   <td style={{ fontSize: 12, color: '#94a3b8' }}>₹{row.totalValue.toLocaleString()}</td>
-                  <td style={{ fontSize: 12, color: '#64748b' }}>{row.cities}</td>
+                  <td style={{ fontSize: 11, color: '#3b82f6', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.platforms.map(([n, q]) => `${n} (${q})`).join(' • ')}</td>
+                  <td style={{ fontSize: 11, color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.cities.map(([n, q]) => `${n} (${q})`).join(' • ')}</td>
                 </tr>
                 )
               })}
@@ -1833,10 +1917,12 @@ function InventoryTab({ data }) {
                 <td style={{ fontWeight: 700 }}>{t.planBoxes}</td>
                 <td>—</td>
                 <td style={{ fontWeight: 700 }}>₹{t.totalValue.toLocaleString()}</td>
-                <td style={{ fontWeight: 700 }}>{planData.items.reduce((s, r) => s + r.cities, 0)}</td>
+                <td>—</td>
+                <td>—</td>
               </tr>
             </tfoot>
           </table>
+          </div>
         </div>
         )
       })()}
