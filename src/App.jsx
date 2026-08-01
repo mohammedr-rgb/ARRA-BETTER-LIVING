@@ -2864,17 +2864,18 @@ function App() {
 
     const deliveredCount = poData.filter(r => r['Status'] === 'Delivered').length
     const rtoCount = poData.filter(r => r['Status'] === 'RTO').length
-    const qtyByPO = {}
+    const fillByPO = {}
     for (const r of filteredData) {
+      if (r['Status'] !== 'Delivered') continue
       const po = r['PO Number']
       if (!po) continue
-      if (!qtyByPO[po]) qtyByPO[po] = { qty: 0, delQty: 0 }
-      qtyByPO[po].qty += num(r['PO Qty'])
-      qtyByPO[po].delQty += num(r['Delivered QTY'])
+      if (!fillByPO[po]) fillByPO[po] = { qty: 0, rejected: 0 }
+      fillByPO[po].qty += num(r['PO Qty'])
+      fillByPO[po].rejected += num(r['Rejected Qty'])
     }
-    const totalPOQty = Object.values(qtyByPO).reduce((s, v) => s + v.qty, 0)
-    const totalDelQty = Object.values(qtyByPO).reduce((s, v) => s + v.delQty, 0)
-    const avgFillRate = totalPOQty ? Math.round(totalDelQty / totalPOQty * 100) : 0
+    const totalPOQty = Object.values(fillByPO).reduce((s, v) => s + v.qty, 0)
+    const totalRejectedQty = Object.values(fillByPO).reduce((s, v) => s + v.rejected, 0)
+    const avgFillRate = totalPOQty ? Math.round((totalPOQty - totalRejectedQty) / totalPOQty * 100) : 0
 
     return {
       totalOrders,
