@@ -1,0 +1,374 @@
+import { useState, useMemo } from 'react'
+import { num, parseDate, parseMMDDDate, formatDate, uniqueByPO, sumPOField, sumField, csvEscape, statusFilters } from '../lib/utils'
+import { useSort, applySort } from '../lib/useSort'
+import { Tooltip, StatusPill, EmptyState, DateRangePicker, CSVButton, ProfileSection, SortTh } from '../components/ui'
+
+export default function OrdersTab({ data, platformFilter }) {
+  const poData = useMemo(() => uniqueByPO(data), [data])
+  const today = useMemo(() => new Date(), [])
+  const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
+  const [dateFrom, setDateFrom] = useState(formatDate(thirtyDaysAgo))
+  const [dateTo, setDateTo] = useState(formatDate(today))
+  const [statusFilter, setStatusFilter] = useState('Active')
+  const [hoverFilter, setHoverFilter] = useState(null)
+
+  const statusSummary = useMemo(() => {
+    const result = {}
+    statusFilters.forEach(f => {
+      const poSet = new Set()
+      let items
+      if (f === 'All') items = poData
+      else if (f === 'Active') items = poData.filter(r => ['In-Transit', 'Pending', 'Processing'].includes(r['Status'] || ''))
+      else items = poData.filter(r => (r['Status'] || '') === f)
+      items.forEach(r => poSet.add(r['PO Number']))
+      const matchingRows = data.filter(r => poSet.has(r['PO Number']))
+      const withinRange = matchingRows.filter(r => {
+        const d = parseDate(r['DATE(MM-DD-YYYY)'])
+        if (!d) return false
+        if (d < parseDate(dateFrom) || d > parseDate(dateTo)) return false
+        if (platformFilter !== 'All' && r['Platform'] !== platformFilter) return false
+        return true
+      })
+      result[f] = {
+        orders: new Set(withinRange.map(r => r['PO Number'])).size,
+        value: sumPOField(withinRange, 'PO Value with Tax'),
+        tonnage: sumField(withinRange, 'Tonnage'),
+      }
+    })
+    return result
+  }, [data, poData, dateFrom, dateTo, platformFilter])
+
+  const filteredData = useMemo(() => {
+    const poSet = new Set()
+    const base = poData.filter(r => {
+      const s = r['Status'] || ''
+      if (statusFilter === 'All') return true
+      if (statusFilter === 'Active') return ['In-Transit', 'Pending', 'Processing'].includes(s)
+      return s === statusFilter
+    })
+    base.forEach(r => poSet.add(r['PO Number']))
+    const matchingRows = data.filter(r => poSet.has(r['PO Number']))
+    return matchingRows.filter(r => {
+      const d = parseDate(r['DATE(MM-DD-YYYY)'])
+      if (!d) return false
+      if (d < parseDate(dateFrom) || d > parseDate(dateTo)) return false
+      if (platformFilter !== 'All' && r['Platform'] !== platformFilter) return false
+      return true
+    })
+  }, [data, poData, statusFilter, dateFrom, dateTo, platformFilter])
+
+  const citySummary = useMemo(() => {
+    const map = {}
+    for (const r of filteredData) {
+      const c = r['City']; if (!c) continue
+      if (!map[c]) map[c] = { city: c, orders: new Set(), poValueMap: {}, tonnage: 0 }
+      map[c].orders.add(r['PO Number'])
+      const v = num(r['PO Value with Tax'])
+      const po = r['PO Number']
+      if (po && v > 0 && v > (map[c].poValueMap[po] || 0)) map[c].poValueMap[po] = v
+      map[c].tonnage += num(r['Tonnage'])
+    }
+    return Object.values(map)
+      .map(x => ({
+        city: x.city,
+        orders: x.orders.size,
+        value: Object.values(x.poValueMap).reduce((s, v) => s + v, 0),
+        tonnage: x.tonnage,
+      }))
+      .sort((a, b) => b.orders - a.orders)
+  }, [filteredData])
+
+  const summaryTotals = useMemo(() => ({
+    orders: citySummary.reduce((s, c) => s + c.orders, 0),
+    value: citySummary.reduce((s, c) => s + c.value, 0),
+    tonnage: citySummary.reduce((s, c) => s + c.tonnage, 0),
+  }), [citySummary])
+
+  const todayReleased = useMemo(() => {
+    const todayStr = formatDate(today)
+    const seen = new Set()
+    const rows = []
+    data.forEach(r => {
+      if (platformFilter !== 'All' && r['Platform'] !== platformFilter) return
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      if (!d || formatDate(d) !== todayStr) return
+      const po = r['PO Number']
+      if (seen.has(po)) return
+      seen.add(po)
+      rows.push(r)
+    })
+    return rows.sort((a, b) => (a['City'] || '').localeCompare(b['City'] || ''))
+  }, [data, platformFilter, today])
+
+  const todayReleasedAll = useMemo(() => {
+    const todayStr = formatDate(today)
+    const rows = []
+    data.forEach(r => {
+      if (platformFilter !== 'All' && r['Platform'] !== platformFilter) return
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      if (!d || formatDate(d) !== todayStr) return
+      rows.push(r)
+    })
+    return rows.sort((a, b) => (a['City'] || '').localeCompare(b['City'] || '') || (a['PO Number'] || '').localeCompare(b['PO Number'] || ''))
+  }, [data, platformFilter, today])
+
+  const todayCSVRows = () => {
+    const rows = ['Today Released POs']
+    rows.push('City,Platform,PO Number,Product,QTY,Tonnage,Box Count,MRP,PO Expiry Date')
+    todayReleasedAll.forEach(r => {
+      rows.push([r['City'], r['Platform'], r['PO Number'], r['Product'], num(r['PO Qty']), num(r['Tonnage']), num(r['Box Count']), num(r['MRP']), r['Expiry Date(MM-DD-YYYY)'] || '—'].map(x => csvEscape(String(x))).join(','))
+    })
+    return rows
+  }
+
+  return (
+    <>
+      <header>
+        <div>
+          <h1>Orders</h1>
+          <div className="date">{platformFilter !== 'All' ? `Platform: ${platformFilter} • ` : ''}{uniqueByPO(data).length} total orders (unique POs)</div>
+        </div>
+        <ProfileSection />
+      </header>
+
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="stat-card" style={{ flex: '1 1 200px' }}>
+          <div className="stat-header">
+            <div className="stat-label">Total PO Value (with Tax)</div>
+            <div className="stat-icon" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>💰</div>
+          </div>
+          <div className="stat-value">₹{Math.round(summaryTotals.value).toLocaleString()}</div>
+          <div className="stat-change positive">{summaryTotals.orders} orders • {Math.round(summaryTotals.tonnage)} KG</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', position: 'relative' }}>
+          {statusFilters.map(s => (
+            <div key={s} style={{ position: 'relative' }} onMouseEnter={() => setHoverFilter(s)} onMouseLeave={() => setHoverFilter(null)}>
+              <button onClick={() => setStatusFilter(s)} style={{ background: statusFilter === s ? '#3b82f6' : '#1e293b', border: '1px solid ' + (statusFilter === s ? '#3b82f6' : '#334155'), borderRadius: 8, color: '#f1f5f9', padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                {s}
+              </button>
+              {hoverFilter === s && (
+                <Tooltip style={{ left: '50%', transform: 'translateX(-50%)' }}>
+                  <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 6 }}>{s} Orders</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{statusSummary[s].orders} orders</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>₹{Math.round(statusSummary[s].value).toLocaleString()}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{Math.round(statusSummary[s].tonnage)} KG</div>
+                </Tooltip>
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{ marginLeft: 'auto' }}>
+          <DateRangePicker from={dateFrom} to={dateTo} onFrom={setDateFrom} onTo={setDateTo} />
+        </div>
+      </div>
+
+      <div className="recent-orders" style={{ marginTop: 0 }}>
+        <div className="orders-header">
+          <div className="orders-title">📌 Today Released POs ({todayReleased.length})</div>
+          <div className="chart-period">{formatDate(today)} — {todayReleased.reduce((s, r) => s + num(r['PO Qty']), 0)} units • {Math.round(todayReleased.reduce((s, r) => s + num(r['Tonnage']), 0)).toLocaleString()} KG • ₹{Math.round(todayReleased.reduce((s, r) => s + num(r['PO Value with Tax']), 0)).toLocaleString()}</div>
+          <CSVButton makeRows={todayCSVRows} filename="today_released_pos.csv" style={{ padding: '8px 20px', fontSize: 13 }} />
+        </div>
+        {todayReleased.length ? (
+          <table style={{ minWidth: 900 }}>
+            <thead>
+              <tr>
+                <th>PO #</th>
+                <th>City</th>
+                <th>Platform</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Tonnage</th>
+                <th>Value</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {todayReleased.map((row, i) => (
+                <tr key={i}>
+                  <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{row['PO Number']}</td>
+                  <td>{row['City']}</td>
+                  <td style={{ color: '#3b82f6', fontWeight: 600 }}>{row['Platform']}</td>
+                  <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row['Product']}</td>
+                  <td>{num(row['PO Qty'])}</td>
+                  <td>{num(row['Tonnage'])}</td>
+                  <td>₹{num(row['PO Value with Tax']).toLocaleString()}</td>
+                  <td><StatusPill status={row['Status']} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <EmptyState message="No POs released today" />
+        )}
+      </div>
+
+      <div className="recent-orders" style={{ marginTop: 0 }}>
+        <div className="orders-header">
+          <div className="orders-title">City-wise {statusFilter} Orders</div>
+          <div className="chart-period">{dateFrom} to {dateTo}</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>City</th>
+              <th>Orders</th>
+              <th>Share</th>
+              <th>Value</th>
+              <th>Tonnage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {citySummary.length === 0 ? (
+              <tr><td colSpan={5}><EmptyState /></td></tr>
+            ) : citySummary.map((row, i) => {
+              const share = summaryTotals.orders ? (row.orders / summaryTotals.orders * 100).toFixed(1) : 0
+              return (
+                <tr key={i}>
+                  <td style={{ fontWeight: 600 }}>{row.city}</td>
+                  <td>{row.orders}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ flex: 1, maxWidth: 80, height: 6, background: '#334155', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ width: `${share}%`, height: '100%', background: '#3b82f6', borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 12, color: '#94a3b8' }}>{share}%</span>
+                    </div>
+                  </td>
+                  <td>₹{Math.round(row.value).toLocaleString()}</td>
+                  <td>{Math.round(row.tonnage)} KG</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <AppointmentView data={data} />
+    </>
+  )
+}
+
+function AppointmentView({ data }) {
+  const today = useMemo(() => new Date(), [])
+  const todayStr = formatDate(today)
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+  const tomorrowStr = formatDate(tomorrow)
+  const weekEnd = useMemo(() => new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7), [today])
+  const todaySort = useSort()
+  const tomorrowSort = useSort()
+  const weekSort = useSort()
+
+  const apptAccessors = {
+    po: r => r['PO Number'],
+    city: r => r['City'],
+    platform: r => r['Platform'],
+    facility: r => r['FacilityName'],
+    transporter: r => r['Transporter'],
+    tonnage: r => num(r._tonnage),
+    apptdate: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)']),
+    apptid: r => r['Appointment ID'],
+    status: r => r['Status'],
+    remarks: r => r['Remarks'],
+  }
+
+  const byAppt = useMemo(() => {
+    const tMap = new Map(); const tmMap = new Map(); const wMap = new Map()
+    data.forEach(r => {
+      const d = parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])
+      if (!d) return
+      const po = r['PO Number']
+      const ton = num(r['Tonnage'])
+      const ds = formatDate(d)
+      if (ds === todayStr) {
+        if (!tMap.has(po)) tMap.set(po, { ...r, _tonnage: 0 })
+        tMap.get(po)._tonnage += ton
+      } else if (ds === tomorrowStr) {
+        if (!tmMap.has(po)) tmMap.set(po, { ...r, _tonnage: 0 })
+        tmMap.get(po)._tonnage += ton
+      } else if (d >= today && d <= weekEnd) {
+        if (!wMap.has(po)) wMap.set(po, { ...r, _tonnage: 0 })
+        wMap.get(po)._tonnage += ton
+      }
+    })
+    const statusT = {}; const statusTm = {}; const statusW = {}
+    const seenTStat = new Set(); const seenTmStat = new Set(); const seenWStat = new Set()
+    data.forEach(r => {
+      const d = parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])
+      if (!d) return
+      const po = r['PO Number']
+      const s = r['Status'] || 'Unknown'
+      const ds = formatDate(d)
+      if (ds === todayStr) { if (!seenTStat.has(po)) { seenTStat.add(po); statusT[s] = (statusT[s] || 0) + 1 } }
+      else if (ds === tomorrowStr) { if (!seenTmStat.has(po)) { seenTmStat.add(po); statusTm[s] = (statusTm[s] || 0) + 1 } }
+      else if (d >= today && d <= weekEnd) { if (!seenWStat.has(po)) { seenWStat.add(po); statusW[s] = (statusW[s] || 0) + 1 } }
+    })
+    const sortByCity = (arr) => arr.sort((a, b) => (a['City'] || '').localeCompare(b['City'] || ''))
+    return { today: sortByCity([...tMap.values()]), tomorrow: sortByCity([...tmMap.values()]), week: sortByCity([...wMap.values()]).slice(0, 20), statusT, statusTm, statusW }
+  }, [data, todayStr, tomorrowStr, weekEnd, today])
+
+  const renderTable = (rows, sort) => {
+    if (!rows.length) return <EmptyState message="No appointments" />
+    return (
+      <table>
+        <thead>
+          <tr>
+            <SortTh label="PO #" k="po" sort={sort} />
+            <SortTh label="City" k="city" sort={sort} />
+            <SortTh label="Platform" k="platform" sort={sort} />
+            <SortTh label="Facility" k="facility" sort={sort} />
+            <SortTh label="Transporter" k="transporter" sort={sort} />
+            <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} />
+            <SortTh label="Appt Date" k="apptdate" sort={sort} />
+            <SortTh label="Appt ID" k="apptid" sort={sort} />
+            <SortTh label="Status" k="status" sort={sort} />
+            <SortTh label="Remarks" k="remarks" sort={sort} />
+          </tr>
+        </thead>
+        <tbody>
+          {applySort(rows, sort, apptAccessors).map((r, i) => (
+            <tr key={i}>
+              <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</td>
+              <td>{r['City']}</td>
+              <td style={{ color: '#3b82f6', fontWeight: 600 }}>{r['Platform']}</td>
+              <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['FacilityName'] || '—'}</td>
+              <td>{r['Transporter'] || '—'}</td>
+              <td style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
+              <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)']}</td>
+              <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
+              <td><StatusPill status={r['Status']} /></td>
+              <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Remarks'] || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+
+  return (
+    <>
+      <div className="recent-orders" style={{ marginTop: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">📅 Today's Appointments ({byAppt.today.length})</div>
+          <div className="chart-period">{todayStr} — Total: {byAppt.today.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusT['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusT['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusT['RTO'] || 0} RTO</span></div>
+        </div>
+        {renderTable(byAppt.today, todaySort)}
+      </div>
+
+      <div className="recent-orders" style={{ marginTop: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">📅 Tomorrow's Appointments ({byAppt.tomorrow.length})</div>
+          <div className="chart-period">{tomorrowStr} — Total: {byAppt.tomorrow.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusTm['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusTm['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusTm['RTO'] || 0} RTO</span></div>
+        </div>
+        {renderTable(byAppt.tomorrow, tomorrowSort)}
+      </div>
+
+      <div className="recent-orders" style={{ marginTop: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">📅 Weekly Appointments (Next 7 Days) ({byAppt.week.length})</div>
+          <div className="chart-period">{todayStr} → {formatDate(weekEnd)} — Total: {byAppt.week.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusW['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusW['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusW['RTO'] || 0} RTO</span></div>
+        </div>
+        {renderTable(byAppt.week, weekSort)}
+      </div>
+    </>
+  )
+}
