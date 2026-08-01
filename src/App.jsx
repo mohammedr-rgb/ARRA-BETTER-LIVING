@@ -1190,6 +1190,18 @@ function OrdersTab({ data, platformFilter }) {
     return rows.sort((a, b) => (a['City'] || '').localeCompare(b['City'] || ''))
   }, [data, platformFilter, today])
 
+  const todayReleasedAll = useMemo(() => {
+    const todayStr = formatDate(today)
+    const rows = []
+    data.forEach(r => {
+      if (platformFilter !== 'All' && r['Platform'] !== platformFilter) return
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      if (!d || formatDate(d) !== todayStr) return
+      rows.push(r)
+    })
+    return rows.sort((a, b) => (a['City'] || '').localeCompare(b['City'] || '') || (a['PO Number'] || '').localeCompare(b['PO Number'] || ''))
+  }, [data, platformFilter, today])
+
   return (
     <>
       <header>
@@ -1238,6 +1250,19 @@ function OrdersTab({ data, platformFilter }) {
         <div className="orders-header">
           <div className="orders-title">📌 Today Released POs ({todayReleased.length})</div>
           <div className="chart-period">{formatDate(today)} — {todayReleased.reduce((s, r) => s + num(r['PO Qty']), 0)} units • {Math.round(todayReleased.reduce((s, r) => s + num(r['Tonnage']), 0)).toLocaleString()} KG • ₹{Math.round(todayReleased.reduce((s, r) => s + num(r['PO Value with Tax']), 0)).toLocaleString()}</div>
+          <button onClick={() => {
+            const rows = ['Today Released POs']
+            rows.push('City,Platform,PO Number,Product,QTY,Tonnage,Box Count,MRP,PO Expiry Date')
+            todayReleasedAll.forEach(r => {
+              rows.push([r['City'], r['Platform'], r['PO Number'], r['Product'], num(r['PO Qty']), num(r['Tonnage']), num(r['Box Count']), num(r['MRP']), r['Expiry Date(MM-DD-YYYY)'] || '—'].map(x => csvEscape(String(x))).join(','))
+            })
+            const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a'); a.href = url; a.download = 'today_released_pos.csv'; a.click()
+            URL.revokeObjectURL(url)
+          }} style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            ⬇ Download CSV
+          </button>
         </div>
         {todayReleased.length ? (
           <table style={{ minWidth: 900 }}>
