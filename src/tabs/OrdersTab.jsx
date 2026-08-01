@@ -114,9 +114,9 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
 
   const todayCSVRows = () => {
     const rows = ['Today Released POs']
-    rows.push('City,Platform,PO Number,Product,QTY,Tonnage,Box Count,MRP,PO Expiry Date')
+    rows.push('City,Platform,PO Number,Product,QTY,Tonnage,Box Count,MRP,PO Value with Tax,PO Expiry Date')
     todayReleasedAll.forEach(r => {
-      rows.push([r['City'], r['Platform'], r['PO Number'], r['Product'], num(r['PO Qty']), num(r['Tonnage']), num(r['Box Count']), num(r['MRP']), r['Expiry Date(MM-DD-YYYY)'] || '—'].map(x => csvEscape(String(x))).join(','))
+      rows.push([r['City'], r['Platform'], r['PO Number'], r['Product'], num(r['PO Qty']), num(r['Tonnage']), num(r['Box Count']), num(r['MRP']), num(r['PO Value with Tax']), r['Expiry Date(MM-DD-YYYY)'] || '—'].map(x => csvEscape(String(x))).join(','))
     })
     return rows
   }
