@@ -1237,7 +1237,7 @@ function OrdersTab({ data, platformFilter }) {
       <div className="recent-orders" style={{ marginTop: 0 }}>
         <div className="orders-header">
           <div className="orders-title">📌 Today Released POs ({todayReleased.length})</div>
-          <div className="chart-period">{formatDate(today)} — {todayReleased.reduce((s, r) => s + num(r['PO Qty']), 0)} units • ₹{Math.round(todayReleased.reduce((s, r) => s + num(r['PO Value with Tax']), 0)).toLocaleString()}</div>
+          <div className="chart-period">{formatDate(today)} — {todayReleased.reduce((s, r) => s + num(r['PO Qty']), 0)} units • {Math.round(todayReleased.reduce((s, r) => s + num(r['Tonnage']), 0)).toLocaleString()} KG • ₹{Math.round(todayReleased.reduce((s, r) => s + num(r['PO Value with Tax']), 0)).toLocaleString()}</div>
         </div>
         {todayReleased.length ? (
           <table style={{ minWidth: 900 }}>
