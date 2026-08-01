@@ -687,13 +687,7 @@ function DispatchTab({ data, rawCSV }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => {
             const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
-            const seen = new Set()
-            const filtered = data.filter(r => {
-              const po = r['PO Number']
-              if (!po || seen.has(po)) return false
-              seen.add(po)
-              return statuses.has(r['Status'])
-            })
+            const filtered = data.filter(r => statuses.has(r['Status']))
             if (!filtered.length) return
             const headers = Object.keys(filtered[0])
             const header = headers.join(',')
