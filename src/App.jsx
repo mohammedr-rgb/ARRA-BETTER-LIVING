@@ -206,27 +206,7 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
     })
   }, [data])
 
-  const monthSort = useSort()
-  const monthAccessors = {
-    label: r => r.label,
-    platforms: r => r.platformLabel,
-    orders: r => r.orders,
-    tonnage: r => r.tonnage,
-    boxes: r => r.boxes,
-    value: r => r.value,
-    delivered: r => r.delivered,
-    rto: r => r.rto,
-    rate: r => r.deliveryRate,
-  }
-
-  const monthTotals = useMemo(() => monthData.reduce((s, r) => ({
-    orders: s.orders + r.orders,
-    tonnage: s.tonnage + r.tonnage,
-    boxes: s.boxes + r.boxes,
-    value: s.value + r.value,
-    delivered: s.delivered + r.delivered,
-    rto: s.rto + r.rto,
-  }), { orders: 0, tonnage: 0, boxes: 0, value: 0, delivered: 0, rto: 0 }), [monthData])
+  const last3Months = useMemo(() => monthData.slice(0, 3), [monthData])
 
   const openMetrics = useMemo(() => {
     const active = data.filter(r => !['Delivered', 'RTO'].includes(r['Status'] || ''))
@@ -433,15 +413,14 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
         <div className="recent-orders" style={{ marginTop: 20, overflowX: 'auto' }}>
         <div className="orders-header">
           <div className="orders-title">Month-wise Overview</div>
-          <div className="chart-period">Monthly sales performance</div>
+          <div className="chart-period">Last 3 months • Monthly sales performance</div>
           <button onClick={() => {
             const rows = ['Month-wise Overview']
             rows.push('')
             rows.push('Month,Platforms,Orders,Tonnage KG,Boxes,Value,Delivered,RTO,Delivery Rate %')
-            monthData.forEach(r => {
+            last3Months.forEach(r => {
               rows.push(`${csvEscape(r.label)},${csvEscape(r.platformLabel)},${r.orders},${r.tonnage},${r.boxes},${r.value},${r.delivered},${r.rto},${r.deliveryRate === null ? '' : r.deliveryRate}`)
             })
-            rows.push(`TOTAL,,${monthTotals.orders},${monthTotals.tonnage},${monthTotals.boxes},${monthTotals.value},${monthTotals.delivered},${monthTotals.rto},`)
             const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a'); a.href = url; a.download = 'monthly_overview.csv'; a.click()
@@ -450,9 +429,9 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
             ⬇ Download CSV
           </button>
         </div>
-        {monthData.length > 0 && (
+        {last3Months.length > 0 && (
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={monthData}>
+            <BarChart data={last3Months}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="label" stroke="#64748b" tick={{ fontSize: 12 }} />
               <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
@@ -479,60 +458,61 @@ function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platf
             </BarChart>
           </ResponsiveContainer>
         )}
-        <table style={{ marginTop: 16 }}>
+        <table style={{ marginTop: 16, minWidth: 480 }}>
           <thead>
             <tr>
-              <SortTh label="Month" k="label" sort={monthSort} />
-              <SortTh label="Platforms" k="platforms" sort={monthSort} />
-              <SortTh label="Orders" k="orders" sort={monthSort} />
-              <SortTh label="Tonnage (KG)" k="tonnage" sort={monthSort} />
-              <SortTh label="Boxes" k="boxes" sort={monthSort} />
-              <SortTh label="Value" k="value" sort={monthSort} />
-              <SortTh label="Delivered" k="delivered" sort={monthSort} />
-              <SortTh label="RTO" k="rto" sort={monthSort} />
-              <SortTh label="Delivery Rate" k="rate" sort={monthSort} />
+              <th style={{ textAlign: 'left', width: 150 }}>Metric</th>
+              {last3Months.map(m => (
+                <th key={m.label} style={{ textAlign: 'center', fontSize: 14 }}>{m.label}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {applySort(monthData, monthSort, monthAccessors).map((row, i) => (
-              <tr key={i}>
-                <td style={{ fontWeight: 600 }}>{row.label}</td>
-                <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 220 }}>
-                  {row.platforms.map((x, j) => (
-                    <span key={x.name}>
-                      {j > 0 && ' • '}
+            <tr>
+              <td style={{ color: '#94a3b8' }}>Orders</td>
+              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.orders}</td>)}
+            </tr>
+            <tr>
+              <td style={{ color: '#94a3b8' }}>Tonnage (KG)</td>
+              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.tonnage.toLocaleString()}</td>)}
+            </tr>
+            <tr>
+              <td style={{ color: '#94a3b8' }}>Boxes</td>
+              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.boxes}</td>)}
+            </tr>
+            <tr>
+              <td style={{ color: '#94a3b8' }}>Value</td>
+              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>₹{m.value.toLocaleString()}</td>)}
+            </tr>
+            <tr>
+              <td style={{ color: '#94a3b8' }}>Delivered</td>
+              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: '#22c55e' }}>{m.delivered}</td>)}
+            </tr>
+            <tr>
+              <td style={{ color: '#94a3b8' }}>RTO</td>
+              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: '#ef4444' }}>{m.rto}</td>)}
+            </tr>
+            <tr>
+              <td style={{ color: '#94a3b8' }}>Delivery Rate</td>
+              {last3Months.map(m => (
+                <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: m.deliveryRate !== null ? (m.deliveryRate >= 80 ? '#22c55e' : '#eab308') : '#64748b' }}>
+                  {m.deliveryRate !== null ? m.deliveryRate + '%' : '—'}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td style={{ color: '#94a3b8', verticalAlign: 'top' }}>Platforms</td>
+              {last3Months.map(m => (
+                <td key={m.label} style={{ textAlign: 'center', fontSize: 12, padding: '8px 6px' }}>
+                  {m.platforms.map((x, j) => (
+                    <span key={x.name} style={{ display: 'block' }}>
                       <span style={{ color: '#3b82f6', fontWeight: 600 }}>{x.name}</span> ({x.orders})
                     </span>
                   ))}
                 </td>
-                <td>{row.orders}</td>
-                <td>{row.tonnage}</td>
-                <td>{row.boxes}</td>
-                <td>₹{row.value.toLocaleString()}</td>
-                <td style={{ color: '#22c55e' }}>{row.delivered}</td>
-                <td style={{ color: '#ef4444' }}>{row.rto}</td>
-                <td>
-                  {row.deliveryRate !== null && (
-                    <span style={{ color: row.deliveryRate >= 80 ? '#22c55e' : '#eab308', fontWeight: 600 }}>{row.deliveryRate}%</span>
-                  )}
-                  {row.deliveryRate === null && '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr style={{ background: 'rgba(59,130,246,0.12)' }}>
-              <td style={{ fontWeight: 700 }}>Total</td>
-              <td style={{ fontSize: 12, color: '#94a3b8' }}>—</td>
-              <td style={{ fontWeight: 700 }}>{monthTotals.orders}</td>
-              <td style={{ fontWeight: 700 }}>{monthTotals.tonnage}</td>
-              <td style={{ fontWeight: 700 }}>{monthTotals.boxes}</td>
-              <td style={{ fontWeight: 700 }}>₹{monthTotals.value.toLocaleString()}</td>
-              <td style={{ fontWeight: 700, color: '#22c55e' }}>{monthTotals.delivered}</td>
-              <td style={{ fontWeight: 700, color: '#ef4444' }}>{monthTotals.rto}</td>
-              <td style={{ fontWeight: 700 }}>{(monthTotals.delivered + monthTotals.rto) ? Math.round(monthTotals.delivered / (monthTotals.delivered + monthTotals.rto) * 100) + '%' : '—'}</td>
+              ))}
             </tr>
-          </tfoot>
+          </tbody>
         </table>
       </div>
 
