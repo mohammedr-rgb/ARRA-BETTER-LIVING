@@ -9,7 +9,6 @@ import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
 import { ExecutiveSummary } from '../components/ExecutiveSummary'
 import { FulfillmentMetrics } from '../components/FulfillmentMetrics'
-import { SmartAlerts } from '../components/SmartAlerts'
 import { BoardReport } from '../components/BoardReport'
 
 const PIE_COLORS = {
@@ -446,7 +445,6 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         </div>
       )}
 
-      <SmartAlerts data={data} />
       <FulfillmentMetrics data={data} />
 
       <div className="stats-grid">
