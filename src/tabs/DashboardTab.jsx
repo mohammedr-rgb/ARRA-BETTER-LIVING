@@ -3,17 +3,13 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
-import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, productSummary } from '../lib/utils'
+import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES } from '../lib/utils'
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
-import { CityHeatmap } from '../components/CityHeatmap'
 import { ExecutiveSummary } from '../components/ExecutiveSummary'
 import { FulfillmentMetrics } from '../components/FulfillmentMetrics'
 import { SmartAlerts } from '../components/SmartAlerts'
-import { RTRiskSummary } from '../components/RTRiskScore'
-import { SankeyFlow } from '../components/SankeyFlow'
-import { POAgingHeatmap } from '../components/POAgingHeatmap'
 import { BoardReport } from '../components/BoardReport'
 
 const PIE_COLORS = {
@@ -24,8 +20,6 @@ const PIE_COLORS = {
   Processing: '#a855f7',
   Unknown: '#64748b',
 }
-
-const PLATFORM_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#eab308', '#f97316', '#06b6d4', '#ef4444', '#8b5cf6']
 
 export default function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
@@ -308,39 +302,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
     return list.slice(0, 6)
   }, [data, monthData])
 
-  const agingBuckets = useMemo(() => {
-    const now = new Date()
-    const bucketDefs = [
-      { name: '0–7d', min: 0, max: 7 },
-      { name: '8–14d', min: 8, max: 14 },
-      { name: '15–30d', min: 15, max: 30 },
-      { name: '31–60d', min: 31, max: 60 },
-      { name: '60d+', min: 61, max: Infinity },
-    ]
-    const counts = bucketDefs.map(b => ({ name: b.name, count: 0 }))
-    const seen = new Set()
-    for (const r of data) {
-      const po = r['PO Number']
-      const s = r['Status'] || ''
-      if (!po || seen.has(po) || s === 'Delivered' || s === 'RTO') continue
-      seen.add(po)
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
-      if (!d) continue
-      const days = Math.floor((now - d) / 86400000)
-      const bucket = counts.find(b => days >= b.min && days <= b.max)
-      if (bucket) bucket.count++
-    }
-    return counts
-  }, [data])
-
-  const topProducts = useMemo(() => productSummary(data).slice(0, 8), [data])
-
   const trendMonths = useMemo(() => monthData.slice(0, 6), [monthData])
-
-  const platformValueNames = useMemo(
-    () => [...new Set(last3Months.flatMap(m => Object.keys(m.platformValues)))],
-    [last3Months]
-  )
 
   const monthCSVRows = () => {
     const rows = ['Month-wise Overview']
@@ -467,7 +429,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       <>
       {insights.length > 0 && (
         <div style={{ marginBottom: 20, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 12, padding: '16px 20px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 12 }}>💡 Data Insights</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 12 }}>💡 Insights & Alerts</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {insights.map((s, i) => {
               const bg = s.type === 'danger' ? 'rgba(239,68,68,0.12)' : s.type === 'warn' ? 'rgba(234,179,8,0.12)' : 'rgba(34,197,94,0.12)'
@@ -485,9 +447,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       )}
 
       <SmartAlerts data={data} />
-      <ExecutiveSummary data={data} />
       <FulfillmentMetrics data={data} />
-      <RTRiskSummary data={data} />
 
       <div className="stats-grid">
         <StatCard
@@ -559,13 +519,6 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
           tooltipStyle={{ zIndex: 100 }}
         />
       </div>
-
-      <div style={{ marginTop: 20 }}>
-        <CityHeatmap cityData={cityData} />
-      </div>
-
-      <SankeyFlow data={data} />
-      <POAgingHeatmap data={data} />
 
       <div className="charts-row">
         <div className="chart-card">
@@ -698,111 +651,6 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         </div>
       )}
 
-      <div className="charts-row" style={{ marginTop: 20 }}>
-        <div className="chart-card">
-          <div className="chart-header">
-            <div className="chart-title">Open Order Aging</div>
-            <div className="chart-period">Days since release for open POs</div>
-          </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={agingBuckets}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
-              <ReTooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null
-                  const row = payload[0].payload
-                  return (
-                    <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>{row.name}</div>
-                      <div style={{ color: '#94a3b8' }}>Open POs: <span style={{ color: '#f97316', fontWeight: 600 }}>{row.count}</span></div>
-                    </div>
-                  )
-                }}
-              />
-              <Bar dataKey="count" fill="#f97316" radius={[6, 6, 0, 0]} name="Open POs" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="chart-card">
-          <div className="chart-header">
-            <div className="chart-title">Platform Value Split</div>
-            <div className="chart-period">Last 3 months • PO value by platform</div>
-          </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={last3Months}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="label" stroke="#64748b" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
-              <ReTooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null
-                  const row = payload[0].payload
-                  return (
-                    <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>{row.label}</div>
-                      {platformValueNames.map(p => (
-                        <div key={p} style={{ color: '#94a3b8' }}>{p}: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>₹{(row[p] || 0).toLocaleString()}</span></div>
-                      ))}
-                    </div>
-                  )
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8' }} formatter={(value) => <span style={{ color: '#94a3b8' }}>{value}</span>} />
-              {platformValueNames.map((p, i) => (
-                <Bar key={p} dataKey={p} stackId="pv" fill={PLATFORM_COLORS[i % PLATFORM_COLORS.length]} name={p} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {topProducts.length > 0 && (
-        <div className="recent-orders" style={{ marginTop: 20 }}>
-          <div className="orders-header">
-            <div className="orders-title">Top Products by Tonnage</div>
-            <div className="chart-period">Top {topProducts.length} products</div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Tonnage (KG)</th>
-                <th>Value</th>
-                <th>Share</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topProducts.map((r, i) => {
-                const share = topProducts[0].tonnage ? r.tonnage / topProducts[0].tonnage * 100 : 0
-                return (
-                  <tr key={i}>
-                    <td style={{ color: '#64748b', fontWeight: 600 }}>{i + 1}</td>
-                    <td style={{ fontWeight: 600, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.product}</td>
-                    <td>{r.qty}</td>
-                    <td>{Math.round(r.tonnage).toLocaleString()}</td>
-                    <td>₹{Math.round(r.value).toLocaleString()}</td>
-                    <td style={{ minWidth: 180 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 6, background: '#334155', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${share}%`, height: '100%', background: '#a855f7', borderRadius: 3 }} />
-                        </div>
-                        <span style={{ fontSize: 12, color: '#94a3b8' }}>{share.toFixed(0)}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
       <div className="recent-orders" style={{ marginTop: 20, overflowX: 'auto' }}>
         <div className="orders-header">
           <div className="orders-title">Month-wise Overview</div>
@@ -838,62 +686,6 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
             </BarChart>
           </ResponsiveContainer>
         )}
-        <table style={{ marginTop: 16, minWidth: 480 }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: 'left', width: 150 }}>Metric</th>
-              {last3Months.map(m => (
-                <th key={m.label} style={{ textAlign: 'center', fontSize: 14 }}>{m.label}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Orders</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.orders}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Tonnage (KG)</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.tonnage.toLocaleString()}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Boxes</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.boxes}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Value</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>₹{m.value.toLocaleString()}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Delivered</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: '#22c55e' }}>{m.delivered}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>RTO</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: '#ef4444' }}>{m.rto}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Delivery Rate</td>
-              {last3Months.map(m => (
-                <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: m.deliveryRate !== null ? (m.deliveryRate >= 80 ? '#22c55e' : '#eab308') : '#64748b' }}>
-                  {m.deliveryRate !== null ? m.deliveryRate + '%' : '—'}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8', verticalAlign: 'top' }}>Platforms</td>
-              {last3Months.map(m => (
-                <td key={m.label} style={{ textAlign: 'center', fontSize: 12, padding: '8px 6px' }}>
-                  {m.platforms.map(x => (
-                    <span key={x.name} style={{ display: 'block' }}>
-                      <span style={{ color: '#3b82f6', fontWeight: 600 }}>{x.name}</span> ({x.orders})
-                    </span>
-                  ))}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       <div className="recent-orders">
