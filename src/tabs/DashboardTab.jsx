@@ -7,6 +7,8 @@ import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEsc
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
+import { AlertsPanel } from '../components/AlertsPanel'
+import { CityHeatmap } from '../components/CityHeatmap'
 
 const PIE_COLORS = {
   Delivered: '#22c55e',
@@ -473,6 +475,8 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         </div>
       )}
 
+      <AlertsPanel data={data} />
+
       <div className="stats-grid">
         <StatCard
           label="Total Orders" icon="📋" color="#3b82f6"
@@ -542,6 +546,10 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
           }
           tooltipStyle={{ zIndex: 100 }}
         />
+      </div>
+
+      <div style={{ marginTop: 20 }}>
+        <CityHeatmap cityData={cityData} />
       </div>
 
       <div className="charts-row">

@@ -1,0 +1,484 @@
+/* ============================================
+   ARRA BETTER LIVING - Visual Enhancements
+   Non-invasive CSS improvements
+   ============================================ */
+
+/* === SMOOTH ANIMATIONS === */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* === LOADING SKELETON === */
+.skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* === ENHANCED STAT CARDS === */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-card:hover::before {
+  opacity: 1;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(59, 130, 246, 0.1);
+}
+
+.stat-card .stat-icon {
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.stat-card .stat-value {
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover .stat-value {
+  color: #fff;
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+/* === ENHANCED CHART CARDS === */
+.chart-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.chart-card:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* === ENHANCED TABLE ROWS === */
+.recent-orders tbody tr {
+  transition: all 0.2s ease;
+}
+
+.recent-orders tbody tr:hover {
+  background: rgba(59, 130, 246, 0.08);
+  transform: scale(1.005);
+}
+
+.recent-orders tbody tr:hover td {
+  color: #fff;
+}
+
+/* === STATUS PILL ENHANCEMENTS === */
+.status {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.status::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.status:hover::before {
+  width: 100%;
+  height: 100%;
+}
+
+.status:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* === SIDEBAR ENHANCEMENTS === */
+.sidebar {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar nav a {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar nav a::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+
+.sidebar nav a:hover::before,
+.sidebar nav a.active::before {
+  transform: scaleY(1);
+}
+
+.sidebar nav a.active {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+/* === BUTTON ENHANCEMENTS === */
+button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+button:active::after {
+  width: 200%;
+  height: 200%;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* === INPUT ENHANCEMENTS === */
+input, select {
+  transition: all 0.2s ease;
+}
+
+input:focus, select:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: var(--accent) !important;
+}
+
+input:hover, select:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+/* === TOOLTIP ENHANCEMENTS === */
+.tooltip, [role="tooltip"] {
+  animation: scaleIn 0.15s ease;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* === CHART ANIMATIONS === */
+.recharts-bar-rectangle {
+  transition: all 0.3s ease;
+}
+
+.recharts-bar-rectangle:hover {
+  filter: brightness(1.2);
+  cursor: pointer;
+}
+
+.recharts-pie-sector {
+  transition: all 0.3s ease;
+}
+
+.recharts-pie-sector:hover {
+  filter: brightness(1.1);
+  cursor: pointer;
+}
+
+/* === SCROLLBAR STYLING === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* === SEARCH INPUT ENHANCEMENTS === */
+input[placeholder*="search" i],
+input[placeholder*="PO" i] {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+input[placeholder*="search" i]:focus,
+input[placeholder*="PO" i]:focus {
+  background: #0f172a;
+  box-shadow: 
+    0 0 0 3px rgba(59, 130, 246, 0.2),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* === BADGE ENHANCEMENTS === */
+[style*="border-radius: 20px"] {
+  transition: all 0.2s ease;
+}
+
+[style*="border-radius: 20px"]:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* === DATA TABLE CELL ANIMATIONS === */
+.data-table td,
+.recent-orders td {
+  transition: all 0.15s ease;
+}
+
+/* === GRADIENT TEXT ANIMATION === */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.brand-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+/* === FLOATING ACTION BUTTON === */
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 280px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab:hover {
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.5);
+}
+
+/* === TOAST NOTIFICATIONS === */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 24px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.toast.success {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), var(--bg-card));
+}
+
+.toast.error {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), var(--bg-card));
+}
+
+/* === KEYBOARD SHORTCUT HINT === */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: monospace;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  box-shadow: 0 2px 0 var(--border);
+}
+
+/* === STAT CARD ICON GLOW === */
+.stat-card .stat-icon {
+  box-shadow: 0 0 20px currentColor;
+  opacity: 0.9;
+}
+
+.stat-card:hover .stat-icon {
+  opacity: 1;
+  box-shadow: 0 0 30px currentColor;
+}
+
+/* === CHART HEADER ENHANCEMENTS === */
+.chart-card .chart-title {
+  position: relative;
+}
+
+.chart-card .chart-title::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 40px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+
+.chart-card:hover .chart-title::after {
+  width: 100%;
+}
+
+/* === RESPONSIVE ENHANCEMENTS === */
+@media (max-width: 768px) {
+  .fab {
+    right: 16px;
+    bottom: 16px;
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+
+  .toast {
+    left: 16px;
+    right: 16px;
+    transform: translateX(0) translateY(100px);
+    width: auto;
+  }
+
+  .toast.show {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+/* === REDUCED MOTION === */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* === PRINT STYLES === */
+@media print {
+  .fab, .toast, .sidebar {
+    display: none !important;
+  }
+
+  .main-content {
+    margin-right: 0 !important;
+  }
+
+  .stat-card, .chart-card, .recent-orders {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+}
