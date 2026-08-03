@@ -2,6 +2,12 @@ import { useState, useMemo } from 'react'
 import { num, parseDate, formatDate, sumPOField } from '../lib/utils'
 import { DateRangePicker, RangePresets, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
+  Cell, Legend
+} from 'recharts'
+
+const CHART_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#eab308', '#f97316', '#06b6d4', '#ef4444', '#8b5cf6']
 
 export default function LogisticsTab({ data }) {
   const today = new Date()
@@ -35,8 +41,22 @@ export default function LogisticsTab({ data }) {
       tonnage: x.tonnage,
       totalValue: sumPOField(x.rows, 'PO Value with Tax'),
       transportCharge: x.transportCharge,
+      costPerKg: x.tonnage ? x.transportCharge / x.tonnage : 0,
     })).sort((a, b) => b.totalPO - a.totalPO)
   }, [data, dateFrom, dateTo])
+
+  const chartData = useMemo(() => carrierData.slice(0, 8).map(c => ({
+    name: c.carrier.length > 12 ? c.carrier.slice(0, 10) + '...' : c.carrier,
+    POs: c.totalPO,
+    Delivered: c.delivered,
+    RTO: c.rto,
+    'Cost/KG': parseFloat(c.costPerKg.toFixed(2))
+  })), [carrierData])
+
+  const costData = useMemo(() => carrierData.filter(c => c.tonnage > 0).slice(0, 8).map(c => ({
+    name: c.carrier.length > 12 ? c.carrier.slice(0, 10) + '...' : c.carrier,
+    cost: parseFloat(c.costPerKg.toFixed(2))
+  })).sort((a, b) => a.cost - b.cost), [carrierData])
 
   return (
     <>
@@ -51,6 +71,52 @@ export default function LogisticsTab({ data }) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap' }}>
         <RangePresets onFrom={setDateFrom} onTo={setDateTo} />
         <DateRangePicker from={dateFrom} to={dateTo} onFrom={setDateFrom} onTo={setDateTo} />
+      </div>
+
+      <div className="charts-row" style={{ marginBottom: 20 }}>
+        <div className="chart-card">
+          <div className="chart-header">
+            <div className="chart-title">Transporter Performance</div>
+            <div className="chart-period">POs by transporter</div>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
+              <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+              <ReTooltip
+                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+              <Bar dataKey="POs" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Delivered" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="RTO" fill="#ef4444" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="chart-card">
+          <div className="chart-header">
+            <div className="chart-title">Cost per KG</div>
+            <div className="chart-period">Transporter cost efficiency</div>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={costData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis type="number" stroke="#64748b" tick={{ fontSize: 11 }} />
+              <YAxis dataKey="name" type="category" stroke="#64748b" tick={{ fontSize: 10 }} width={90} />
+              <ReTooltip
+                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
+                formatter={(value) => [`₹${value}`, 'Cost/KG']}
+              />
+              <Bar dataKey="cost" radius={[0, 4, 4, 0]}>
+                {costData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="recent-orders" style={{ marginTop: 0 }}>

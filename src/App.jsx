@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { num, parseCSV, parseMMDDDate, uniqueByPO, sumPOField, sumField } from './lib/utils'
 import { UserContext } from './lib/userContext'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import DashboardTab from './tabs/DashboardTab'
 import OrdersTab from './tabs/OrdersTab'
 import InventoryTab from './tabs/InventoryTab'
@@ -24,12 +25,38 @@ function App() {
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [tab, setTab] = useState('dashboard')
+  const [tab, setTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('tab') || 'dashboard'
+  })
   const [userEmail, setUserEmail] = useState('mohammed.r@gemedible.com')
   const [mobileMenu, setMobileMenu] = useState(false)
-  const [globalPlatform, setGlobalPlatform] = useState('All')
+  const [globalPlatform, setGlobalPlatform] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('platform') || 'All'
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [viewPO, setViewPO] = useState(null)
+  const [autoRefresh, setAutoRefresh] = useState(0) // 0 = off, 5/15/30 = minutes
+
+  // URL deep linking
+  const updateURL = useCallback((newTab, newPlatform) => {
+    const params = new URLSearchParams(window.location.search)
+    params.set('tab', newTab)
+    if (newPlatform && newPlatform !== 'All') params.set('platform', newPlatform)
+    else params.delete('platform')
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
+  }, [])
+
+  const handleTabChange = useCallback((newTab) => {
+    setTab(newTab)
+    updateURL(newTab, globalPlatform)
+  }, [globalPlatform, updateURL])
+
+  const handlePlatformChange = useCallback((newPlatform) => {
+    setGlobalPlatform(newPlatform)
+    updateURL(tab, newPlatform)
+  }, [tab, updateURL])
 
   const openPO = useCallback((row) => {
     if (row && row['PO Number']) setViewPO(row['PO Number'])
@@ -61,6 +88,15 @@ function App() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (autoRefresh === 0) return
+    const interval = setInterval(() => {
+      loadData()
+    }, autoRefresh * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [autoRefresh, loadData])
 
   const platforms = useMemo(() => {
     const set = new Set()
@@ -203,7 +239,7 @@ function App() {
 
   const closeNav = () => setMobileMenu(false)
   const navItem = (key, icon, label) => (
-    <a href="#" className={tab === key ? 'active' : ''} onClick={e => { e.preventDefault(); setTab(key); closeNav() }}>
+    <a href="#" className={tab === key ? 'active' : ''} onClick={e => { e.preventDefault(); handleTabChange(key); closeNav() }}>
       <span className="icon">{icon}</span> {label}
     </a>
   )
@@ -217,7 +253,7 @@ function App() {
         <div className="logo"><span className="brand-icon">✦</span> <span className="brand-gradient">ARRA BETTER LIVING</span></div>
         <div style={{ padding: '8px 16px 4px' }}>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Platform Filter</div>
-          <select value={globalPlatform} onChange={e => setGlobalPlatform(e.target.value)} style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, cursor: 'pointer', outline: 'none' }}>
+          <select value={globalPlatform} onChange={e => handlePlatformChange(e.target.value)} style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, cursor: 'pointer', outline: 'none' }}>
             {platforms.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
@@ -248,6 +284,29 @@ function App() {
           {navItem('settings', '⚙️', 'Settings')}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #334155' }}>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 600 }}>AUTO-REFRESH</div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[0, 5, 15, 30].map(min => (
+                <button
+                  key={min}
+                  onClick={() => setAutoRefresh(min)}
+                  style={{
+                    flex: 1,
+                    padding: '6px 4px',
+                    background: autoRefresh === min ? 'rgba(59,130,246,0.2)' : 'transparent',
+                    border: '1px solid ' + (autoRefresh === min ? '#3b82f6' : '#334155'),
+                    borderRadius: 4,
+                    color: autoRefresh === min ? '#3b82f6' : '#64748b',
+                    fontSize: 10,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {min === 0 ? 'Off' : `${min}m`}
+                </button>
+              ))}
+            </div>
+          </div>
           <button onClick={() => {
             const blob = new Blob([rawCSV], { type: 'text/csv' })
             const url = URL.createObjectURL(blob)
@@ -268,19 +327,41 @@ function App() {
       <UserContext.Provider value={{ userEmail, setUserEmail }}>
         <div className="main-content">
           {viewPO ? (
-            <PODetailsPage po={viewPO} data={data} onBack={() => setViewPO(null)} />
+            <ErrorBoundary>
+              <PODetailsPage po={viewPO} data={data} onBack={() => setViewPO(null)} />
+            </ErrorBoundary>
           ) : (
             <>
-              {tab === 'dashboard' && <DashboardTab data={searchedData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />}
-              {tab === 'orders' && <OrdersTab data={searchedData} platformFilter={globalPlatform} onOpenPO={openPO} />}
-              {tab === 'inventory' && <InventoryTab data={searchedData} />}
-              {tab === 'logistics' && <LogisticsTab data={searchedData} onOpenPO={openPO} />}
-              {tab === 'dispatch' && <DispatchTab data={searchedData} onOpenPO={openPO} />}
-              {tab === 'reports' && <ReportsTab data={searchedData} platformFilter={globalPlatform} />}
-              {tab === 'rto' && <RTOTab data={searchedData} onOpenPO={openPO} />}
-              {tab === 'finance' && <FinanceTab data={searchedData} onOpenPO={openPO} />}
-              {tab === 'performance' && <PerformanceTab data={searchedData} platformFilter={globalPlatform} />}
-              {tab === 'settings' && <SettingsTab />}
+              <ErrorBoundary key="dashboard">
+                {tab === 'dashboard' && <DashboardTab data={searchedData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="orders">
+                {tab === 'orders' && <OrdersTab data={searchedData} platformFilter={globalPlatform} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="inventory">
+                {tab === 'inventory' && <InventoryTab data={searchedData} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="logistics">
+                {tab === 'logistics' && <LogisticsTab data={searchedData} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="dispatch">
+                {tab === 'dispatch' && <DispatchTab data={searchedData} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="reports">
+                {tab === 'reports' && <ReportsTab data={searchedData} platformFilter={globalPlatform} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="rto">
+                {tab === 'rto' && <RTOTab data={searchedData} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="finance">
+                {tab === 'finance' && <FinanceTab data={searchedData} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="performance">
+                {tab === 'performance' && <PerformanceTab data={searchedData} platformFilter={globalPlatform} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="settings">
+                {tab === 'settings' && <SettingsTab />}
+              </ErrorBoundary>
             </>
           )}
         </div>

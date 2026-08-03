@@ -9,6 +9,13 @@ import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
 import { AlertsPanel } from '../components/AlertsPanel'
 import { CityHeatmap } from '../components/CityHeatmap'
+import { ExecutiveSummary } from '../components/ExecutiveSummary'
+import { FulfillmentMetrics } from '../components/FulfillmentMetrics'
+import { SmartAlerts } from '../components/SmartAlerts'
+import { RTRiskSummary } from '../components/RTRiskScore'
+import { SankeyFlow } from '../components/SankeyFlow'
+import { POAgingHeatmap } from '../components/POAgingHeatmap'
+import { BoardReport } from '../components/BoardReport'
 
 const PIE_COLORS = {
   Delivered: '#22c55e',
@@ -251,7 +258,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
     const cityStats = {}
     for (const r of poRows) {
       const c = r['City']; if (!c) continue
-      if (!cityStats[c]) cityStats[c] = { orders: 0, rto: 0 }
+      if (!cityStats[c]) cityStats[c] = { city: c, orders: 0, rto: 0 }
       cityStats[c].orders++
       if (r['Status'] === 'RTO') cityStats[c].rto++
     }
@@ -391,7 +398,10 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
             })}
           </div>
         </div>
-        <ProfileSection />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <BoardReport data={data} metrics={metrics} />
+          <ProfileSection />
+        </div>
       </header>
 
       <div style={{ marginBottom: 20 }}>
@@ -476,6 +486,10 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       )}
 
       <AlertsPanel data={data} />
+      <SmartAlerts data={data} />
+      <ExecutiveSummary data={data} />
+      <FulfillmentMetrics data={data} />
+      <RTRiskSummary data={data} />
 
       <div className="stats-grid">
         <StatCard
@@ -551,6 +565,9 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       <div style={{ marginTop: 20 }}>
         <CityHeatmap cityData={cityData} />
       </div>
+
+      <SankeyFlow data={data} />
+      <POAgingHeatmap data={data} />
 
       <div className="charts-row">
         <div className="chart-card">
