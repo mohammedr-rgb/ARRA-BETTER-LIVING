@@ -4,8 +4,8 @@ import { CSVButton, ProfileSection } from '../components/ui'
 
 export default function InventoryTab({ data }) {
   const [hoverSku, setHoverSku] = useState(null)
-  const [planPlatform] = useState('All')
-  const [planCity] = useState('All')
+  const planPlatform = 'All'
+  const planCity = 'All'
 
   const productData = useMemo(() => productSummary(data), [data])
 
@@ -202,7 +202,7 @@ export default function InventoryTab({ data }) {
 
   const planCSVRows = () => {
     const rows = ['Production Plan Report']
-    rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan (2-week stock arrangement)')
+    rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan (4-week stock arrangement)')
     rows.push('')
     rows.push('CITY WISE × PRODUCT WISE × PLATFORM WISE')
     const weekKeys = ['Week 1', 'Week 2', 'Week 3', 'Week 4']

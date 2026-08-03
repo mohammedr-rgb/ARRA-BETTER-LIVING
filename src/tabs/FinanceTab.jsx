@@ -1,11 +1,27 @@
-import { useMemo } from 'react'
-import { num, uniqueByPO } from '../lib/utils'
-import { TooltipRow, StatCard } from '../components/ui'
+import { useState, useMemo } from 'react'
+import { num, uniqueByPO, parseDate, formatDate } from '../lib/utils'
+import { TooltipRow, StatCard, DateRangePicker, RangePresets, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
 
 export default function FinanceTab({ data, onOpenPO }) {
-  const poData = useMemo(() => uniqueByPO(data), [data])
+  const today = new Date()
+  const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
+  const [dateFrom, setDateFrom] = useState(formatDate(thirtyDaysAgo))
+  const [dateTo, setDateTo] = useState(formatDate(today))
+
+  const filteredData = useMemo(() => {
+    const from = parseDate(dateFrom)
+    const to = parseDate(dateTo)
+    if (!from || !to) return data
+    return data.filter(r => {
+      const d = parseDate(r['DATE(MM-DD-YYYY)'])
+      if (!d) return true
+      return d >= from && d <= to
+    })
+  }, [data, dateFrom, dateTo])
+
+  const poData = useMemo(() => uniqueByPO(filteredData), [filteredData])
 
   const financeMetrics = useMemo(() => {
     let totalPOValue = 0, totalDN = 0, totalFS = 0, overdueCount = 0, invoiceCount = 0
@@ -19,7 +35,8 @@ export default function FinanceTab({ data, onOpenPO }) {
       totalPOValue += val
       totalDN += dn
       totalFS += fs
-      if (overdue.toLowerCase().includes('overdue') || overdue.toLowerCase().includes('yes')) {
+      const isOverdue = ['overdue', 'yes'].includes(overdue.trim().toLowerCase())
+      if (isOverdue) {
         overdueCount++
         overduePOs.push(r['PO Number'])
       }
@@ -31,7 +48,7 @@ export default function FinanceTab({ data, onOpenPO }) {
       entityMap[e].dn += dn
       entityMap[e].fs += fs
       if (r['Invoice No']) entityMap[e].invoices++
-      if (overdue.toLowerCase().includes('overdue') || overdue.toLowerCase().includes('yes')) {
+      if (isOverdue) {
         entityMap[e].overdueCount++
       }
     }
@@ -58,7 +75,13 @@ export default function FinanceTab({ data, onOpenPO }) {
           <h1>Finance Overview</h1>
           <div className="date">{financeMetrics.totalOrders} POs • Credit period 30 days • {financeMetrics.entityWise.length} entities</div>
         </div>
+        <ProfileSection />
       </header>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap' }}>
+        <RangePresets onFrom={setDateFrom} onTo={setDateTo} />
+        <DateRangePicker from={dateFrom} to={dateTo} onFrom={setDateFrom} onTo={setDateTo} />
+      </div>
 
       <div className="stats-grid">
         <StatCard

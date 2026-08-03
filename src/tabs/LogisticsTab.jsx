@@ -22,7 +22,7 @@ export default function LogisticsTab({ data }) {
       if (!d) continue
       if (d < parseDate(dateFrom) || d > parseDate(dateTo)) continue
       const c = r['Transporter'] || 'Not Assigned'
-      if (!byCarrier[c]) byCarrier[c] = { carrier: c, rows: [], totalPO: new Set(), delivered: new Set(), rto: new Set(), inTransit: 0, tonnage: 0, transportCharge: 0 }
+      if (!byCarrier[c]) byCarrier[c] = { carrier: c, rows: [], totalPO: new Set(), delivered: new Set(), rto: new Set(), inTransit: new Set(), tonnage: 0, transportCharge: 0 }
       byCarrier[c].rows.push(r)
       byCarrier[c].totalPO.add(r['PO Number'])
       byCarrier[c].tonnage += num(r['Tonnage'])
@@ -30,14 +30,14 @@ export default function LogisticsTab({ data }) {
       const status = r['Status'] || ''
       if (status === 'Delivered') byCarrier[c].delivered.add(r['PO Number'])
       else if (status === 'RTO') byCarrier[c].rto.add(r['PO Number'])
-      else if (['In-Transit', 'Pending', 'Processing'].includes(status)) byCarrier[c].inTransit++
+      else if (['In-Transit', 'Pending', 'Processing'].includes(status)) byCarrier[c].inTransit.add(r['PO Number'])
     }
     return Object.values(byCarrier).map(x => ({
       carrier: x.carrier,
       totalPO: x.totalPO.size,
       delivered: x.delivered.size,
       rto: x.rto.size,
-      inTransit: x.inTransit,
+      inTransit: x.inTransit.size,
       tonnage: x.tonnage,
       totalValue: sumPOField(x.rows, 'PO Value with Tax'),
       transportCharge: x.transportCharge,

@@ -48,7 +48,7 @@ export function PODetailsPage({ po, data, onBack }) {
     rtoQty: num(base['RTO Tonnage (MT)']),
     rtoValue: num(base['RTO Value at Risk']),
     paymentStatus: base['Payment status'] || '—',
-    finalSettlement: num(base['Final Peding Settlement']),
+    finalSettlement: num(base['Final Peding Settlement'] || base['Final Pending Settlement']),
     utr: base['UTR Details'] || '—',
     dn: num(base['DN amount']),
     overdue: base['Payment Overdue Alert'] || '—',

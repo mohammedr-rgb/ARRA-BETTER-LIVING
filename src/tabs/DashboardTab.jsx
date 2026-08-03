@@ -7,7 +7,6 @@ import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEsc
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
-import { AlertsPanel } from '../components/AlertsPanel'
 import { CityHeatmap } from '../components/CityHeatmap'
 import { ExecutiveSummary } from '../components/ExecutiveSummary'
 import { FulfillmentMetrics } from '../components/FulfillmentMetrics'
@@ -162,7 +161,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
     })
   }, [data])
 
-  const last3Months = useMemo(() => monthData.slice(0, 3), [monthData])
+  const last3Months = useMemo(() => monthData.slice(-3), [monthData])
 
   const openMetrics = useMemo(() => {
     const active = data.filter(r => !['Delivered', 'RTO'].includes(r['Status'] || ''))
@@ -485,7 +484,6 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         </div>
       )}
 
-      <AlertsPanel data={data} />
       <SmartAlerts data={data} />
       <ExecutiveSummary data={data} />
       <FulfillmentMetrics data={data} />

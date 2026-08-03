@@ -476,11 +476,12 @@ export default function PerformanceTab({ data, platformFilter }) {
   )
 }
 
-function WoWCityTable({ data, dateTo, platformFilter }) {
+function WoWCityTable({ data, dateFrom, dateTo, platformFilter }) {
   const wowData = useMemo(() => {
     const to = parseDate(dateTo)
     if (!to) return []
-    const currStart = new Date(to.getFullYear(), to.getMonth(), to.getDate() - 6)
+    const from = dateFrom ? parseDate(dateFrom) : null
+    const currStart = from || new Date(to.getFullYear(), to.getMonth(), to.getDate() - 6)
     const prevStart = new Date(currStart.getFullYear(), currStart.getMonth(), currStart.getDate() - 7)
 
     const inRange = data.filter(r => {

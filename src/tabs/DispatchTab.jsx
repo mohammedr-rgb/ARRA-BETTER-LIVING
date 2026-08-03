@@ -1,24 +1,34 @@
 import { useState, useMemo } from 'react'
-import { num, uniqueByPO, sumField } from '../lib/utils'
-import { TooltipRow, StatCard } from '../components/ui'
+import { num, uniqueByPO, sumField, parseDate, formatDate } from '../lib/utils'
+import { TooltipRow, StatCard, DateRangePicker, RangePresets } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
 
 export default function DispatchTab({ data, onOpenPO }) {
+  const today = new Date()
+  const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
+  const [dateFrom, setDateFrom] = useState(formatDate(thirtyDaysAgo))
+  const [dateTo, setDateTo] = useState(formatDate(today))
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [dispatchFilters, setDispatchFilters] = useState(new Set())
 
   const pendingData = useMemo(() => {
     const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
+    const from = parseDate(dateFrom)
+    const to = parseDate(dateTo)
     const seen = new Set()
     return data.filter(r => {
       if (!statuses.has(r['Status'])) return false
+      if (from && to) {
+        const d = parseDate(r['DATE(MM-DD-YYYY)'])
+        if (d && (d < from || d > to)) return false
+      }
       const key = r['PO Number'] + '|' + r['Product']
       if (seen.has(key)) return false
       seen.add(key)
       return true
     })
-  }, [data])
+  }, [data, dateFrom, dateTo])
 
   const pendingPlatformData = useMemo(() => {
     const map = {}
@@ -51,7 +61,7 @@ export default function DispatchTab({ data, onOpenPO }) {
       openDispatches: dispatched.length,
       openLines: allDispatched.length,
       openTonnage: sumField(allDispatched, 'Tonnage'),
-      openCharge: sumField(allDispatched, 'Transport Charges'),
+      openCharge: sumField(allDispatched, 'Transport Charge'),
       byPlatform: fmt(byPlatform),
       byCity: fmt(byCity),
     }
@@ -123,6 +133,11 @@ export default function DispatchTab({ data, onOpenPO }) {
           </button>
         </div>
       </header>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap' }}>
+        <RangePresets onFrom={setDateFrom} onTo={setDateTo} />
+        <DateRangePicker from={dateFrom} to={dateTo} onFrom={setDateFrom} onTo={setDateTo} />
+      </div>
 
       <div className="stats-grid">
         <StatCard

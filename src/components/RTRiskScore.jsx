@@ -1,13 +1,13 @@
 import { useMemo } from 'react'
 import { uniqueByPO, parseMMDDDate, num } from '../lib/utils'
 
-export function calculateRTRisk(row, allData) {
+export function calculateRTRisk(row, allData, precomputedPoData) {
   const city = row['City'] || ''
   const platform = row['Platform'] || ''
   const product = row['Product'] || ''
   const released = parseMMDDDate(row['PO Released Date(MM-DD-YYYY)'])
   
-  const poData = uniqueByPO(allData)
+  const poData = precomputedPoData || uniqueByPO(allData)
   let riskScore = 0
   const factors = []
   
@@ -148,7 +148,7 @@ export function RTRiskSummary({ data }) {
     
     let high = 0, medium = 0, low = 0
     for (const po of activePOs) {
-      const { score } = calculateRTRisk(po, data)
+      const { score } = calculateRTRisk(po, data, poData)
       if (score >= 60) high++
       else if (score >= 30) medium++
       else low++

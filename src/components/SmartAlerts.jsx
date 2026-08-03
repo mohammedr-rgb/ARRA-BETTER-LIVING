@@ -77,22 +77,22 @@ export function SmartAlerts({ data }) {
       transporterStats[t].count++
     }
     
-    const avgCostPerKG = Object.values(transporterStats)
-      .filter(t => t.tonnage > 100)
-      .reduce((s, t) => s + (t.charge / t.tonnage), 0) / 
-      Object.values(transporterStats).filter(t => t.tonnage > 100).length || 0
-    
-    for (const [name, stats] of Object.entries(transporterStats)) {
-      if (stats.tonnage < 100) continue
-      const costPerKG = stats.charge / stats.tonnage
-      if (costPerKG > avgCostPerKG * 1.5) {
-        list.push({
-          type: 'warning',
-          icon: '🚚',
-          title: `High Transport Cost: ${name}`,
-          message: `Cost/KG ₹${costPerKG.toFixed(2)} is ${Math.round((costPerKG / avgCostPerKG - 1) * 100)}% above average`,
-          category: 'transport'
-        })
+    const qualifyingTransporters = Object.values(transporterStats).filter(t => t.tonnage > 100)
+    if (qualifyingTransporters.length > 0) {
+      const avgCostPerKG = qualifyingTransporters.reduce((s, t) => s + (t.charge / t.tonnage), 0) / qualifyingTransporters.length
+      
+      for (const [name, stats] of Object.entries(transporterStats)) {
+        if (stats.tonnage < 100) continue
+        const costPerKG = stats.charge / stats.tonnage
+        if (costPerKG > avgCostPerKG * 1.5) {
+          list.push({
+            type: 'warning',
+            icon: '🚚',
+            title: `High Transport Cost: ${name}`,
+            message: `Cost/KG ₹${costPerKG.toFixed(2)} is ${Math.round((costPerKG / avgCostPerKG - 1) * 100)}% above average`,
+            category: 'transport'
+          })
+        }
       }
     }
     

@@ -1,17 +1,33 @@
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts'
-import { toNumKG, uniqueByPO } from '../lib/utils'
-import { EmptyState, ProfileSection } from '../components/ui'
+import { toNumKG, uniqueByPO, parseDate, formatDate } from '../lib/utils'
+import { EmptyState, ProfileSection, DateRangePicker, RangePresets } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
 
 const REASONS_COLORS = ['#ef4444', '#f97316', '#eab308', '#a855f7', '#3b82f6', '#22c55e', '#06b6d4', '#8b5cf6']
 
 export default function RTOTab({ data, onOpenPO }) {
-  const poData = useMemo(() => uniqueByPO(data), [data])
+  const today = new Date()
+  const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
+  const [dateFrom, setDateFrom] = useState(formatDate(thirtyDaysAgo))
+  const [dateTo, setDateTo] = useState(formatDate(today))
+
+  const filteredData = useMemo(() => {
+    const from = parseDate(dateFrom)
+    const to = parseDate(dateTo)
+    if (!from || !to) return data
+    return data.filter(r => {
+      const d = parseDate(r['DATE(MM-DD-YYYY)'])
+      if (!d) return true
+      return d >= from && d <= to
+    })
+  }, [data, dateFrom, dateTo])
+
+  const poData = useMemo(() => uniqueByPO(filteredData), [filteredData])
   const rtoPOs = useMemo(() => poData.filter(r => r['Status'] === 'RTO'), [poData])
 
   const rtoMetrics = useMemo(() => {
@@ -70,6 +86,11 @@ export default function RTOTab({ data, onOpenPO }) {
         </div>
         <ProfileSection />
       </header>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap' }}>
+        <RangePresets onFrom={setDateFrom} onTo={setDateTo} />
+        <DateRangePicker from={dateFrom} to={dateTo} onFrom={setDateFrom} onTo={setDateTo} />
+      </div>
 
       <div className="stats-grid" style={{ marginBottom: 24 }}>
         <div className="stat-card" style={{ borderLeft: '3px solid #ef4444' }}>

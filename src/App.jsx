@@ -115,6 +115,8 @@ function App() {
     return filteredData.filter(r => SEARCH_FIELDS.some(f => String(r[f] || '').toLowerCase().includes(q)))
   }, [filteredData, searchQuery])
 
+  const uniqueData = useMemo(() => uniqueByPO(searchedData), [searchedData])
+
   const metrics = useMemo(() => {
     const poData = uniqueByPO(filteredData)
     const totalOrders = poData.length
@@ -333,31 +335,31 @@ function App() {
           ) : (
             <>
               <ErrorBoundary key="dashboard">
-                {tab === 'dashboard' && <DashboardTab data={searchedData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />}
+                {tab === 'dashboard' && <DashboardTab data={searchedData} uniqueData={uniqueData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="orders">
-                {tab === 'orders' && <OrdersTab data={searchedData} platformFilter={globalPlatform} onOpenPO={openPO} />}
+                {tab === 'orders' && <OrdersTab data={searchedData} uniqueData={uniqueData} platformFilter={globalPlatform} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="inventory">
-                {tab === 'inventory' && <InventoryTab data={searchedData} />}
+                {tab === 'inventory' && <InventoryTab data={searchedData} uniqueData={uniqueData} />}
               </ErrorBoundary>
               <ErrorBoundary key="logistics">
-                {tab === 'logistics' && <LogisticsTab data={searchedData} onOpenPO={openPO} />}
+                {tab === 'logistics' && <LogisticsTab data={searchedData} uniqueData={uniqueData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="dispatch">
-                {tab === 'dispatch' && <DispatchTab data={searchedData} onOpenPO={openPO} />}
+                {tab === 'dispatch' && <DispatchTab data={searchedData} uniqueData={uniqueData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="reports">
-                {tab === 'reports' && <ReportsTab data={searchedData} platformFilter={globalPlatform} />}
+                {tab === 'reports' && <ReportsTab data={searchedData} uniqueData={uniqueData} platformFilter={globalPlatform} />}
               </ErrorBoundary>
               <ErrorBoundary key="rto">
-                {tab === 'rto' && <RTOTab data={searchedData} onOpenPO={openPO} />}
+                {tab === 'rto' && <RTOTab data={searchedData} uniqueData={uniqueData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="finance">
-                {tab === 'finance' && <FinanceTab data={searchedData} onOpenPO={openPO} />}
+                {tab === 'finance' && <FinanceTab data={searchedData} uniqueData={uniqueData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="performance">
-                {tab === 'performance' && <PerformanceTab data={searchedData} platformFilter={globalPlatform} />}
+                {tab === 'performance' && <PerformanceTab data={searchedData} uniqueData={uniqueData} platformFilter={globalPlatform} />}
               </ErrorBoundary>
               <ErrorBoundary key="settings">
                 {tab === 'settings' && <SettingsTab />}
