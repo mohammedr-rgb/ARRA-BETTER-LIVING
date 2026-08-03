@@ -1,6 +1,12 @@
 import { useState, useMemo } from 'react'
 import { num, parseDate, formatDate, uniqueByPO } from '../lib/utils'
 import { CSVButton, DateRangePicker, RangePresets, EmptyState, ProfileSection } from '../components/ui'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts'
+
+const CHART_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#eab308', '#f97316', '#06b6d4', '#ef4444', '#8b5cf6']
 
 export default function PerformanceTab({ data, platformFilter }) {
   const today = new Date()
@@ -151,6 +157,30 @@ export default function PerformanceTab({ data, platformFilter }) {
 
   const agings = ['New PO', 'Less than 7 days PO', 'Grater than 7 days', 'Grater than 15 days', 'More than 30 days', 'N/A']
 
+  const transportChartData = useMemo(() => analysis.transportData.slice(0, 8).map(t => ({
+    name: t.transporter.length > 12 ? t.transporter.slice(0, 10) + '...' : t.transporter,
+    'Cost/KG': parseFloat(t.costPerKG.toFixed(2)),
+    'POs': t.count,
+  })), [analysis])
+
+  const leadChartData = useMemo(() => analysis.leadData.slice(0, 8).map(l => ({
+    name: l.platform.length > 12 ? l.platform.slice(0, 10) + '...' : l.platform,
+    'Booking': l.avgBooking === '—' ? 0 : l.avgBooking,
+    'Delivery': l.avgDelivery === '—' ? 0 : l.avgDelivery,
+    'Total': l.avgTotal === '—' ? 0 : l.avgTotal,
+  })), [analysis])
+
+  const fillChartData = useMemo(() => analysis.fillData.filter(x => x.samples > 1).slice(0, 10).map(f => ({
+    name: f.product.length > 14 ? f.product.slice(0, 12) + '...' : f.product,
+    'Fill Rate': f.avgFinal,
+    'Gap': f.gap,
+  })), [analysis])
+
+  const rtoPieData = useMemo(() => analysis.rtoData.slice(0, 6).map(r => ({
+    name: r.reason,
+    value: r.count,
+  })), [analysis])
+
   const perfCSVRows = () => {
     const header = 'Section,Metric,Value'
     const rows = []
@@ -257,6 +287,28 @@ export default function PerformanceTab({ data, platformFilter }) {
           <div className="orders-title">2. Transporter Cost Analysis — Charge Efficiency</div>
           <div className="chart-period">Root cause: uneven carrier costs impact margins</div>
         </div>
+        {transportChartData.length > 0 && (
+          <div className="charts-row" style={{ marginBottom: 16 }}>
+            <div className="chart-card" style={{ flex: 1 }}>
+              <div className="chart-header">
+                <div className="chart-title">Cost per KG by Transporter</div>
+              </div>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={transportChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
+                  <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                  <ReTooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }} formatter={(value) => [`₹${value}`, 'Cost/KG']} />
+                  <Bar dataKey="Cost/KG" radius={[4, 4, 0, 0]}>
+                    {transportChartData.map((entry, i) => (
+                      <Cell key={i} fill={entry['Cost/KG'] > analysis.overallCostPerKG ? '#ef4444' : '#22c55e'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
         <table>
           <thead>
             <tr>
@@ -305,6 +357,26 @@ export default function PerformanceTab({ data, platformFilter }) {
           <div className="orders-title">3. Lead Time Analysis — Booking-to-Delivery</div>
           <div className="chart-period">Root cause: long cycle times reduce fill rates</div>
         </div>
+        {leadChartData.length > 0 && (
+          <div className="charts-row" style={{ marginBottom: 16 }}>
+            <div className="chart-card" style={{ flex: 1 }}>
+              <div className="chart-header">
+                <div className="chart-title">Lead Time by Platform</div>
+              </div>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={leadChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
+                  <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                  <ReTooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }} formatter={(value) => [value + ' days', '']} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+                  <Bar dataKey="Booking" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Delivery" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
         <table>
           <thead>
             <tr>
@@ -380,9 +452,29 @@ export default function PerformanceTab({ data, platformFilter }) {
 
       <div className="recent-orders" style={{ marginBottom: 20 }}>
         <div className="orders-header">
-          <div className="orders-title">5. Fill Rate by City — Availability Heatmap</div>
-          <div className="chart-period">Root cause: city-level fill rate variance</div>
+          <div className="orders-title">4. Fill Rate Analysis — Product-level Gaps</div>
+          <div className="chart-period">Root cause: low fill rate = lost revenue & customer dissatisfaction</div>
         </div>
+        {fillChartData.length > 0 && (
+          <div className="charts-row" style={{ marginBottom: 16 }}>
+            <div className="chart-card" style={{ flex: 1 }}>
+              <div className="chart-header">
+                <div className="chart-title">Fill Rate vs Gap by Product</div>
+              </div>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={fillChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
+                  <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                  <ReTooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }} formatter={(value) => [value + '%', '']} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+                  <Bar dataKey="Fill Rate" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Gap" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
         <table>
           <thead>
             <tr>
@@ -408,12 +500,42 @@ export default function PerformanceTab({ data, platformFilter }) {
       </div>
 
       {analysis.rtoData.length > 0 && (
-        <div className="recent-orders" style={{ marginBottom: 20 }}>
-          <div className="orders-header">
-            <div className="orders-title">6. RTO Root Cause Analysis</div>
-            <div className="chart-period">Top reasons for returns</div>
+      <div className="recent-orders" style={{ marginBottom: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">6. RTO Root Cause — Return Analysis</div>
+          <div className="chart-period">Root cause: understanding return reasons enables targeted fixes</div>
+        </div>
+        {rtoPieData.length > 0 && (
+          <div className="charts-row" style={{ marginBottom: 16 }}>
+            <div className="chart-card" style={{ flex: 1 }}>
+              <div className="chart-header">
+                <div className="chart-title">RTO by Reason</div>
+              </div>
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={rtoPieData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    innerRadius={50}
+                    dataKey="value"
+                    nameKey="name"
+                    label={({ name, percent }) => `${String(name).slice(0, 16)} ${(percent * 100).toFixed(0)}%`}
+                    labelLine
+                  >
+                    {rtoPieData.map((entry, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <ReTooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <table>
+        )}
+        <table>
             <thead>
               <tr>
                 <th>RTO Reason</th>

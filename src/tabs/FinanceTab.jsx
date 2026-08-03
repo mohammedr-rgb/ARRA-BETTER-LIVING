@@ -3,6 +3,12 @@ import { num, uniqueByPO, parseDate, formatDate } from '../lib/utils'
 import { TooltipRow, StatCard, DateRangePicker, RangePresets, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts'
+
+const CHART_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#eab308', '#f97316', '#06b6d4', '#ef4444', '#8b5cf6']
 
 export default function FinanceTab({ data, onOpenPO }) {
   const today = new Date()
@@ -67,6 +73,22 @@ export default function FinanceTab({ data, onOpenPO }) {
       entityWise: Object.values(entityMap).sort((a, b) => b.poValue - a.poValue),
     }
   }, [poData])
+
+  const entityChartData = useMemo(() => financeMetrics.entityWise.slice(0, 8).map(e => ({
+    name: e.entity.length > 14 ? e.entity.slice(0, 12) + '...' : e.entity,
+    'PO Value': Math.round(e.poValue),
+    'DN Amount': Math.round(e.dn),
+    'Settlement': Math.round(e.fs),
+  })), [financeMetrics])
+
+  const settlementPieData = useMemo(() => {
+    const settled = financeMetrics.totalFS
+    const pending = Math.max(0, financeMetrics.pendingSettlement)
+    return [
+      { name: 'Settled', value: Math.round(settled) },
+      { name: 'Pending', value: Math.round(pending) },
+    ].filter(d => d.value > 0)
+  }, [financeMetrics])
 
   return (
     <>
@@ -133,6 +155,60 @@ export default function FinanceTab({ data, onOpenPO }) {
           label="Invoices Issued" icon="📄" color="#22c55e"
           value={financeMetrics.invoiceCount} change={`Of ${financeMetrics.totalOrders} POs`} changeColor="#94a3b8"
         />
+      </div>
+
+      <div className="charts-row" style={{ marginBottom: 20 }}>
+        <div className="chart-card">
+          <div className="chart-header">
+            <div className="chart-title">Entity-wise Value</div>
+            <div className="chart-period">PO Value, DN & Settlement</div>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={entityChartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
+              <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+              <ReTooltip
+                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
+                formatter={(value) => ['₹' + value.toLocaleString(), '']}
+              />
+              <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+              <Bar dataKey="PO Value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="DN Amount" fill="#a855f7" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Settlement" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="chart-card">
+          <div className="chart-header">
+            <div className="chart-title">Settlement Status</div>
+            <div className="chart-period">Settled vs Pending</div>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={settlementPieData}
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                innerRadius={50}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine
+              >
+                {settlementPieData.map((entry, index) => (
+                  <Cell key={index} fill={index === 0 ? '#22c55e' : '#ef4444'} />
+                ))}
+              </Pie>
+              <ReTooltip
+                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
+                formatter={(value) => ['₹' + value.toLocaleString(), 'Value']}
+              />
+              <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="recent-orders">
