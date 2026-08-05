@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
-import { num, uniqueByPO, sumField, parseDate, formatDate, csvEscape } from '../lib/utils'
-import { TooltipRow, StatCard, DateRangePicker, RangePresets } from '../components/ui'
+import { num, uniqueByPO, sumField, csvEscape } from '../lib/utils'
+import { TooltipRow, StatCard } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
 
@@ -15,30 +15,26 @@ function getBoxType(row) {
 }
 
 export default function DispatchTab({ data, onOpenPO }) {
-  const today = new Date()
-  const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
-  const [dateFrom, setDateFrom] = useState(formatDate(thirtyDaysAgo))
-  const [dateTo, setDateTo] = useState(formatDate(today))
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [dispatchFilters, setDispatchFilters] = useState(new Set())
+  const [pendingFilter, setPendingFilter] = useState(null)
 
   const pendingData = useMemo(() => {
     const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
-    const from = parseDate(dateFrom)
-    const to = parseDate(dateTo)
     const seen = new Set()
     return data.filter(r => {
       if (!statuses.has(r['Status'])) return false
-      if (from && to) {
-        const d = parseDate(r['DATE(MM-DD-YYYY)'])
-        if (d && (d < from || d > to)) return false
-      }
       const key = r['PO Number'] + '|' + r['Product']
       if (seen.has(key)) return false
       seen.add(key)
       return true
     })
-  }, [data, dateFrom, dateTo])
+  }, [data])
+
+  const filteredPendingData = useMemo(() => {
+    if (!pendingFilter) return pendingData
+    return pendingData.filter(r => (r['Platform'] || 'Unknown') === pendingFilter)
+  }, [pendingData, pendingFilter])
 
   const pendingPlatformData = useMemo(() => {
     const map = {}
@@ -70,8 +66,11 @@ export default function DispatchTab({ data, onOpenPO }) {
     return {
       openDispatches: dispatched.length,
       openLines: allDispatched.length,
+      openQty: sumField(allDispatched, 'PO Qty'),
+      openBoxes: sumField(allDispatched, 'Box Count'),
       openTonnage: sumField(allDispatched, 'Tonnage'),
-      openCharge: sumField(allDispatched, 'Transport Charge'),
+      openCharge: sumField(allDispatched, 'Transport Charges'),
+      openValue: sumField(allDispatched, 'PO Value with Tax'),
       byPlatform: fmt(byPlatform),
       byCity: fmt(byCity),
     }
@@ -108,6 +107,8 @@ export default function DispatchTab({ data, onOpenPO }) {
     if (!filtered.length) return
     const cols = [
       ['City', 'City'],
+      ['FacilityName', 'Facility Name'],
+      ['Pincode', 'Pincode'],
       ['Platform', 'Platform'],
       ['Box Type', 'Box Type'],
       ['PO Number', 'PO Number'],
@@ -119,6 +120,7 @@ export default function DispatchTab({ data, onOpenPO }) {
       ['Expiry Date(MM-DD-YYYY)', 'PO Expiry Date'],
       ['Appointment Date(MM-DD-YYYY)', 'Appointment Date'],
       ['PO Released Date(MM-DD-YYYY)', 'PO Released Date'],
+      ['Status', 'Status'],
     ]
     const header = cols.map(c => c[1]).join(',')
     const body = filtered.map(r => cols.map(([k]) => {
@@ -165,11 +167,6 @@ export default function DispatchTab({ data, onOpenPO }) {
         </div>
       </header>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap' }}>
-        <RangePresets onFrom={setDateFrom} onTo={setDateTo} />
-        <DateRangePicker from={dateFrom} to={dateTo} onFrom={setDateFrom} onTo={setDateTo} />
-      </div>
-
       <div className="stats-grid">
         <StatCard
           label="Open Dispatches" icon="🚚" color="#3b82f6"
@@ -178,6 +175,7 @@ export default function DispatchTab({ data, onOpenPO }) {
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Dispatch Summary</div>
               <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>Unique POs: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openDispatches}</span> • Total Lines: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{dispatchMetrics.openLines}</span></div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>Qty (Units): <span style={{ color: '#3b82f6', fontWeight: 600 }}>{Math.round(dispatchMetrics.openQty).toLocaleString()}</span> • Box Count: <span style={{ color: '#3b82f6', fontWeight: 600 }}>{Math.round(dispatchMetrics.openBoxes).toLocaleString()}</span></div>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
                 {dispatchMetrics.byPlatform.map(p => {
                   const checked = !dispatchFilters.size || dispatchFilters.has(p.name)
@@ -250,6 +248,19 @@ export default function DispatchTab({ data, onOpenPO }) {
           tooltipStyle={{ zIndex: 100 }}
         />
         <StatCard
+          label="PO Value with Tax" icon="🧾" color="#06b6d4"
+          value={'₹' + Math.round(dispatchMetrics.openValue).toLocaleString()} change="Open dispatch PO value"
+          tooltip={
+            <>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Value Details</div>
+              <TooltipRow label="PO Value with Tax" value={'₹' + Math.round(dispatchMetrics.openValue).toLocaleString()} valueColor="#06b6d4" />
+              <TooltipRow label="Qty (Units)" value={Math.round(dispatchMetrics.openQty).toLocaleString()} valueColor="#06b6d4" />
+              <TooltipRow label="Box Count" value={Math.round(dispatchMetrics.openBoxes).toLocaleString()} valueColor="#06b6d4" />
+            </>
+          }
+          tooltipStyle={{ zIndex: 100 }}
+        />
+        <StatCard
           label="Transport Charges" icon="💰" color="#eab308"
           value={'₹' + Math.round(dispatchMetrics.openCharge).toLocaleString()} change="Open dispatch transport cost"
           tooltip={
@@ -265,30 +276,40 @@ export default function DispatchTab({ data, onOpenPO }) {
       <div className="recent-orders">
         <div className="orders-header">
           <div className="orders-title">Pending for Dispatch / Schedule</div>
-          <div className="chart-period">{dispatchMetrics.openDispatches} POs</div>
+          <div className="chart-period">{filteredPendingData.length} lines{pendingFilter ? ` • ${pendingFilter}` : ''}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          <button
+            onClick={() => setPendingFilter(null)}
+            style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: pendingFilter === null ? 'rgba(59,130,246,0.2)' : 'rgba(100,116,139,0.1)', color: pendingFilter === null ? '#3b82f6' : '#94a3b8', border: pendingFilter === null ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(100,116,139,0.2)' }}
+          >
+            All Platforms
+          </button>
           {pendingPlatformData.map(p => (
-            <span key={p.platform} style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', whiteSpace: 'nowrap' }}>
+            <button
+              key={p.platform}
+              onClick={() => setPendingFilter(prev => prev === p.platform ? null : p.platform)}
+              style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', background: pendingFilter === p.platform ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)', color: pendingFilter === p.platform ? '#60a5fa' : '#3b82f6', border: pendingFilter === p.platform ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(59,130,246,0.2)' }}
+            >
               {p.platform} • {p.pos} POs
-            </span>
+            </button>
           ))}
         </div>
         <DataTable
           columns={[
-            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} />, filterable: true },
-            { key: 'city', label: 'City', accessor: r => r['City'], filterable: true },
-            { key: 'platform', label: 'Platform', accessor: r => r['Platform'], filterable: true },
-            { key: 'boxType', label: 'Box Type', accessor: r => getBoxType(r), filterable: true },
-            { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span>, filterable: true },
-            { key: 'qty', label: 'PO Qty', accessor: r => num(r['PO Qty']), align: 'right', filterable: true },
-            { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right', filterable: true },
-            { key: 'box', label: 'Box', accessor: r => num(r['Box Count']), align: 'right', filterable: true },
-            { key: 'mrp', label: 'MRP', accessor: r => r['MRP'] || '—', align: 'right', filterable: true },
-            { key: 'cost', label: 'Unit Cost', accessor: r => r['Unit Cost'] || '—', align: 'right', filterable: true },
-            { key: 'appt', label: 'Appointment / Status', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || r['Status'], render: r => r['Appointment Date(MM-DD-YYYY)'] ? r['Appointment Date(MM-DD-YYYY)'] : <span style={{ color: '#eab308' }}>{r['Status']}</span>, filterable: true },
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
+            { key: 'city', label: 'City', accessor: r => r['City'] },
+            { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
+            { key: 'boxType', label: 'Box Type', accessor: r => getBoxType(r) },
+            { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
+            { key: 'qty', label: 'PO Qty', accessor: r => num(r['PO Qty']), align: 'right' },
+            { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
+            { key: 'box', label: 'Box', accessor: r => num(r['Box Count']), align: 'right' },
+            { key: 'mrp', label: 'MRP', accessor: r => r['MRP'] || '—', align: 'right' },
+            { key: 'cost', label: 'Unit Cost', accessor: r => r['Unit Cost'] || '—', align: 'right' },
+            { key: 'appt', label: 'Appointment / Status', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || r['Status'], render: r => r['Appointment Date(MM-DD-YYYY)'] ? r['Appointment Date(MM-DD-YYYY)'] : <span style={{ color: '#eab308' }}>{r['Status']}</span> },
           ]}
-          rows={pendingData}
+          rows={filteredPendingData}
           pageSize={10}
           filename="pending_dispatch_schedule.csv"
           onRowClick={onOpenPO}
