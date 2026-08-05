@@ -129,23 +129,39 @@ export default function DispatchTab({ data, onOpenPO }) {
       return /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
     }).join(',')).join('\n')
 
-    const byPlatform = {}
+    const byPlatformBoxType = {}
+    const byProduct = {}
     for (const r of filtered) {
       const p = r['Platform'] || 'Unknown'
-      if (!byPlatform[p]) byPlatform[p] = { boxes: 0, qty: 0, tonnage: 0 }
-      byPlatform[p].boxes += num(r['Box Count'])
-      byPlatform[p].qty += num(r['PO Qty'])
-      byPlatform[p].tonnage += num(r['Tonnage'])
+      const bt = getBoxType(r)
+      const key = p + ' | ' + bt
+      if (!byPlatformBoxType[key]) byPlatformBoxType[key] = { platform: p, boxType: bt, boxes: 0, mrp: 0, tonnage: 0 }
+      byPlatformBoxType[key].boxes += num(r['Box Count'])
+      byPlatformBoxType[key].mrp += num(r['MRP'])
+      byPlatformBoxType[key].tonnage += num(r['Tonnage'])
+      const prod = r['Product'] || 'Unknown'
+      if (!byProduct[prod]) byProduct[prod] = { product: prod, boxes: 0, mrp: 0, tonnage: 0 }
+      byProduct[prod].boxes += num(r['Box Count'])
+      byProduct[prod].mrp += num(r['MRP'])
+      byProduct[prod].tonnage += num(r['Tonnage'])
     }
     const summaryLines = []
     summaryLines.push('')
     summaryLines.push('Platform Summary')
-    summaryLines.push(['Platform', 'Total Box Count', 'Total Qty', 'Total Tonnage'].map(csvEscape).join(','))
-    for (const [p, v] of Object.entries(byPlatform).sort((a, b) => b[1].tonnage - a[1].tonnage)) {
-      summaryLines.push([p, Math.round(v.boxes), Math.round(v.qty), Math.round(v.tonnage)].map(csvEscape).join(','))
+    summaryLines.push(['Platform', 'Box Type', 'Total Box Count', 'Total MRP', 'Total Tonnage'].map(csvEscape).join(','))
+    for (const [k, v] of Object.entries(byPlatformBoxType).sort((a, b) => b[1].tonnage - a[1].tonnage)) {
+      summaryLines.push([v.platform, v.boxType, Math.round(v.boxes), Math.round(v.mrp), Math.round(v.tonnage)].map(csvEscape).join(','))
     }
-    const totals = Object.values(byPlatform).reduce((s, v) => ({ boxes: s.boxes + v.boxes, qty: s.qty + v.qty, tonnage: s.tonnage + v.tonnage }), { boxes: 0, qty: 0, tonnage: 0 })
-    summaryLines.push(['TOTAL', Math.round(totals.boxes), Math.round(totals.qty), Math.round(totals.tonnage)].map(csvEscape).join(','))
+    const platTotal = Object.values(byPlatformBoxType).reduce((s, v) => ({ boxes: s.boxes + v.boxes, mrp: s.mrp + v.mrp, tonnage: s.tonnage + v.tonnage }), { boxes: 0, mrp: 0, tonnage: 0 })
+    summaryLines.push(['TOTAL', '', Math.round(platTotal.boxes), Math.round(platTotal.mrp), Math.round(platTotal.tonnage)].map(csvEscape).join(','))
+    summaryLines.push('')
+    summaryLines.push('Product-wise Summary')
+    summaryLines.push(['Product', 'Total Box Count', 'Total MRP', 'Total Tonnage'].map(csvEscape).join(','))
+    for (const [p, v] of Object.entries(byProduct).sort((a, b) => b[1].tonnage - a[1].tonnage)) {
+      summaryLines.push([v.product, Math.round(v.boxes), Math.round(v.mrp), Math.round(v.tonnage)].map(csvEscape).join(','))
+    }
+    const prodTotal = Object.values(byProduct).reduce((s, v) => ({ boxes: s.boxes + v.boxes, mrp: s.mrp + v.mrp, tonnage: s.tonnage + v.tonnage }), { boxes: 0, mrp: 0, tonnage: 0 })
+    summaryLines.push(['TOTAL', Math.round(prodTotal.boxes), Math.round(prodTotal.mrp), Math.round(prodTotal.tonnage)].map(csvEscape).join(','))
 
     const blob = new Blob([header + '\n' + body + '\n' + summaryLines.join('\n')], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
