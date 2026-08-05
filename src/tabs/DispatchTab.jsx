@@ -125,6 +125,10 @@ export default function DispatchTab({ data, onOpenPO }) {
     const header = cols.map(c => c[1]).join(',')
     const body = filtered.map(r => cols.map(([k]) => {
       if (k === 'Box Type') return csvEscape(getBoxType(r))
+      if (k === 'Tonnage') return num(r[k])
+      if (k === 'Box Count') return num(r[k])
+      if (k === 'PO Qty') return num(r[k])
+      if (k === 'MRP') return num(r[k])
       const v = r[k] || ''
       return /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
     }).join(',')).join('\n')
