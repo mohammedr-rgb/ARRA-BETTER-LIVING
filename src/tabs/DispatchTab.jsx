@@ -1,8 +1,18 @@
 import { useState, useMemo } from 'react'
-import { num, uniqueByPO, sumField, parseDate, formatDate } from '../lib/utils'
+import { num, uniqueByPO, sumField, parseDate, formatDate, csvEscape } from '../lib/utils'
 import { TooltipRow, StatCard, DateRangePicker, RangePresets } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
+
+function getBoxType(row) {
+  const platform = (row['Platform'] || '').trim().toLowerCase()
+  const city = (row['City'] || '').trim().toLowerCase()
+  if (platform === 'swiggy') {
+    if (city === 'chennai' || city === 'coimbatore') return 'Normal Box'
+    return 'White Box'
+  }
+  return 'Standard Box'
+}
 
 export default function DispatchTab({ data, onOpenPO }) {
   const today = new Date()
@@ -99,6 +109,7 @@ export default function DispatchTab({ data, onOpenPO }) {
     const cols = [
       ['City', 'City'],
       ['Platform', 'Platform'],
+      ['Box Type', 'Box Type'],
       ['PO Number', 'PO Number'],
       ['Product', 'Product'],
       ['PO Qty', 'QTY'],
@@ -111,10 +122,30 @@ export default function DispatchTab({ data, onOpenPO }) {
     ]
     const header = cols.map(c => c[1]).join(',')
     const body = filtered.map(r => cols.map(([k]) => {
+      if (k === 'Box Type') return csvEscape(getBoxType(r))
       const v = r[k] || ''
       return /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
     }).join(',')).join('\n')
-    const blob = new Blob([header + '\n' + body], { type: 'text/csv' })
+
+    const byPlatform = {}
+    for (const r of filtered) {
+      const p = r['Platform'] || 'Unknown'
+      if (!byPlatform[p]) byPlatform[p] = { boxes: 0, qty: 0, tonnage: 0 }
+      byPlatform[p].boxes += num(r['Box Count'])
+      byPlatform[p].qty += num(r['PO Qty'])
+      byPlatform[p].tonnage += num(r['Tonnage'])
+    }
+    const summaryLines = []
+    summaryLines.push('')
+    summaryLines.push('Platform Summary')
+    summaryLines.push(['Platform', 'Total Box Count', 'Total Qty', 'Total Tonnage'].map(csvEscape).join(','))
+    for (const [p, v] of Object.entries(byPlatform).sort((a, b) => b[1].tonnage - a[1].tonnage)) {
+      summaryLines.push([p, Math.round(v.boxes), Math.round(v.qty), Math.round(v.tonnage)].map(csvEscape).join(','))
+    }
+    const totals = Object.values(byPlatform).reduce((s, v) => ({ boxes: s.boxes + v.boxes, qty: s.qty + v.qty, tonnage: s.tonnage + v.tonnage }), { boxes: 0, qty: 0, tonnage: 0 })
+    summaryLines.push(['TOTAL', Math.round(totals.boxes), Math.round(totals.qty), Math.round(totals.tonnage)].map(csvEscape).join(','))
+
+    const blob = new Blob([header + '\n' + body + '\n' + summaryLines.join('\n')], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = 'pending_dispatch_schedule.csv'; a.click()
     URL.revokeObjectURL(url)
@@ -245,16 +276,17 @@ export default function DispatchTab({ data, onOpenPO }) {
         </div>
         <DataTable
           columns={[
-            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
-            { key: 'city', label: 'City', accessor: r => r['City'] },
-            { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
-            { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
-            { key: 'qty', label: 'PO Qty', accessor: r => num(r['PO Qty']), align: 'right' },
-            { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
-            { key: 'box', label: 'Box', accessor: r => num(r['Box Count']), align: 'right' },
-            { key: 'mrp', label: 'MRP', accessor: r => r['MRP'] || '—', align: 'right' },
-            { key: 'cost', label: 'Unit Cost', accessor: r => r['Unit Cost'] || '—', align: 'right' },
-            { key: 'appt', label: 'Appointment / Status', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || r['Status'], render: r => r['Appointment Date(MM-DD-YYYY)'] ? r['Appointment Date(MM-DD-YYYY)'] : <span style={{ color: '#eab308' }}>{r['Status']}</span> },
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} />, filterable: true },
+            { key: 'city', label: 'City', accessor: r => r['City'], filterable: true },
+            { key: 'platform', label: 'Platform', accessor: r => r['Platform'], filterable: true },
+            { key: 'boxType', label: 'Box Type', accessor: r => getBoxType(r), filterable: true },
+            { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span>, filterable: true },
+            { key: 'qty', label: 'PO Qty', accessor: r => num(r['PO Qty']), align: 'right', filterable: true },
+            { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right', filterable: true },
+            { key: 'box', label: 'Box', accessor: r => num(r['Box Count']), align: 'right', filterable: true },
+            { key: 'mrp', label: 'MRP', accessor: r => r['MRP'] || '—', align: 'right', filterable: true },
+            { key: 'cost', label: 'Unit Cost', accessor: r => r['Unit Cost'] || '—', align: 'right', filterable: true },
+            { key: 'appt', label: 'Appointment / Status', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || r['Status'], render: r => r['Appointment Date(MM-DD-YYYY)'] ? r['Appointment Date(MM-DD-YYYY)'] : <span style={{ color: '#eab308' }}>{r['Status']}</span>, filterable: true },
           ]}
           rows={pendingData}
           pageSize={10}
