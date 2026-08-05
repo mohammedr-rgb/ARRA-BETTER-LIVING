@@ -8,7 +8,7 @@ function getBoxType(row) {
   const platform = (row['Platform'] || '').trim().toLowerCase()
   const city = (row['City'] || '').trim().toLowerCase()
   if (platform === 'swiggy') {
-    if (city === 'chennai' || city === 'coimbatore') return 'Normal Box'
+    if (city === 'chennai' || city === 'coimbatore') return 'Standard Box'
     return 'White Box'
   }
   return 'Standard Box'
@@ -303,7 +303,7 @@ export default function DispatchTab({ data, onOpenPO }) {
             { key: 'city', label: 'City', accessor: r => r['City'] },
             { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
             { key: 'boxType', label: 'Box Type', accessor: r => getBoxType(r) },
-            { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
+            { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span>, filterable: true },
             { key: 'qty', label: 'PO Qty', accessor: r => num(r['PO Qty']), align: 'right' },
             { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
             { key: 'box', label: 'Box', accessor: r => num(r['Box Count']), align: 'right' },
