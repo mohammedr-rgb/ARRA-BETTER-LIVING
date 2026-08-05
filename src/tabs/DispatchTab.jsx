@@ -129,26 +129,26 @@ export default function DispatchTab({ data, onOpenPO }) {
       return /[,"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
     }).join(',')).join('\n')
 
-    const byProductBoxType = {}
+    const byProductMRP = {}
     for (const r of filtered) {
       const bt = getBoxType(r)
       const prod = r['Product'] || 'Unknown'
-      const key = prod + ' | ' + bt
-      if (!byProductBoxType[key]) byProductBoxType[key] = { product: prod, boxType: bt, platform: r['Platform'] || 'Unknown', boxes: 0, mrps: new Set(), tonnage: 0 }
-      byProductBoxType[key].boxes += num(r['Box Count'])
-      byProductBoxType[key].mrps.add(r['MRP'] || '')
-      byProductBoxType[key].tonnage += num(r['Tonnage'])
+      const plat = r['Platform'] || 'Unknown'
+      const mrp = r['MRP'] || ''
+      const key = prod + ' | ' + plat + ' | ' + bt + ' | ' + mrp
+      if (!byProductMRP[key]) byProductMRP[key] = { product: prod, platform: plat, boxType: bt, mrp: mrp, boxes: 0, tonnage: 0 }
+      byProductMRP[key].boxes += num(r['Box Count'])
+      byProductMRP[key].tonnage += num(r['Tonnage'])
     }
     const summaryLines = []
     summaryLines.push('')
     summaryLines.push('Product-wise Summary')
-    summaryLines.push(['Product', 'Platform', 'Box Type', 'Total Box Count', 'MRP Values', 'Total Tonnage'].map(csvEscape).join(','))
-    for (const [k, v] of Object.entries(byProductBoxType).sort((a, b) => b[1].tonnage - a[1].tonnage)) {
-      const mrpValues = [...v.mrps].filter(m => m).join('; ')
-      summaryLines.push([v.product, v.platform, v.boxType, Math.round(v.boxes), csvEscape(mrpValues), Math.round(v.tonnage)].map(csvEscape).join(','))
+    summaryLines.push(['Product', 'Platform', 'Box Type', 'MRP', 'Total Box Count', 'Total Tonnage'].map(csvEscape).join(','))
+    for (const [k, v] of Object.entries(byProductMRP).sort((a, b) => b[1].tonnage - a[1].tonnage)) {
+      summaryLines.push([v.product, v.platform, v.boxType, csvEscape(v.mrp), Math.round(v.boxes), Math.round(v.tonnage)].map(csvEscape).join(','))
     }
-    const prodTotal = Object.values(byProductBoxType).reduce((s, v) => ({ boxes: s.boxes + v.boxes, tonnage: s.tonnage + v.tonnage }), { boxes: 0, tonnage: 0 })
-    summaryLines.push(['TOTAL', '', '', Math.round(prodTotal.boxes), '', Math.round(prodTotal.tonnage)].map(csvEscape).join(','))
+    const prodTotal = Object.values(byProductMRP).reduce((s, v) => ({ boxes: s.boxes + v.boxes, tonnage: s.tonnage + v.tonnage }), { boxes: 0, tonnage: 0 })
+    summaryLines.push(['TOTAL', '', '', '', Math.round(prodTotal.boxes), Math.round(prodTotal.tonnage)].map(csvEscape).join(','))
 
     const blob = new Blob([header + '\n' + body + '\n' + summaryLines.join('\n')], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
