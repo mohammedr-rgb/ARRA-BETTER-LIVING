@@ -240,7 +240,7 @@ export default function DispatchTab({ data, onOpenPO }) {
         />
         <StatCard
           label="Dispatch Tonnage" icon="⚖️" color="#a855f7"
-          value={Math.round(dispatchMetrics.openTonnage).toLocaleString() + ' KG'} change="Open tonnage in transit"
+          value={Math.round(dispatchMetrics.openTonnage).toLocaleString()} change="Open tonnage in transit"
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Tonnage Details</div>
