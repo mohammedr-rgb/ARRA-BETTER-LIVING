@@ -48,9 +48,10 @@ export default function StockTab({ data, onOpenPO }) {
       })
       .then(text => {
         const parsed = parseCSV(text)
-        setRows(parsed.length && !('Box Type' in parsed[0])
+        const body = parsed.length && !('Box Type' in parsed[0])
           ? parseCSV(text.slice(text.indexOf('\n') + 1))
-          : parsed)
+          : parsed
+        setRows(body.map(r => r['Box Type'] === 'Normal Box' ? { ...r, 'Box Type': 'Standard Box' } : r))
         setLoading(false)
         setIsRefreshing(false)
       })

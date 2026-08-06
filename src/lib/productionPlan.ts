@@ -18,7 +18,7 @@ export const BLINKIT_MRP: Record<string, number> = {
 };
 
 export function boxTypeFor(platform: string, city: string): string {
-  if (platform === 'Swiggy') return city === 'CHENNAI' || city === 'COIMBATORE' ? 'Normal Box' : 'White Box';
+  if (platform === 'Swiggy') return city === 'CHENNAI' || city === 'COIMBATORE' ? 'Standard Box' : 'White Box';
   if (platform === 'Blinkit') return 'White Box';
   return '';
 }
@@ -121,7 +121,7 @@ export function buildProductionPlan(data: Record<string, string>[], projectionFa
   return { period: periodLabel, planMonth, rows, totals, boxTypeTotals };
 }
 
-export const BOX_TYPE_ORDER = ['White Box', 'Normal Box'] as const;
+export const BOX_TYPE_ORDER = ['White Box', 'Standard Box'] as const;
 
 export function groupRowsByBoxType(rows: PlanRow[]): Array<{ boxType: string; rows: PlanRow[] }> {
   const sections: Array<{ boxType: string; rows: PlanRow[] }> = [];
