@@ -342,7 +342,7 @@ function App() {
                 {tab === 'inventory' && <InventoryTab data={filteredData} />}
               </ErrorBoundary>
               <ErrorBoundary key="stock">
-                {tab === 'stock' && <StockTab />}
+                {tab === 'stock' && <StockTab data={filteredData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="logistics">
                 {tab === 'logistics' && <LogisticsTab data={filteredData} onOpenPO={openPO} />}
