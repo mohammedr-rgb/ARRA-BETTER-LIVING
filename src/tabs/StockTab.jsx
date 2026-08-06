@@ -47,8 +47,10 @@ export default function StockTab({ data, onOpenPO }) {
         return r.text()
       })
       .then(text => {
-        const body = text.split('\n').slice(1).join('\n').replace(/\n ?\(MM-DD-YYYY\)/g, '(MM-DD-YYYY)')
-        setRows(parseCSV(body))
+        const parsed = parseCSV(text)
+        setRows(parsed.length && !('Box Type' in parsed[0])
+          ? parseCSV(text.slice(text.indexOf('\n') + 1))
+          : parsed)
         setLoading(false)
         setIsRefreshing(false)
       })

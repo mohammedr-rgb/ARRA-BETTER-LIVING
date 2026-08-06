@@ -11,26 +11,38 @@ export function num(val: unknown): number {
 export const toNumKG = num;
 
 export function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.trim().split('\n');
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim());
-  const rows: Record<string, string>[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const vals: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    for (const ch of lines[i]) {
-      if (ch === '"') { inQuotes = !inQuotes; continue; }
-      if (ch === ',' && !inQuotes) { vals.push(current.trim()); current = ''; continue; }
-      current += ch;
+  const s = text.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const records: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let inQuotes = false;
+  const pushField = () => { row.push(field.trim()); field = ''; };
+  const pushRow = () => { if (row.some(v => v !== '')) records.push(row); row = []; };
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (s[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += ch;
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') pushField();
+      else if (ch === '\n') { pushField(); pushRow(); }
+      else field += ch;
     }
-    vals.push(current.trim());
-    if (vals.length < headers.length || vals.every(v => !v)) continue;
-    const row: Record<string, string> = {};
-    headers.forEach((h, idx) => { row[h] = vals[idx] ? vals[idx].replace(/^#REF!$/, '') : ''; });
-    rows.push(row);
   }
-  return rows;
+  pushField();
+  if (row.length) pushRow();
+  if (records.length < 2) return [];
+  const headers = records[0].map(h => h.replace(/\s*\n\s*/g, ' '));
+  return records.slice(1)
+    .filter(vals => vals.length >= headers.length)
+    .map(vals => {
+      const r: Record<string, string> = {};
+      headers.forEach((h, idx) => { r[h] = vals[idx] ? vals[idx].replace(/^#REF!$/, '') : ''; });
+      return r;
+    });
 }
 
 export function csvEscape(v: unknown): string {
