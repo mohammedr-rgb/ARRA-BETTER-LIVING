@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
 import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES } from '../lib/utils'
+import { buildProductionPlan, planCSVRows } from '../lib/productionPlan'
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
@@ -24,32 +25,6 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
-  const [search, setSearch] = useState('')
-
-  const searchActive = search.trim() !== ''
-
-  const searchResults = useMemo(() => {
-    if (!searchActive) return []
-    const q = search.trim().toLowerCase()
-    return data.filter(r => Object.values(r).some(v => String(v || '').toLowerCase().includes(q)))
-  }, [data, search, searchActive])
-
-  const searchSummary = useMemo(() => {
-    const po = uniqueByPO(searchResults)
-    return {
-      orders: po.length,
-      tonnage: Math.round(sumField(searchResults, 'Tonnage')),
-      value: Math.round(sumPOField(searchResults, 'PO Value with Tax')),
-      delivered: po.filter(r => r['Status'] === 'Delivered').length,
-    }
-  }, [searchResults])
-
-  const matchedOn = (r) => {
-    if (!searchActive) return ''
-    const q = search.trim().toLowerCase()
-    const field = Object.keys(r).find(f => String(r[f] || '').toLowerCase().includes(q))
-    return field || '—'
-  }
 
   const drillPOs = useMemo(() => {
     if (!drill) return []
@@ -313,6 +288,8 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
     return rows
   }
 
+  const productionPlan = useMemo(() => buildProductionPlan(data), [data])
+
   const tooltipBox = { position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 100 }
 
   return (
@@ -364,69 +341,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         </div>
       </header>
 
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 15, opacity: 0.7 }}>🔍</span>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Universal search — PO #, product, city, platform, transporter, invoice, appointment ID, status…"
-            style={{ width: '100%', boxSizing: 'border-box', background: '#0f172a', border: '2px solid #3b82f6', borderRadius: 12, color: '#f1f5f9', padding: '14px 42px 14px 42px', fontSize: 15, outline: 'none' }}
-          />
-          {searchActive && (
-            <button onClick={() => setSearch('')} title="Clear search" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: '#334155', border: 'none', borderRadius: '50%', color: '#f1f5f9', width: 26, height: 26, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-          )}
-        </div>
-        {searchActive && (
-          <div className="recent-orders" style={{ marginTop: 16 }}>
-            <div className="orders-header">
-              <div className="orders-title">🔎 Search Results — “{search.trim()}”</div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span className="chart-period">{searchResults.length} matching rows • {searchSummary.orders} unique POs • click a row for full details</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-              {[
-                { label: 'Orders', value: searchSummary.orders, color: '#3b82f6' },
-                { label: 'Tonnage', value: searchSummary.tonnage.toLocaleString() + ' KG', color: '#a855f7' },
-                { label: 'Value', value: '₹' + searchSummary.value.toLocaleString(), color: '#22c55e' },
-                { label: 'Delivered', value: searchSummary.delivered, color: '#22c55e' },
-              ].map(s => (
-                <div key={s.label} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '8px 14px' }}>
-                  <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: s.color }}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-            <DataTable
-              columns={[
-                { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
-                { key: 'matched', label: 'Matched On', accessor: r => matchedOn(r) },
-                { key: 'city', label: 'City', accessor: r => r['City'] },
-                { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
-                { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
-                { key: 'qty', label: 'Qty', accessor: r => num(r['PO Qty']), align: 'right' },
-                { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
-                { key: 'value', label: 'Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
-                { key: 'invoice', label: 'Invoice No', accessor: r => r['Invoice No'] || '—' },
-                { key: 'boxes', label: 'Box Count', accessor: r => num(r['Box Count']), align: 'right' },
-                { key: 'transporter', label: 'Transporter', accessor: r => r['Transporter'] || '—' },
-                { key: 'appt', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
-                { key: 'status', label: 'Status', accessor: r => r['Status'], render: r => <StatusPill status={r['Status']} /> },
-              ]}
-              rows={searchResults}
-              pageSize={10}
-              filename="search_results.csv"
-              onRowClick={onOpenPO}
-              emptyMessage="No matches found — try a different detail"
-            />
-          </div>
-        )}
-      </div>
-
-      {searchActive ? null : (
-      <>
-      {insights.length > 0 && (
+       {insights.length > 0 && (
         <div style={{ marginBottom: 20, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 12, padding: '16px 20px' }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 12 }}>💡 Insights & Alerts</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -684,36 +599,81 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
             </BarChart>
           </ResponsiveContainer>
         )}
-      </div>
+       </div>
 
-      <div className="recent-orders">
-        <div className="orders-header">
-          <div className="orders-title">Recent PO Releases</div>
-          <div className="chart-period">Latest {recentOrders.length} releases • click a row for details</div>
+       <div className="recent-orders" style={{ marginTop: 20 }}>
+         <div className="orders-header">
+           <div className="orders-title">Production Plan — {productionPlan.planMonth}</div>
+           <CSVButton makeRows={() => planCSVRows(productionPlan)} filename="production_plan_aug.csv">⬇ Download Plan</CSVButton>
+         </div>
+         {productionPlan.rows.length > 0 ? (
+           <div style={{ overflowX: 'auto' }}>
+             <table style={{ minWidth: 900, width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+               <thead>
+                 <tr style={{ background: '#1e293b' }}>
+                   <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Box Type</th>
+                   <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Product</th>
+                   <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>MRP</th>
+                   <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Sales Qty (May-Jul)</th>
+                   <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Plan Qty (Aug)</th>
+                   <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Plan Boxes</th>
+                   <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Plan Tonnage (KG)</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {productionPlan.rows.slice(0, 20).map((r, i) => (
+                   <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(30,41,59,0.5)' }}>
+                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9' }}>{r.boxType || '(Unlabelled)'}</td>
+                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.product}</td>
+                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>₹{r.mrp}</td>
+                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>{r.salesQty}</td>
+                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#3b82f6', textAlign: 'right', fontWeight: 600 }}>{r.planQty}</td>
+                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>{r.planBoxes}</td>
+                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>{r.planTonnage}</td>
+                   </tr>
+                 ))}
+                  <tr style={{ background: 'rgba(59,130,246,0.08)', fontWeight: 700 }}>
+                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9' }}>TOTAL</td>
+                    <td colSpan={2} style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#94a3b8' }}></td>
+                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{productionPlan.totals.salesQty}</td>
+                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#3b82f6', textAlign: 'right' }}>{productionPlan.totals.planQty}</td>
+                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{productionPlan.totals.planBoxes}</td>
+                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{productionPlan.totals.planTonnage}</td>
+                  </tr>
+               </tbody>
+             </table>
+           </div>
+         ) : (
+           <div style={{ padding: 16, textAlign: 'center', color: '#64748b', fontSize: 13 }}>No production plan data available</div>
+         )}
+       </div>
+
+       <div className="recent-orders">
+         <div className="orders-header">
+           <div className="orders-title">Recent PO Releases</div>
+           <div className="chart-period">Latest {recentOrders.length} releases • click a row for details</div>
+         </div>
+         <DataTable
+           columns={[
+             { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
+             { key: 'city', label: 'City', accessor: r => r['City'] },
+             { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
+             { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
+             { key: 'qty', label: 'Qty', accessor: r => num(r['PO Qty']), align: 'right' },
+             { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
+             { key: 'value', label: 'Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
+             { key: 'released', label: 'Released', accessor: r => r['PO Released Date(MM-DD-YYYY)'] },
+             { key: 'appt', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
+             { key: 'apptid', label: 'Appt ID', accessor: r => r['Appointment ID'] || '—' },
+             { key: 'status', label: 'Status', accessor: r => r['Status'], render: r => <StatusPill status={r['Status']} /> },
+           ]}
+           rows={recentOrders}
+           pageSize={10}
+           filename="recent_po_releases.csv"
+           onRowClick={onOpenPO}
+           emptyMessage="No recent releases"
+         />
         </div>
-        <DataTable
-          columns={[
-            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
-            { key: 'city', label: 'City', accessor: r => r['City'] },
-            { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
-            { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
-            { key: 'qty', label: 'Qty', accessor: r => num(r['PO Qty']), align: 'right' },
-            { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
-            { key: 'value', label: 'Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
-            { key: 'released', label: 'Released', accessor: r => r['PO Released Date(MM-DD-YYYY)'] },
-            { key: 'appt', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
-            { key: 'apptid', label: 'Appt ID', accessor: r => r['Appointment ID'] || '—' },
-            { key: 'status', label: 'Status', accessor: r => r['Status'], render: r => <StatusPill status={r['Status']} /> },
-          ]}
-          rows={recentOrders}
-          pageSize={10}
-          filename="recent_po_releases.csv"
-          onRowClick={onOpenPO}
-          emptyMessage="No recent releases"
-        />
-      </div>
-      </>
-      )}
-    </>
-  )
-}
+     </>
+   )
+ }

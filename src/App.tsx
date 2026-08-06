@@ -1,144 +1,145 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { num, parseCSV, parseMMDDDate, uniqueByPO, sumPOField, sumField, loadCSVFromFile } from './lib/utils'
-import { UserContext } from './lib/userContext'
-import { ErrorBoundary } from './components/ErrorBoundary'
-import DashboardTab from './tabs/DashboardTab'
-import OrdersTab from './tabs/OrdersTab'
-import InventoryTab from './tabs/InventoryTab'
-import StockTab from './tabs/StockTab'
-import LogisticsTab from './tabs/LogisticsTab'
-import DispatchTab from './tabs/DispatchTab'
-import ReportsTab from './tabs/ReportsTab'
-import RTOTab from './tabs/RTOTab'
-import FinanceTab from './tabs/FinanceTab'
-import PerformanceTab from './tabs/PerformanceTab'
-import SettingsTab from './tabs/SettingsTab'
-import { PODetailsPage } from './components/PODetailsPage'
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { num, parseCSV, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, loadCSVFromFile } from './lib/utils';
+import { boxTypeFor } from './lib/productionPlan';
+import { UserContext } from './lib/userContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import DashboardTab from './tabs/DashboardTab';
+import OrdersTab from './tabs/OrdersTab';
+import InventoryTab from './tabs/InventoryTab';
+import LogisticsTab from './tabs/LogisticsTab';
+import DispatchTab from './tabs/DispatchTab';
+import ReportsTab from './tabs/ReportsTab';
+import RTOTab from './tabs/RTOTab';
+import FinanceTab from './tabs/FinanceTab';
+import PerformanceTab from './tabs/PerformanceTab';
+import SettingsTab from './tabs/SettingsTab';
+import { PODetailsPage } from './components/PODetailsPage';
+import type { CSVRow, Metrics, CityData, StatusData, RecentOrder } from './types';
 
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
+const SHEET_URL = import.meta.env.VITE_SHEET_URL || 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820';
 
 function App() {
-  const [data, setData] = useState([])
-  const [rawCSV, setRawCSV] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [lastUpdated, setLastUpdated] = useState(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [data, setData] = useState<CSVRow[]>([]);
+  const [rawCSV, setRawCSV] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [tab, setTab] = useState(() => {
-    const params = new URLSearchParams(window.location.search)
-    return params.get('tab') || 'dashboard'
-  })
-  const [userEmail, setUserEmail] = useState('mohammed.r@gemedible.com')
-  const [mobileMenu, setMobileMenu] = useState(false)
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') || 'dashboard';
+  });
+  const [userEmail, setUserEmail] = useState('mohammed.r@gemedible.com');
+  const [mobileMenu, setMobileMenu] = useState(false);
   const [globalPlatform, setGlobalPlatform] = useState(() => {
-    const params = new URLSearchParams(window.location.search)
-    return params.get('platform') || 'All'
-  })
-  const [viewPO, setViewPO] = useState(null)
-  const [autoRefresh, setAutoRefresh] = useState(0) // 0 = off, 5/15/30 = minutes
+    const params = new URLSearchParams(window.location.search);
+    return params.get('platform') || 'All';
+  });
+  const [viewPO, setViewPO] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(0);
 
-  // URL deep linking
-  const updateURL = useCallback((newTab, newPlatform) => {
-    const params = new URLSearchParams(window.location.search)
-    params.set('tab', newTab)
-    if (newPlatform && newPlatform !== 'All') params.set('platform', newPlatform)
-    else params.delete('platform')
-    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
-  }, [])
+  const updateURL = useCallback((newTab: string, newPlatform: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', newTab);
+    if (newPlatform && newPlatform !== 'All') params.set('platform', newPlatform);
+    else params.delete('platform');
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+  }, []);
 
-  const handleTabChange = useCallback((newTab) => {
-    setTab(newTab)
-    updateURL(newTab, globalPlatform)
-  }, [globalPlatform, updateURL])
+  const handleTabChange = useCallback((newTab: string) => {
+    setTab(newTab);
+    updateURL(newTab, globalPlatform);
+  }, [globalPlatform, updateURL]);
 
-  const handlePlatformChange = useCallback((newPlatform) => {
-    setGlobalPlatform(newPlatform)
-    updateURL(tab, newPlatform)
-  }, [tab, updateURL])
+  const handlePlatformChange = useCallback((newPlatform: string) => {
+    setGlobalPlatform(newPlatform);
+    updateURL(tab, newPlatform);
+  }, [tab, updateURL]);
 
-  const openPO = useCallback((row) => {
-    if (row && row['PO Number']) setViewPO(row['PO Number'])
-  }, [])
+  const openPO = useCallback((row: CSVRow) => {
+    if (row && row['PO Number']) setViewPO(row['PO Number']);
+  }, []);
 
   const loadData = useCallback(() => {
-    setIsRefreshing(true)
-    setError(null)
+    setIsRefreshing(true);
+    setError(null);
     fetch(SHEET_URL)
       .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`)
-        return r.text()
+        if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+        return r.text();
       })
       .then(text => {
-        const parsed = parseCSV(text)
-        setRawCSV(text)
-        setData(parsed)
-        setLastUpdated(new Date())
-        setLoading(false)
-        setIsRefreshing(false)
+        const parsed = parseCSV(text);
+        setRawCSV(text);
+        setData(parsed as CSVRow[]);
+        setLastUpdated(new Date());
+        setLoading(false);
+        setIsRefreshing(false);
       })
       .catch(e => {
-        setLoading(false)
-        setIsRefreshing(false)
-        setError(e.message || 'Failed to load data')
-      })
-  }, [])
+        setLoading(false);
+        setIsRefreshing(false);
+        setError(e.message || 'Failed to load data');
+      });
+  }, []);
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    loadData();
+  }, [loadData]);
 
-  // Auto-refresh effect
   useEffect(() => {
-    if (autoRefresh === 0) return
+    if (autoRefresh === 0) return;
     const interval = setInterval(() => {
-      loadData()
-    }, autoRefresh * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [autoRefresh, loadData])
+      loadData();
+    }, autoRefresh * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, loadData]);
 
   const platforms = useMemo(() => {
-    const set = new Set()
-    data.forEach(r => { if (r['Platform']) set.add(r['Platform']) })
-    return ['All', ...Array.from(set).sort()]
-  }, [data])
+    const set = new Set<string>();
+    data.forEach(r => { if (r['Platform']) set.add(r['Platform']); });
+    return ['All', ...Array.from(set).sort()];
+  }, [data]);
 
   const filteredData = useMemo(() => {
-    if (globalPlatform === 'All') return data
-    return data.filter(r => r['Platform'] === globalPlatform)
-  }, [data, globalPlatform])
+    if (globalPlatform === 'All') return data;
+    return data.filter(r => r['Platform'] === globalPlatform);
+  }, [data, globalPlatform]);
 
-  const metrics = useMemo(() => {
-    const poData = uniqueByPO(filteredData)
-    const totalOrders = poData.length
-    const totalTonnage = Math.round(sumField(filteredData, 'Tonnage'))
-    const totalBoxes = Math.round(sumField(filteredData, 'Box Count'))
-    const totalValue = Math.round(sumPOField(filteredData, 'PO Value with Tax'))
+  const searchedData = filteredData;
 
-    const statusCounts = {}
+  const metrics = useMemo((): Metrics => {
+    const poData = uniqueByPO(filteredData);
+    const totalOrders = poData.length;
+    const totalTonnage = Math.round(sumField(filteredData, 'Tonnage'));
+    const totalBoxes = Math.round(sumField(filteredData, 'Box Count'));
+    const totalValue = Math.round(sumPOField(filteredData, 'PO Value with Tax'));
+
+    const statusCounts: Record<string, number> = {};
     poData.forEach(r => {
-      const s = r['Status'] || 'Unknown'
-      statusCounts[s] = (statusCounts[s] || 0) + 1
-    })
+      const s = r['Status'] || 'Unknown';
+      statusCounts[s] = (statusCounts[s] || 0) + 1;
+    });
 
-    const delivered = filteredData.filter(r => r['Status'] === 'Delivered')
-    const deliveredTonnage = Math.round(sumField(delivered, 'Tonnage'))
+    const delivered = filteredData.filter(r => r['Status'] === 'Delivered');
+    const deliveredTonnage = Math.round(sumField(delivered, 'Tonnage'));
 
-    const cities = [...new Set(poData.map(r => r['City']).filter(Boolean))]
+    const cities = [...new Set(poData.map(r => r['City']).filter(Boolean))];
 
-    const deliveredCount = poData.filter(r => r['Status'] === 'Delivered').length
-    const rtoCount = poData.filter(r => r['Status'] === 'RTO').length
-    const fillByPO = {}
+    const deliveredCount = poData.filter(r => r['Status'] === 'Delivered').length;
+    const rtoCount = poData.filter(r => r['Status'] === 'RTO').length;
+    const fillByPO: Record<string, { qty: number; rejected: number }> = {};
     for (const r of filteredData) {
-      if (r['Status'] !== 'Delivered') continue
-      const po = r['PO Number']
-      if (!po) continue
-      if (!fillByPO[po]) fillByPO[po] = { qty: 0, rejected: 0 }
-      fillByPO[po].qty += num(r['PO Qty'])
-      fillByPO[po].rejected += num(r['Rejected Qty'])
+      if (r['Status'] !== 'Delivered') continue;
+      const po = r['PO Number'];
+      if (!po) continue;
+      if (!fillByPO[po]) fillByPO[po] = { qty: 0, rejected: 0 };
+      fillByPO[po].qty += num(r['PO Qty']);
+      fillByPO[po].rejected += num(r['Rejected Qty']);
     }
-    const totalPOQty = Object.values(fillByPO).reduce((s, v) => s + v.qty, 0)
-    const totalRejectedQty = Object.values(fillByPO).reduce((s, v) => s + v.rejected, 0)
-    const avgFillRate = totalPOQty ? Math.round((totalPOQty - totalRejectedQty) / totalPOQty * 100) : 0
+    const totalPOQty = Object.values(fillByPO).reduce((s, v) => s + v.qty, 0);
+    const totalRejectedQty = Object.values(fillByPO).reduce((s, v) => s + v.rejected, 0);
+    const avgFillRate = totalPOQty ? Math.round((totalPOQty - totalRejectedQty) / totalPOQty * 100) : 0;
 
     return {
       totalOrders,
@@ -151,48 +152,48 @@ function App() {
       statusCounts,
       cities: cities.length,
       avgFillRate: Math.round(avgFillRate),
-    }
-  }, [filteredData])
+    };
+  }, [filteredData]);
 
-  const cityData = useMemo(() => {
-    const map = {}
+  const cityData = useMemo((): CityData[] => {
+    const map: Record<string, { city: string; orders: Set<string>; tonnage: number; delivered: number; deliveredTonnage: number; poValues: Record<string, number> }> = {};
     for (const r of filteredData) {
-      const c = r['City']; if (!c) continue
-      if (!map[c]) map[c] = { city: c, orders: new Set(), tonnage: 0, delivered: 0, deliveredTonnage: 0, poValues: {} }
-      map[c].orders.add(r['PO Number'])
-      map[c].tonnage += num(r['Tonnage'])
-      const po = r['PO Number']
-      const v = num(r['PO Value with Tax'])
-      if (po && v > 0 && v > (map[c].poValues[po] || 0)) map[c].poValues[po] = v
+      const c = r['City']; if (!c) continue;
+      if (!map[c]) map[c] = { city: c, orders: new Set(), tonnage: 0, delivered: 0, deliveredTonnage: 0, poValues: {} };
+      map[c].orders.add(r['PO Number']);
+      map[c].tonnage += num(r['Tonnage']);
+      const po = r['PO Number'];
+      const v = num(r['PO Value with Tax']);
+      if (po && v > 0 && v > (map[c].poValues[po] || 0)) map[c].poValues[po] = v;
       if (r['Status'] === 'Delivered') {
-        map[c].delivered++
-        map[c].deliveredTonnage += num(r['Tonnage'])
+        map[c].delivered++;
+        map[c].deliveredTonnage += num(r['Tonnage']);
       }
     }
     return Object.values(map)
-      .map(x => ({ ...x, orders: x.orders.size, value: Math.round(Object.values(x.poValues).reduce((s, v) => s + v, 0)) }))
-      .sort((a, b) => b.orders - a.orders)
-  }, [filteredData])
+      .map(x => ({ city: x.city, orders: x.orders.size, tonnage: x.tonnage, delivered: x.delivered, deliveredTonnage: x.deliveredTonnage, poValues: x.poValues, value: Math.round(Object.values(x.poValues).reduce((s, v) => s + v, 0)) }))
+      .sort((a, b) => b.orders - a.orders);
+  }, [filteredData]);
 
-  const statusData = useMemo(() => {
-    const poData = uniqueByPO(filteredData)
-    const map = {}
+  const statusData = useMemo((): StatusData[] => {
+    const poData = uniqueByPO(filteredData);
+    const map: Record<string, number> = {};
     poData.forEach(r => {
-      const s = r['Status'] || 'Unknown'
-      map[s] = (map[s] || 0) + 1
-    })
-    return Object.entries(map).map(([name, value]) => ({ name, value }))
-  }, [filteredData])
+      const s = r['Status'] || 'Unknown';
+      map[s] = (map[s] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [filteredData]);
 
-  const recentOrders = useMemo(() => {
-    const seen = new Set()
+  const recentOrders = useMemo((): RecentOrder[] => {
+    const seen = new Set<string>();
     return filteredData
       .map(r => ({ r, released: parseMMDDDate(r['PO Released Date(MM-DD-YYYY)']) }))
       .filter(x => x.released && !seen.has(x.r['PO Number']))
-      .sort((a, b) => b.released - a.released)
+      .sort((a, b) => b.released!.getTime() - a.released!.getTime())
       .slice(0, 10)
-      .map(x => x.r)
-  }, [filteredData])
+      .map(x => x.r);
+  }, [filteredData]);
 
   if (loading) {
     return (
@@ -200,7 +201,7 @@ function App() {
         <div style={{ fontSize: 22 }}>⏳</div>
         Loading dashboard data...
       </div>
-    )
+    );
   }
 
   if (error && !data.length) {
@@ -213,7 +214,7 @@ function App() {
           ↻ Retry
         </button>
       </div>
-    )
+    );
   }
 
   if (!data.length) {
@@ -226,15 +227,15 @@ function App() {
           ↻ Refresh
         </button>
       </div>
-    )
+    );
   }
 
-  const closeNav = () => setMobileMenu(false)
-  const navItem = (key, icon, label) => (
+  const closeNav = () => setMobileMenu(false);
+  const navItem = (key: string, icon: string, label: string) => (
     <a href="#" className={tab === key ? 'active' : ''} onClick={e => { e.preventDefault(); handleTabChange(key); closeNav() }}>
       <span className="icon">{icon}</span> {label}
     </a>
-  )
+  );
 
   return (
     <>
@@ -253,7 +254,6 @@ function App() {
           {navItem('dashboard', '📈', 'Dashboard')}
           {navItem('orders', '📦', 'Orders')}
           {navItem('inventory', '🏭', 'Inventory')}
-          {navItem('stock', '🗃️', 'Stock')}
           {navItem('logistics', '🚚', 'Logistics')}
           {navItem('dispatch', '📤', 'Dispatch')}
           {navItem('reports', '📋', 'Reports')}
@@ -287,24 +287,32 @@ function App() {
             </div>
           </div>
           <button onClick={() => {
-            const blob = new Blob([rawCSV], { type: 'text/csv' })
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a'); a.href = url; a.download = 'full_dataset.csv'; a.click()
-            URL.revokeObjectURL(url)
+            if (!data.length) return;
+            const headers = Object.keys(data[0]);
+            const lines = [['Box Type', 'Platform', 'City', ...headers].map(csvEscape).join(',')];
+            data.forEach(r => {
+              const row = [boxTypeFor(r['Platform'], (r['City'] || '').trim()), r['Platform'], r['City']];
+              headers.forEach(h => row.push(r[h] ?? ''));
+              lines.push(row.map(csvEscape).join(','));
+            });
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'full_dataset.csv'; a.click();
+            URL.revokeObjectURL(url);
           }} style={{ width: '100%', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#22c55e', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-            ⬇ Download Full Data
+            ⬇ Download Full Data (with Box Type)
           </button>
           <button onClick={() => {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.csv';
             input.onchange = async (e) => {
-              const file = e.target.files?.[0];
+              const file = (e.target as HTMLInputElement).files?.[0];
               if (!file) return;
               try {
                 const parsed = await loadCSVFromFile(file);
                 setRawCSV('');
-                setData(parsed);
+                setData(parsed as CSVRow[]);
                 setLastUpdated(new Date());
                 setLoading(false);
               } catch (err) {
@@ -333,34 +341,31 @@ function App() {
           ) : (
             <>
               <ErrorBoundary key="dashboard">
-                {tab === 'dashboard' && <DashboardTab data={filteredData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />}
+                {tab === 'dashboard' && <DashboardTab data={searchedData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="orders">
-                {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} onOpenPO={openPO} />}
+                {tab === 'orders' && <OrdersTab data={searchedData} platformFilter={globalPlatform} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="inventory">
-                {tab === 'inventory' && <InventoryTab data={filteredData} />}
-              </ErrorBoundary>
-              <ErrorBoundary key="stock">
-                {tab === 'stock' && <StockTab />}
+                {tab === 'inventory' && <InventoryTab data={searchedData} />}
               </ErrorBoundary>
               <ErrorBoundary key="logistics">
-                {tab === 'logistics' && <LogisticsTab data={filteredData} onOpenPO={openPO} />}
+                {tab === 'logistics' && <LogisticsTab data={searchedData} />}
               </ErrorBoundary>
               <ErrorBoundary key="dispatch">
-                {tab === 'dispatch' && <DispatchTab data={filteredData} onOpenPO={openPO} />}
+                {tab === 'dispatch' && <DispatchTab data={searchedData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="reports">
-                {tab === 'reports' && <ReportsTab data={filteredData} platformFilter={globalPlatform} />}
+                {tab === 'reports' && <ReportsTab data={searchedData} platformFilter={globalPlatform} />}
               </ErrorBoundary>
               <ErrorBoundary key="rto">
-                {tab === 'rto' && <RTOTab data={filteredData} onOpenPO={openPO} />}
+                {tab === 'rto' && <RTOTab data={searchedData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="finance">
-                {tab === 'finance' && <FinanceTab data={filteredData} onOpenPO={openPO} />}
+                {tab === 'finance' && <FinanceTab data={searchedData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="performance">
-                {tab === 'performance' && <PerformanceTab data={filteredData} platformFilter={globalPlatform} />}
+                {tab === 'performance' && <PerformanceTab data={searchedData} platformFilter={globalPlatform} />}
               </ErrorBoundary>
               <ErrorBoundary key="settings">
                 {tab === 'settings' && <SettingsTab />}
@@ -370,7 +375,7 @@ function App() {
         </div>
       </UserContext.Provider>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

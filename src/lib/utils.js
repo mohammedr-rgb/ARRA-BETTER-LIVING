@@ -132,3 +132,19 @@ export function isoToMdm(iso) {
   if (p.length !== 3) return ''
   return `${p[1]}-${p[2]}-${p[0]}`
 }
+
+export function loadCSVFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result
+        resolve(parseCSV(text))
+      } catch (err) {
+        reject(err)
+      }
+    }
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.readAsText(file)
+  })
+}

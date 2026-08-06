@@ -27,7 +27,6 @@ const pageBtn = (active) => ({
 export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, emptyMessage, initialPageSize }) {
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(initialPageSize || pageSize)
-  const [query, setQuery] = useState('')
   const sort = useSort()
 
   const accessors = useMemo(() => {
@@ -36,17 +35,13 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
     return map
   }, [columns])
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return rows
-    const q = query.trim().toLowerCase()
-    return rows.filter(r => columns.some(c => String(accessors[c.key](r) ?? '').toLowerCase().includes(q)))
-  }, [rows, query, columns, accessors])
+  const filtered = rows;
 
   const sorted = useMemo(() => applySort(filtered, sort, accessors), [filtered, sort, accessors])
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / perPage))
   useEffect(() => { if (page >= totalPages) setPage(0) }, [totalPages, page])
-  useEffect(() => { setPage(0) }, [query, perPage, rows.length])
+  useEffect(() => { setPage(0) }, [perPage, rows.length])
 
   const pageRows = sorted.slice(page * perPage, page * perPage + perPage)
 
@@ -63,12 +58,6 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="🔍 Search…"
-          style={{ ...controlStyle, width: 220, outline: 'none' }}
-        />
         <span style={{ fontSize: 12, color: '#64748b' }}>{sorted.length} row{sorted.length === 1 ? '' : 's'}</span>
         <span style={{ flex: 1 }} />
         <select value={perPage} onChange={e => setPerPage(Number(e.target.value))} style={{ ...controlStyle, cursor: 'pointer' }}>
