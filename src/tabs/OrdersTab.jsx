@@ -258,8 +258,110 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
         </table>
       </div>
 
-      <AppointmentView data={data} onOpenPO={onOpenPO} />
+      <AppointmentView data={data} platformFilter={platformFilter} onOpenPO={onOpenPO} />
+      <PriorityPushView data={data} platformFilter={platformFilter} onOpenPO={onOpenPO} />
     </>
+  )
+}
+
+function PriorityPushView({ data, platformFilter, onOpenPO }) {
+  const sort = useSort()
+
+  const pushRows = useMemo(() => {
+    const map = new Map()
+    const statuses = new Set()
+    data.forEach(r => {
+      if (platformFilter !== 'All' && r['Platform'] !== platformFilter) return
+      const s = (r['Status'] || '').toLowerCase()
+      if (!/^reach/i.test(s) || !/destination/i.test(s)) return
+      statuses.add(r['Status'])
+      const po = r['PO Number']
+      if (!po) return
+      if (!map.has(po)) map.set(po, { ...r, _tonnage: 0, _qty: 0 })
+      const entry = map.get(po)
+      entry._tonnage += num(r['Tonnage'])
+      entry._qty += num(r['PO Qty'])
+    })
+    return [...map.values()].sort((a, b) => (a['City'] || '').localeCompare(b['City'] || '') || (a['PO Number'] || '').localeCompare(b['PO Number'] || ''))
+  }, [data, platformFilter])
+
+  const totals = useMemo(() => ({
+    tonnage: pushRows.reduce((s, r) => s + r._tonnage, 0),
+    value: sumPOField(pushRows, 'PO Value with Tax'),
+  }), [pushRows])
+
+  const pushAccessors = {
+    po: r => r['PO Number'],
+    city: r => r['City'],
+    platform: r => r['Platform'],
+    facility: r => r['FacilityName'],
+    transporter: r => r['Transporter'],
+    tonnage: r => num(r._tonnage),
+    apptdate: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)']),
+    apptid: r => r['Appointment ID'],
+    status: r => r['Status'],
+    remarks: r => r['Remarks'],
+  }
+
+  const csvRows = () => {
+    const rows = ['Priority Push Appointments (Reached Destination)']
+    rows.push('PO Number,City,Platform,Facility,Transporter,Tonnage (KG),Qty,PO Value with Tax,Appointment Date,Appointment ID,Status,Remarks')
+    pushRows.forEach(r => {
+      rows.push([r['PO Number'], r['City'], r['Platform'], r['FacilityName'], r['Transporter'], num(r._tonnage), num(r._qty), num(r['PO Value with Tax']), r['Appointment Date(MM-DD-YYYY)'], r['Appointment ID'], r['Status'], r['Remarks']].map(x => csvEscape(String(x))).join(','))
+    })
+    return rows
+  }
+
+  return (
+    <div className="recent-orders" style={{ marginTop: 20 }}>
+      <div className="orders-header">
+        <div className="orders-title">🚀 Priority Push Appointments — Reached Destination ({pushRows.length})</div>
+        <div className="chart-period">{Math.round(totals.tonnage).toLocaleString()} KG • ₹{Math.round(totals.value).toLocaleString()} • Status: Reached Destination</div>
+        <CSVButton makeRows={csvRows} filename="priority_push_appointments.csv" style={{ padding: '8px 20px', fontSize: 13 }} />
+      </div>
+      {pushRows.length ? (
+        <table>
+          <thead>
+            <tr>
+              <SortTh label="PO #" k="po" sort={sort} />
+              <SortTh label="City" k="city" sort={sort} />
+              <SortTh label="Platform" k="platform" sort={sort} />
+              <SortTh label="Facility" k="facility" sort={sort} />
+              <SortTh label="Transporter" k="transporter" sort={sort} />
+              <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} />
+              <SortTh label="Appt Date" k="apptdate" sort={sort} />
+              <SortTh label="Appt ID" k="apptid" sort={sort} />
+              <SortTh label="Status" k="status" sort={sort} />
+              <SortTh label="Remarks" k="remarks" sort={sort} />
+            </tr>
+          </thead>
+          <tbody>
+            {applySort(pushRows, sort, pushAccessors).map((r, i) => (
+              <tr
+                key={i}
+                onClick={() => onOpenPO && onOpenPO(r)}
+                style={onOpenPO ? { cursor: 'pointer' } : undefined}
+                onMouseEnter={onOpenPO ? (e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)' } : undefined}
+                onMouseLeave={onOpenPO ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}
+              >
+                <td><PONumberLink row={r} onOpenPO={onOpenPO} /></td>
+                <td>{r['City'] || '—'}</td>
+                <td style={{ color: '#3b82f6', fontWeight: 600 }}>{r['Platform']}</td>
+                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['FacilityName'] || '—'}</td>
+                <td>{r['Transporter'] || '—'}</td>
+                <td style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
+                <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)'] || '—'}</td>
+                <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
+                <td><StatusPill status={r['Status']} /></td>
+                <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Remarks'] || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <EmptyState message="No POs marked Reached Destination" />
+      )}
+    </div>
   )
 }
 
