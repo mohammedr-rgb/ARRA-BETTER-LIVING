@@ -22,23 +22,23 @@ export default function ReportsTab({ data, platformFilter }) {
       if (d < parseDate(dateFrom) || d > parseDate(dateTo)) continue
       if (platformFilter !== 'All' && r['Platform'] !== platformFilter) continue
       const p = r['Platform'] || 'Unknown'
-      if (!map[p]) map[p] = { platform: p, rows: [], orders: new Set(), delivered: 0, rto: 0, inTransit: 0, tonnage: 0, value: 0 }
+      if (!map[p]) map[p] = { platform: p, rows: [], orders: new Set(), delivered: new Set(), rto: new Set(), inTransit: new Set(), tonnage: 0, value: 0 }
       map[p].rows.push(r)
       map[p].orders.add(r['PO Number'])
       map[p].tonnage += num(r['Tonnage'])
-      if (r['Status'] === 'Delivered') map[p].delivered++
-      else if (r['Status'] === 'RTO') map[p].rto++
-      else if (['In-Transit', 'Pending', 'Processing'].includes(r['Status'] || '')) map[p].inTransit++
+      if (r['Status'] === 'Delivered') map[p].delivered.add(r['PO Number'])
+      else if (r['Status'] === 'RTO') map[p].rto.add(r['PO Number'])
+      else if (['In-Transit', 'Pending', 'Processing'].includes(r['Status'] || '')) map[p].inTransit.add(r['PO Number'])
     }
     return Object.values(map).map(r => ({
       platform: r.platform,
       orders: r.orders.size,
-      delivered: r.delivered,
-      rto: r.rto,
-      inTransit: r.inTransit,
+      delivered: r.delivered.size,
+      rto: r.rto.size,
+      inTransit: r.inTransit.size,
       tonnage: r.tonnage,
       value: sumPOField(r.rows, 'PO Value with Tax'),
-      fillRate: (r.delivered + r.rto) ? Math.round(r.delivered / (r.delivered + r.rto) * 100) : 0,
+      fillRate: (r.delivered.size + r.rto.size) ? Math.round(r.delivered.size / (r.delivered.size + r.rto.size) * 100) : 0,
     })).sort((a, b) => b.orders - a.orders)
   }, [data, dateFrom, dateTo, platformFilter])
 
