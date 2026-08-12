@@ -384,6 +384,8 @@ function AppointmentView({ data, onOpenPO }) {
     tonnage: r => num(r._tonnage),
     apptdate: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)']),
     apptid: r => r['Appointment ID'],
+    invoice: r => r['Invoice No'],
+    tracking: r => r['Tracking No'],
     status: r => r['Status'],
     remarks: r => r['Remarks'],
   }
@@ -437,6 +439,8 @@ function AppointmentView({ data, onOpenPO }) {
             <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} />
             <SortTh label="Appt Date" k="apptdate" sort={sort} />
             <SortTh label="Appt ID" k="apptid" sort={sort} />
+            <SortTh label="Invoice #" k="invoice" sort={sort} />
+            <SortTh label="Tracking #" k="tracking" sort={sort} />
             <SortTh label="Status" k="status" sort={sort} />
             <SortTh label="Remarks" k="remarks" sort={sort} />
           </tr>
@@ -458,6 +462,8 @@ function AppointmentView({ data, onOpenPO }) {
               <td style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
               <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)']}</td>
               <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
+              <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Invoice No'] || '—'}</td>
+              <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Tracking No'] || '—'}</td>
               <td><StatusPill status={r['Status']} /></td>
               <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Remarks'] || '—'}</td>
             </tr>
@@ -467,12 +473,22 @@ function AppointmentView({ data, onOpenPO }) {
     )
   }
 
+  const makeCSVRows = (rows, title) => {
+    const lines = [title]
+    lines.push('PO Number,City,Platform,Facility,Transporter,Tonnage (KG),Appointment Date,Appointment ID,Invoice No,Tracking No,Status,Remarks')
+    rows.forEach(r => {
+      lines.push([r['PO Number'], r['City'], r['Platform'], r['FacilityName'], r['Transporter'], num(r._tonnage), r['Appointment Date(MM-DD-YYYY)'], r['Appointment ID'], r['Invoice No'], r['Tracking No'], r['Status'], r['Remarks']].map(x => csvEscape(String(x ?? ''))).join(','))
+    })
+    return lines
+  }
+
   return (
     <>
       <div className="recent-orders" style={{ marginTop: 20 }}>
         <div className="orders-header">
           <div className="orders-title">📅 Today's Appointments ({byAppt.today.length})</div>
           <div className="chart-period">{todayStr} — Total: {byAppt.today.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusT['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusT['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusT['RTO'] || 0} RTO</span></div>
+          <CSVButton makeRows={() => makeCSVRows(byAppt.today, 'Today\'s Appointments')} filename="appointments_today.csv" style={{ padding: '8px 20px', fontSize: 13 }} />
         </div>
         {renderTable(byAppt.today, todaySort)}
       </div>
@@ -481,6 +497,7 @@ function AppointmentView({ data, onOpenPO }) {
         <div className="orders-header">
           <div className="orders-title">📅 Tomorrow's Appointments ({byAppt.tomorrow.length})</div>
           <div className="chart-period">{tomorrowStr} — Total: {byAppt.tomorrow.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusTm['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusTm['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusTm['RTO'] || 0} RTO</span></div>
+          <CSVButton makeRows={() => makeCSVRows(byAppt.tomorrow, 'Tomorrow\'s Appointments')} filename="appointments_tomorrow.csv" style={{ padding: '8px 20px', fontSize: 13 }} />
         </div>
         {renderTable(byAppt.tomorrow, tomorrowSort)}
       </div>
@@ -489,6 +506,7 @@ function AppointmentView({ data, onOpenPO }) {
         <div className="orders-header">
           <div className="orders-title">📅 Weekly Appointments (Next 7 Days) ({byAppt.week.length})</div>
           <div className="chart-period">{todayStr} → {formatDate(weekEnd)} — Total: {byAppt.week.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusW['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusW['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusW['RTO'] || 0} RTO</span></div>
+          <CSVButton makeRows={() => makeCSVRows(byAppt.week, 'Weekly Appointments (Next 7 Days)')} filename="appointments_weekly.csv" style={{ padding: '8px 20px', fontSize: 13 }} />
         </div>
         {renderTable(byAppt.week, weekSort)}
       </div>
