@@ -197,8 +197,6 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
                   key={i}
                   onClick={() => onOpenPO && onOpenPO(row)}
                   style={onOpenPO ? { cursor: 'pointer' } : undefined}
-                  onMouseEnter={onOpenPO ? (e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)' } : undefined}
-                  onMouseLeave={onOpenPO ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}
                 >
                   <td><PONumberLink row={row} onOpenPO={onOpenPO} /></td>
                   <td>{row['City']}</td>
@@ -341,8 +339,6 @@ function PriorityPushView({ data, platformFilter, onOpenPO }) {
                 key={i}
                 onClick={() => onOpenPO && onOpenPO(r)}
                 style={onOpenPO ? { cursor: 'pointer' } : undefined}
-                onMouseEnter={onOpenPO ? (e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)' } : undefined}
-                onMouseLeave={onOpenPO ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}
               >
                 <td><PONumberLink row={r} onOpenPO={onOpenPO} /></td>
                 <td>{r['City'] || '—'}</td>
@@ -451,8 +447,6 @@ function AppointmentView({ data, onOpenPO }) {
               key={i}
               onClick={() => onOpenPO && onOpenPO(r)}
               style={onOpenPO ? { cursor: 'pointer' } : undefined}
-              onMouseEnter={onOpenPO ? (e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)' } : undefined}
-              onMouseLeave={onOpenPO ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}
             >
               <td><PONumberLink row={r} onOpenPO={onOpenPO} /></td>
               <td>{r['City']}</td>

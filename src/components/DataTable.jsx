@@ -71,7 +71,7 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+        <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
           <thead>
             <tr>
               {columns.map(c => {
@@ -96,8 +96,6 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
                 key={i}
                 onClick={() => onRowClick && onRowClick(r)}
                 style={onRowClick ? { cursor: 'pointer' } : undefined}
-                onMouseEnter={onRowClick ? (e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)' } : undefined}
-                onMouseLeave={onRowClick ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}
               >
                 {columns.map(c => (
                   <td key={c.key} style={{ padding: '12px 10px', fontSize: 13, borderBottom: '1px solid #1e293b', textAlign: c.align || 'left', whiteSpace: 'nowrap' }}>

@@ -114,16 +114,28 @@
 }
 
 /* === ENHANCED TABLE ROWS === */
-.recent-orders tbody tr {
-  transition: all 0.2s ease;
+.recent-orders tbody tr,
+.data-table tbody tr {
+  transition: background 0.15s ease;
 }
 
-.recent-orders tbody tr:hover {
-  background: rgba(59, 130, 246, 0.08);
-  transform: scale(1.005);
+.recent-orders tbody tr:nth-child(odd),
+.data-table tbody tr:nth-child(odd) {
+  background: #141c33;
 }
 
-.recent-orders tbody tr:hover td {
+.recent-orders tbody tr:nth-child(even),
+.data-table tbody tr:nth-child(even) {
+  background: #0f1729;
+}
+
+.recent-orders tbody tr:hover,
+.data-table tbody tr:hover {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.recent-orders tbody tr:hover td,
+.data-table tbody tr:hover td {
   color: #fff;
 }
 
