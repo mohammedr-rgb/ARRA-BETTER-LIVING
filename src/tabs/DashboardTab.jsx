@@ -10,6 +10,7 @@ import { PONumberLink } from '../components/PONumberLink'
 import { ExecutiveSummary } from '../components/ExecutiveSummary'
 import { FulfillmentMetrics } from '../components/FulfillmentMetrics'
 import { BoardReport } from '../components/BoardReport'
+import { UniversalSearch } from '../components/UniversalSearch'
 
 const PIE_COLORS = {
   Delivered: '#22c55e',
@@ -20,7 +21,7 @@ const PIE_COLORS = {
   Unknown: '#64748b',
 }
 
-export default function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO }) {
+export default function DashboardTab({ data, allData, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO, onSearchOpen }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
@@ -336,7 +337,9 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
           <BoardReport data={data} metrics={metrics} />
           <ProfileSection />
         </div>
-      </header>
+</header>
+
+      <UniversalSearch data={allData || data} onSelect={onSearchOpen} />
 
        {insights.length > 0 && (
         <div style={{ marginBottom: 20, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 12, padding: '16px 20px' }}>

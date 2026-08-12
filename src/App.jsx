@@ -34,7 +34,10 @@ function App() {
     const params = new URLSearchParams(window.location.search)
     return params.get('platform') || 'All'
   })
-  const [viewPO, setViewPO] = useState(null)
+  const [viewPO, setViewPO] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('po') || null
+  })
   const [autoRefresh, setAutoRefresh] = useState(0) // 0 = off, 5/15/30 = minutes
 
   // URL deep linking
@@ -58,6 +61,21 @@ function App() {
 
   const openPO = useCallback((row) => {
     if (row && row['PO Number']) setViewPO(row['PO Number'])
+  }, [])
+
+  const openPOInNewTab = useCallback((po) => {
+    if (!po) return
+    const params = new URLSearchParams(window.location.search)
+    params.set('tab', tab)
+    params.set('po', po)
+    window.open(`${window.location.pathname}?${params.toString()}`, '_blank', 'noopener')
+  }, [tab])
+
+  const closePO = useCallback(() => {
+    setViewPO(null)
+    const params = new URLSearchParams(window.location.search)
+    params.delete('po')
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
   }, [])
 
   const loadData = useCallback(() => {
@@ -328,12 +346,12 @@ function App() {
         <div className="main-content">
           {viewPO ? (
             <ErrorBoundary>
-              <PODetailsPage po={viewPO} data={data} onBack={() => setViewPO(null)} />
+              <PODetailsPage po={viewPO} data={data} onBack={closePO} />
             </ErrorBoundary>
           ) : (
             <>
               <ErrorBoundary key="dashboard">
-                {tab === 'dashboard' && <DashboardTab data={filteredData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />}
+                {tab === 'dashboard' && <DashboardTab data={filteredData} allData={data} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} onSearchOpen={openPOInNewTab} />}
               </ErrorBoundary>
               <ErrorBoundary key="orders">
                 {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} onOpenPO={openPO} />}

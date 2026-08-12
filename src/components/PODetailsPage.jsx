@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import { num, sumField } from '../lib/utils'
 import { StatusPill } from './ui'
 
@@ -44,6 +44,13 @@ export function PODetailsPage({ po, data, onBack }) {
     released: base['PO Released Date(MM-DD-YYYY)'] || '—',
     apptDate: base['Appointment Date(MM-DD-YYYY)'] || '—',
     expiry: base['Expiry Date(MM-DD-YYYY)'] || '—',
+    facility: base['FacilityName'] || '—',
+    transporter: base['Transporter'] || '—',
+    trackingNo: base['Tracking No'] || '—',
+    apptId: base['Appointment ID'] || '—',
+    actualDelivery: base['Actual Delivery Date(MM-DD-YYYY)'] || '—',
+    grn: base['GRN details'] || '—',
+    pincode: base['Pincode'] || '—',
     rtoStatus: base['RTO Status'] || '—',
     rtoQty: num(base['RTO Tonnage (MT)']),
     rtoValue: num(base['RTO Value at Risk']),
@@ -56,6 +63,41 @@ export function PODetailsPage({ po, data, onBack }) {
   }
 
   const hasRTO = summary.rtoStatus !== '—' || summary.rtoQty > 0 || summary.rtoValue > 0
+
+  const isRTO = (summary.status || '').toLowerCase() === 'rto' || hasRTO
+
+  const rankOf = (s) => {
+    const st = String(s || '').toLowerCase()
+    if (st === 'rto' || st.includes('deliver')) return 5
+    if (st.includes('schedule') || st.includes('appoint')) return 4
+    if (st.includes('transit') || st.includes('dispatch')) return 3
+    if (st.includes('process') || st.includes('invoice')) return 2
+    if (st.includes('pending')) return 1
+    return 0
+  }
+
+  const rank = rankOf(summary.status)
+
+  const origin = [summary.platform, summary.facility].filter(x => x && x !== '—').join(' • ') || 'Unknown origin'
+
+  const steps = [
+    { label: 'PO Released', icon: '📄', value: summary.released !== '—' ? summary.released : '', sub: origin },
+    { label: 'Invoiced', icon: '🧾', value: summary.invoiceDate !== '—' ? summary.invoiceDate : '', sub: summary.invoiceNo !== '—' ? `Invoice: ${summary.invoiceNo}` : '' },
+    { label: 'In Transit', icon: '🚚', value: summary.transporter !== '—' ? summary.transporter : '', sub: summary.trackingNo !== '—' ? `Tracking: ${summary.trackingNo}` : '' },
+    { label: 'Appointment', icon: '📅', value: summary.apptDate !== '—' ? summary.apptDate : '', sub: summary.apptId !== '—' ? `ID: ${summary.apptId}` : '' },
+    { label: 'Delivered', icon: '✅', value: summary.actualDelivery !== '—' ? summary.actualDelivery : '', sub: summary.grn !== '—' ? `GRN: ${summary.grn}` : '' },
+    { label: 'Destination', icon: '📍', value: summary.city, sub: summary.pincode !== '—' ? `Pincode: ${summary.pincode}` : '' },
+  ]
+
+  const journeySteps = steps.map((s, i) => {
+    const isDestination = i === 5
+    let color = '#64748b'
+    if (isRTO) color = s.value ? '#ef4444' : '#64748b'
+    else if (isDestination) color = rank >= 5 ? '#22c55e' : '#64748b'
+    else if (i < rank) color = '#22c55e'
+    else if (i === Math.min(rank, 4)) color = '#3b82f6'
+    return { ...s, color }
+  })
 
   const item = (label, value, color) => (
     <div style={{ minWidth: 140 }}>
@@ -81,6 +123,32 @@ export function PODetailsPage({ po, data, onBack }) {
         <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 8 }}>
           {summary.city} • {summary.platform} {summary.entity !== '—' ? `• ${summary.entity}` : ''} • {lines.length} line item{lines.length === 1 ? '' : 's'}
         </div>
+      </div>
+
+      <div style={{ ...sectionStyle, marginBottom: 18 }}>
+        <div style={{ ...sectionTitle, marginBottom: 12 }}>
+          🧭 Journey — <span style={{ color: '#60a5fa' }}>{origin}</span> <span style={{ color: '#475569' }}>→</span> <span style={{ color: '#60a5fa' }}>{summary.city}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'stretch', overflowX: 'auto', paddingBottom: 6 }}>
+          {journeySteps.map((s, i) => (
+            <Fragment key={s.label}>
+              {i > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: 18, color: '#475569', flexShrink: 0 }}>→</div>
+              )}
+              <div style={{ flexShrink: 0, width: 160, background: `${s.color}14`, border: `1px solid ${s.color}44`, borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ fontSize: 16, marginBottom: 4 }}>{s.icon}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: s.color, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: s.value ? '#f1f5f9' : '#64748b', wordBreak: 'break-word' }}>{s.value || '—'}</div>
+                {s.sub && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3, wordBreak: 'break-word' }}>{s.sub}</div>}
+              </div>
+            </Fragment>
+          ))}
+        </div>
+        {isRTO && (
+          <div style={{ marginTop: 10, fontSize: 12, fontWeight: 700, color: '#ef4444' }}>
+            ↩ RTO: {summary.rtoStatus !== '—' ? summary.rtoStatus : 'Returned'}{summary.rtoQty > 0 ? ` • ${Math.round(summary.rtoQty).toLocaleString()} KG` : ''}{summary.rtoValue > 0 ? ` • ₹${Math.round(summary.rtoValue).toLocaleString()}` : ''}
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 18 }}>
