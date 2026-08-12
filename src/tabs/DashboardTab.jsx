@@ -4,7 +4,6 @@ import {
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
 import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES } from '../lib/utils'
-import { buildProductionPlan, planCSVRows } from '../lib/productionPlan'
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
@@ -21,7 +20,7 @@ const PIE_COLORS = {
   Unknown: '#64748b',
 }
 
-export default function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO }) {
+export default function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO, searchQuery = '', onSearch }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
@@ -288,8 +287,6 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
     return rows
   }
 
-  const productionPlan = useMemo(() => buildProductionPlan(data), [data])
-
   const tooltipBox = { position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 100 }
 
   return (
@@ -335,7 +332,27 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
             })}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {onSearch && (
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => onSearch(e.target.value)}
+                placeholder="🔍 Search PO #, product, city, status…"
+                style={{ background: '#1e293b', border: '1px solid #475569', borderRadius: 8, color: '#f1f5f9', padding: '10px 14px', fontSize: 13, minWidth: 280, outline: 'none' }}
+              />
+              {searchQuery && (
+                <span
+                  onClick={() => onSearch('')}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b', cursor: 'pointer', fontSize: 12, background: '#334155', borderRadius: 50, padding: '1px 6px' }}
+                  title="Clear search"
+                >
+                  ✕
+                </span>
+              )}
+            </div>
+          )}
           <BoardReport data={data} metrics={metrics} />
           <ProfileSection />
         </div>
@@ -599,53 +616,6 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
             </BarChart>
           </ResponsiveContainer>
         )}
-       </div>
-
-       <div className="recent-orders" style={{ marginTop: 20 }}>
-         <div className="orders-header">
-           <div className="orders-title">Production Plan — {productionPlan.planMonth}</div>
-           <CSVButton makeRows={() => planCSVRows(productionPlan)} filename="production_plan_aug.csv">⬇ Download Plan</CSVButton>
-         </div>
-         {productionPlan.rows.length > 0 ? (
-           <div style={{ overflowX: 'auto' }}>
-             <table style={{ minWidth: 900, width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-               <thead>
-                 <tr style={{ background: '#1e293b' }}>
-                   <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Box Type</th>
-                   <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Product</th>
-                   <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>MRP</th>
-                   <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Sales Qty (May-Jul)</th>
-                   <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Plan Qty (Aug)</th>
-                   <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Plan Boxes</th>
-                   <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Plan Tonnage (KG)</th>
-                 </tr>
-               </thead>
-               <tbody>
-                 {productionPlan.rows.slice(0, 20).map((r, i) => (
-                   <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(30,41,59,0.5)' }}>
-                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9' }}>{r.boxType || '(Unlabelled)'}</td>
-                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.product}</td>
-                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>₹{r.mrp}</td>
-                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>{r.salesQty}</td>
-                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#3b82f6', textAlign: 'right', fontWeight: 600 }}>{r.planQty}</td>
-                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>{r.planBoxes}</td>
-                     <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>{r.planTonnage}</td>
-                   </tr>
-                 ))}
-                  <tr style={{ background: 'rgba(59,130,246,0.08)', fontWeight: 700 }}>
-                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9' }}>TOTAL</td>
-                    <td colSpan={2} style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#94a3b8' }}></td>
-                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{productionPlan.totals.salesQty}</td>
-                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#3b82f6', textAlign: 'right' }}>{productionPlan.totals.planQty}</td>
-                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{productionPlan.totals.planBoxes}</td>
-                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{productionPlan.totals.planTonnage}</td>
-                  </tr>
-               </tbody>
-             </table>
-           </div>
-         ) : (
-           <div style={{ padding: 16, textAlign: 'center', color: '#64748b', fontSize: 13 }}>No production plan data available</div>
-         )}
        </div>
 
        <div className="recent-orders">

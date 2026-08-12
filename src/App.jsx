@@ -17,6 +17,8 @@ import { PODetailsPage } from './components/PODetailsPage'
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
 
+const SEARCH_FIELDS = ['PO Number', 'Product', 'City', 'Platform', 'Appointment ID', 'FacilityName', 'Transporter', 'Entity', 'Invoice No', 'RTO Reason', 'Status']
+
 function App() {
   const [data, setData] = useState([])
   const [rawCSV, setRawCSV] = useState('')
@@ -35,6 +37,7 @@ function App() {
     return params.get('platform') || 'All'
   })
   const [viewPO, setViewPO] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [autoRefresh, setAutoRefresh] = useState(0) // 0 = off, 5/15/30 = minutes
 
   // URL deep linking
@@ -106,6 +109,12 @@ function App() {
     if (globalPlatform === 'All') return data
     return data.filter(r => r['Platform'] === globalPlatform)
   }, [data, globalPlatform])
+
+  const searchedData = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return filteredData
+    return filteredData.filter(r => SEARCH_FIELDS.some(f => String(r[f] || '').toLowerCase().includes(q)))
+  }, [filteredData, searchQuery])
 
   const metrics = useMemo(() => {
     const poData = uniqueByPO(filteredData)
@@ -249,6 +258,20 @@ function App() {
             {platforms.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
+        <div style={{ padding: '4px 16px 12px' }}>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Global Search</div>
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="🔍 PO #, product, city…"
+            style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, outline: 'none' }}
+          />
+          {searchQuery && (
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>
+              {uniqueByPO(searchedData).length} matching orders — <a href="#" onClick={e => { e.preventDefault(); setSearchQuery('') }} style={{ color: '#3b82f6', textDecoration: 'none' }}>clear</a>
+            </div>
+          )}
+        </div>
         <nav>
           {navItem('dashboard', '📈', 'Dashboard')}
           {navItem('orders', '📦', 'Orders')}
@@ -333,34 +356,34 @@ function App() {
           ) : (
             <>
               <ErrorBoundary key="dashboard">
-                {tab === 'dashboard' && <DashboardTab data={filteredData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />}
+                {tab === 'dashboard' && <DashboardTab data={searchedData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} searchQuery={searchQuery} onSearch={setSearchQuery} />}
               </ErrorBoundary>
               <ErrorBoundary key="orders">
-                {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} onOpenPO={openPO} />}
+                {tab === 'orders' && <OrdersTab data={searchedData} platformFilter={globalPlatform} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="inventory">
-                {tab === 'inventory' && <InventoryTab data={filteredData} />}
+                {tab === 'inventory' && <InventoryTab data={searchedData} />}
               </ErrorBoundary>
               <ErrorBoundary key="stock">
-                {tab === 'stock' && <StockTab data={filteredData} onOpenPO={openPO} />}
+                {tab === 'stock' && <StockTab data={searchedData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="logistics">
-                {tab === 'logistics' && <LogisticsTab data={filteredData} onOpenPO={openPO} />}
+                {tab === 'logistics' && <LogisticsTab data={searchedData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="dispatch">
-                {tab === 'dispatch' && <DispatchTab data={filteredData} onOpenPO={openPO} />}
+                {tab === 'dispatch' && <DispatchTab data={searchedData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="reports">
-                {tab === 'reports' && <ReportsTab data={filteredData} platformFilter={globalPlatform} />}
+                {tab === 'reports' && <ReportsTab data={searchedData} platformFilter={globalPlatform} />}
               </ErrorBoundary>
               <ErrorBoundary key="rto">
-                {tab === 'rto' && <RTOTab data={filteredData} onOpenPO={openPO} />}
+                {tab === 'rto' && <RTOTab data={searchedData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="finance">
-                {tab === 'finance' && <FinanceTab data={filteredData} onOpenPO={openPO} />}
+                {tab === 'finance' && <FinanceTab data={searchedData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="performance">
-                {tab === 'performance' && <PerformanceTab data={filteredData} platformFilter={globalPlatform} />}
+                {tab === 'performance' && <PerformanceTab data={searchedData} platformFilter={globalPlatform} />}
               </ErrorBoundary>
               <ErrorBoundary key="settings">
                 {tab === 'settings' && <SettingsTab />}
