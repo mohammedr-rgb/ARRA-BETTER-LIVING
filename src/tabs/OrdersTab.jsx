@@ -8,6 +8,7 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const today = useMemo(() => new Date(), [])
   const releasedFrom = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
+  const monthFrom = new Date(today.getFullYear(), today.getMonth(), 1)
   const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
   const [dateFrom, setDateFrom] = useState(formatDate(thirtyDaysAgo))
   const [dateTo, setDateTo] = useState(formatDate(today))
@@ -63,6 +64,8 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
     const map = {}
     for (const r of filteredData) {
       const c = r['City']; if (!c) continue
+      const d = parseMMDDDate(r['DATE(MM-DD-YYYY)'])
+      if (!d || d < monthFrom || d > today) continue
       if (!map[c]) map[c] = { city: c, orders: new Set(), poValueMap: {}, tonnage: 0 }
       map[c].orders.add(r['PO Number'])
       const v = num(r['PO Value with Tax'])
@@ -78,7 +81,7 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
         tonnage: x.tonnage,
       }))
       .sort((a, b) => b.orders - a.orders)
-  }, [filteredData])
+  }, [filteredData, monthFrom, today])
 
   const summaryTotals = useMemo(() => ({
     orders: citySummary.reduce((s, c) => s + c.orders, 0),
@@ -215,7 +218,7 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
       <div className="recent-orders" style={{ marginTop: 0 }}>
         <div className="orders-header">
           <div className="orders-title">City-wise {statusFilter} Orders</div>
-          <div className="chart-period">{dateFrom} to {dateTo}</div>
+          <div className="chart-period">{formatDate(monthFrom)} to {formatDate(today)}</div>
         </div>
         <table>
           <thead>
