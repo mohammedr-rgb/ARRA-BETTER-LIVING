@@ -1,10 +1,10 @@
 import { num, parseMMDDDate, csvEscape, MONTH_NAMES } from './utils';
 
 export const SWIGGY_MRP: Record<string, number> = {
-  "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml": 180,
-  "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr": 300,
-  "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr": 549,
-  "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr": 290,
+  "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml": 202,
+  "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr": 340,
+  "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr": 605,
+  "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr": 315,
   "GEM'S GOLD Dosa Spray 200.0 ml": 219,
 };
 
@@ -13,8 +13,8 @@ export const BLINKIT_MRP: Record<string, number> = {
   "n.t.h Cold Pressed Groundnut Oil(Bottle) 1 ltr": 449,
   "N.t.h Extra Virgin Olive Oil(Bottle) 1 ltr": 1399,
   "GEM'S GOLD Cold Pressed Mustard oil Bottle 1.0 ltr": 349,
-  "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr": 449,
-  "GEM'S GOLD Cold Pressed Sesame Oil 1.0 ltr": 275,
+  "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr": 275,
+  "GEM'S GOLD Cold Pressed Sesame Oil 1.0 ltr": 449,
 };
 
 export function boxTypeFor(platform: string, city: string): string {
