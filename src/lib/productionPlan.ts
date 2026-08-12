@@ -51,6 +51,15 @@ export interface PlanData {
   boxTypeTotals: Record<string, { planQty: number; planBoxes: number; planTonnage: number }>;
 }
 
+export function totalsFor(rows: PlanRow[]) {
+  return rows.reduce((s, r) => ({
+    salesQty: s.salesQty + r.salesQty,
+    planQty: s.planQty + r.planQty,
+    planTonnage: s.planTonnage + r.planTonnage,
+    planBoxes: s.planBoxes + r.planBoxes,
+  }), { salesQty: 0, planQty: 0, planTonnage: 0, planBoxes: 0 });
+}
+
 export function buildProductionPlan(data: Record<string, string>[], projectionFactor: number = 0.95): PlanData {
   const now = new Date();
   const thisYear = now.getFullYear();
@@ -102,12 +111,7 @@ export function buildProductionPlan(data: Record<string, string>[], projectionFa
     };
   }).filter(x => x.salesQty > 0).sort((a, b) => b.planQty - a.planQty);
 
-  const totals = rows.reduce((s, r) => ({
-    salesQty: s.salesQty + r.salesQty,
-    planQty: s.planQty + r.planQty,
-    planTonnage: s.planTonnage + r.planTonnage,
-    planBoxes: s.planBoxes + r.planBoxes,
-  }), { salesQty: 0, planQty: 0, planTonnage: 0, planBoxes: 0 });
+  const totals = totalsFor(rows);
 
   const boxTypeTotals: Record<string, { planQty: number; planBoxes: number; planTonnage: number }> = {};
   rows.forEach(r => {
@@ -137,7 +141,7 @@ export function groupRowsByBoxType(rows: PlanRow[]): Array<{ boxType: string; ro
 export function planCSVRows(planData: PlanData): string[] {
   const rows = ['Production Plan — ' + planData.planMonth];
   rows.push('');
-  rows.push('Box Type,Product,MRP,Sales Qty (May-Jul),Plan Qty (Aug),Plan Boxes,Plan Tonnage (KG)');
+  rows.push(`Box Type,Product,MRP,Sales Qty (${planData.period}),Plan Qty (${planData.planMonth}),Plan Boxes,Plan Tonnage (KG)`);
 
   const lineFor = (r: PlanRow) => [
     r.boxType || '(Unlabelled)', r.product, r.mrp,
@@ -148,11 +152,7 @@ export function planCSVRows(planData: PlanData): string[] {
     rows.push('')
     rows.push(`--- ${section.boxType} ---`)
     section.rows.forEach(r => rows.push(lineFor(r)))
-    const st = section.rows.reduce((s, r) => ({
-      planQty: s.planQty + r.planQty,
-      planBoxes: s.planBoxes + r.planBoxes,
-      planTonnage: s.planTonnage + r.planTonnage,
-    }), { planQty: 0, planBoxes: 0, planTonnage: 0 });
+    const st = totalsFor(section.rows);
     rows.push(`SUBTOTAL ${section.boxType},,,,${st.planQty},${st.planBoxes},${st.planTonnage}`);
   });
 
@@ -161,7 +161,7 @@ export function planCSVRows(planData: PlanData): string[] {
 
   rows.push('');
   rows.push('Box Type Summary');
-  rows.push('Box Type,Plan Qty (Aug),Plan Boxes (Aug),Plan Tonnage (KG)');
+  rows.push(`Box Type,Plan Qty (${planData.planMonth}),Plan Boxes (${planData.planMonth}),Plan Tonnage (KG)`);
   Object.entries(planData.boxTypeTotals).forEach(([bt, v]) => {
     rows.push(`${csvEscape(bt)},${v.planQty},${v.planBoxes},${v.planTonnage}`);
   });
