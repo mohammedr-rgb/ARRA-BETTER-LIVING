@@ -183,7 +183,6 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
                 <th>PO #</th>
                 <th>City</th>
                 <th>Platform</th>
-                <th>Product</th>
                 <th>Qty</th>
                 <th>Tonnage</th>
                 <th>Value</th>
@@ -200,7 +199,6 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
                   <td><PONumberLink row={row} onOpenPO={onOpenPO} /></td>
                   <td>{row['City']}</td>
                   <td style={{ color: '#3b82f6', fontWeight: 600 }}>{row['Platform']}</td>
-                  <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row['Product']}</td>
                   <td>{num(row['PO Qty'])}</td>
                   <td>{num(row['Tonnage'])}</td>
                   <td>₹{num(row['PO Value with Tax']).toLocaleString()}</td>
@@ -210,7 +208,7 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
             </tbody>
           </table>
         ) : (
-          <EmptyState message="No POs released today" />
+          <EmptyState message="No POs released in the last 2 days" />
         )}
       </div>
 
