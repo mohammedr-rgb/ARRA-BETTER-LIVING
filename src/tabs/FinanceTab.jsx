@@ -10,6 +10,18 @@ import {
 
 const CHART_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#eab308', '#f97316', '#06b6d4', '#ef4444', '#8b5cf6']
 
+const PAID_KEYWORDS = ['paid', 'received', 'done', 'complete', 'credited', 'success', 'cleared', 'settled', 'yes']
+
+export function receivedFor(r) {
+  const ps = (r['Payment status'] || '').trim()
+  if (!ps) return 0
+  const n = num(ps)
+  if (n > 0) return n
+  const low = ps.toLowerCase()
+  if (PAID_KEYWORDS.some(k => low.includes(k))) return num(r['Invoice Value'])
+  return 0
+}
+
 export default function FinanceTab({ data, onOpenPO }) {
   const today = new Date()
   const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
@@ -30,17 +42,21 @@ export default function FinanceTab({ data, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(filteredData), [filteredData])
 
   const financeMetrics = useMemo(() => {
-    let totalPOValue = 0, totalDN = 0, totalFS = 0, overdueCount = 0, invoiceCount = 0
+    let totalPOValue = 0, totalDN = 0, totalFS = 0, overdueCount = 0, invoiceCount = 0, totalInvoiceValue = 0, receivedAmount = 0
     const overduePOs = []
     const entityMap = {}
     for (const r of poData) {
       const val = num(r['PO Value with Tax'])
       const dn = num(r['DN amount'])
       const fs = num(r['Final Settlement'])
+      const iv = num(r['Invoice Value'])
+      const recv = receivedFor(r)
       const overdue = r['Payment Overdue Alert'] || ''
       totalPOValue += val
       totalDN += dn
       totalFS += fs
+      totalInvoiceValue += iv
+      receivedAmount += recv
       const isOverdue = ['overdue', 'yes'].includes(overdue.trim().toLowerCase())
       if (isOverdue) {
         overdueCount++
@@ -48,11 +64,13 @@ export default function FinanceTab({ data, onOpenPO }) {
       }
       if (r['Invoice No']) invoiceCount++
       const e = r['Entity'] || 'Unknown'
-      if (!entityMap[e]) entityMap[e] = { entity: e, orders: 0, poValue: 0, dn: 0, fs: 0, invoices: 0, overdueCount: 0 }
+      if (!entityMap[e]) entityMap[e] = { entity: e, orders: 0, poValue: 0, dn: 0, fs: 0, invoices: 0, overdueCount: 0, invoiceValue: 0, received: 0 }
       entityMap[e].orders++
       entityMap[e].poValue += val
       entityMap[e].dn += dn
       entityMap[e].fs += fs
+      entityMap[e].invoiceValue += iv
+      entityMap[e].received += recv
       if (r['Invoice No']) entityMap[e].invoices++
       if (isOverdue) {
         entityMap[e].overdueCount++
@@ -69,6 +87,8 @@ export default function FinanceTab({ data, onOpenPO }) {
       overdueCount,
       overduePOs,
       invoiceCount,
+      totalInvoiceValue: Math.round(totalInvoiceValue),
+      receivedAmount: Math.round(receivedAmount),
       totalOrders: poData.length,
       entityWise: Object.values(entityMap).sort((a, b) => b.poValue - a.poValue),
     }
@@ -155,6 +175,33 @@ export default function FinanceTab({ data, onOpenPO }) {
           label="Invoices Issued" icon="📄" color="#22c55e"
           value={financeMetrics.invoiceCount} change={`Of ${financeMetrics.totalOrders} POs`} changeColor="#94a3b8"
         />
+        <StatCard
+          label="Total Invoice Value" icon="🧾" color="#06b6d4"
+          value={'₹' + financeMetrics.totalInvoiceValue.toLocaleString()}
+          change="Sum of Invoice Value" changeColor="#94a3b8"
+          tooltip={
+            <>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Invoice Summary</div>
+              <TooltipRow label="Invoice Value" value={'₹' + financeMetrics.totalInvoiceValue.toLocaleString()} valueColor="#06b6d4" />
+              <TooltipRow label="PO Value" value={'₹' + financeMetrics.totalPOValue.toLocaleString()} valueColor="#3b82f6" />
+              <TooltipRow label="Invoices Issued" value={financeMetrics.invoiceCount + ' of ' + financeMetrics.totalOrders + ' POs'} valueColor="#22c55e" />
+            </>
+          }
+        />
+        <StatCard
+          label="Received Amount" icon="✅" color="#f97316"
+          value={'₹' + financeMetrics.receivedAmount.toLocaleString()}
+          valueColor={financeMetrics.receivedAmount > 0 ? '#22c55e' : '#94a3b8'}
+          change={financeMetrics.receivedAmount > 0 ? 'From Payment status column' : 'No payments recorded yet'}
+          tooltip={
+            <>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Received Amount</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>Sum of amounts in the "Payment status" column of the source sheet (e.g. "Received 50,000"). Empty or "Paid" without amount counts ₹0.</div>
+              <TooltipRow label="Received" value={'₹' + financeMetrics.receivedAmount.toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Outstanding" value={'₹' + Math.max(0, financeMetrics.totalInvoiceValue - financeMetrics.receivedAmount).toLocaleString()} valueColor="#ef4444" />
+            </>
+          }
+        />
       </div>
 
       <div className="charts-row" style={{ marginBottom: 20 }}>
@@ -223,6 +270,8 @@ export default function FinanceTab({ data, onOpenPO }) {
               <th>Orders</th>
               <th>Invoices</th>
               <th>PO Value</th>
+              <th>Invoice Value</th>
+              <th>Received</th>
               <th>DN Amount</th>
               <th>Final Settlement</th>
               <th>Overdue</th>
@@ -236,6 +285,8 @@ export default function FinanceTab({ data, onOpenPO }) {
                   <td>{row.orders}</td>
                   <td>{row.invoices}</td>
                   <td style={{ textAlign: 'right' }}>₹{Math.round(row.poValue).toLocaleString()}</td>
+                  <td style={{ textAlign: 'right' }}>₹{Math.round(row.invoiceValue).toLocaleString()}</td>
+                  <td style={{ textAlign: 'right', color: row.received > 0 ? '#22c55e' : '#94a3b8', fontWeight: 600 }}>₹{Math.round(row.received).toLocaleString()}</td>
                   <td style={{ textAlign: 'right' }}>₹{Math.round(row.dn).toLocaleString()}</td>
                   <td style={{ textAlign: 'right' }}>₹{Math.round(row.fs).toLocaleString()}</td>
                   <td><span style={{ color: row.overdueCount > 0 ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{row.overdueCount}</span></td>
@@ -257,8 +308,11 @@ export default function FinanceTab({ data, onOpenPO }) {
             { key: 'entity', label: 'Entity', accessor: r => r['Entity'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Entity']}</span> },
             { key: 'invoice', label: 'Invoice', accessor: r => r['Invoice No'] || '—', render: r => <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{r['Invoice No'] || '—'}</span> },
             { key: 'value', label: 'PO Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
+            { key: 'invvalue', label: 'Invoice Value', accessor: r => num(r['Invoice Value']), align: 'right', render: r => num(r['Invoice Value']) ? '₹' + num(r['Invoice Value']).toLocaleString() : '—' },
+            { key: 'received', label: 'Received', accessor: r => receivedFor(r), align: 'right', render: r => receivedFor(r) ? '₹' + receivedFor(r).toLocaleString() : '—' },
             { key: 'dn', label: 'DN Amount', accessor: r => num(r['DN amount']), align: 'right', render: r => num(r['DN amount']) ? '₹' + num(r['DN amount']).toLocaleString() : '—' },
             { key: 'fs', label: 'Final Settlement', accessor: r => num(r['Final Settlement']), align: 'right', render: r => num(r['Final Settlement']) ? '₹' + num(r['Final Settlement']).toLocaleString() : '—' },
+            { key: 'pstatus', label: 'Payment Status', accessor: r => r['Payment status'] || '—', render: r => <span style={{ color: (r['Payment status'] || '').trim() ? '#22c55e' : '#64748b', fontSize: 12 }}>{r['Payment status'] || '—'}</span> },
             { key: 'overdue', label: 'Overdue Alert', accessor: r => r['Payment Overdue Alert'] || '—', render: r => <span style={{ color: (r['Payment Overdue Alert'] || '').toLowerCase().includes('overdue') ? '#ef4444' : '#64748b', fontSize: 12 }}>{r['Payment Overdue Alert'] || '—'}</span> },
           ]}
           rows={poData}
