@@ -7,6 +7,7 @@ import { PONumberLink } from '../components/PONumberLink'
 export default function OrdersTab({ data, platformFilter, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const today = useMemo(() => new Date(), [])
+  const releasedFrom = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
   const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
   const [dateFrom, setDateFrom] = useState(formatDate(thirtyDaysAgo))
   const [dateTo, setDateTo] = useState(formatDate(today))
@@ -86,35 +87,33 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
   }), [citySummary])
 
   const todayReleased = useMemo(() => {
-    const todayStr = formatDate(today)
     const seen = new Set()
     const rows = []
     data.forEach(r => {
       if (platformFilter !== 'All' && r['Platform'] !== platformFilter) return
       const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
-      if (!d || formatDate(d) !== todayStr) return
+      if (!d || d < releasedFrom) return
       const po = r['PO Number']
       if (seen.has(po)) return
       seen.add(po)
       rows.push(r)
     })
     return rows.sort((a, b) => (a['City'] || '').localeCompare(b['City'] || ''))
-  }, [data, platformFilter, today])
+  }, [data, platformFilter, releasedFrom])
 
   const todayReleasedAll = useMemo(() => {
-    const todayStr = formatDate(today)
     const rows = []
     data.forEach(r => {
       if (platformFilter !== 'All' && r['Platform'] !== platformFilter) return
       const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
-      if (!d || formatDate(d) !== todayStr) return
+      if (!d || d < releasedFrom) return
       rows.push(r)
     })
     return rows.sort((a, b) => (a['City'] || '').localeCompare(b['City'] || '') || (a['PO Number'] || '').localeCompare(b['PO Number'] || ''))
-  }, [data, platformFilter, today])
+  }, [data, platformFilter, releasedFrom])
 
   const todayCSVRows = () => {
-    const rows = ['Today Released POs']
+    const rows = ['Last 2 Days Released POs']
     rows.push('City,Platform,PO Number,Product,QTY,Tonnage,Box Count,MRP,PO Value with Tax,PO Expiry Date')
     todayReleasedAll.forEach(r => {
       rows.push([r['City'], r['Platform'], r['PO Number'], r['Product'], num(r['PO Qty']), num(r['Tonnage']), num(r['Box Count']), num(r['MRP']), num(r['PO Value with Tax']), r['Expiry Date(MM-DD-YYYY)'] || '—'].map(x => csvEscape(String(x))).join(','))
@@ -173,9 +172,9 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
 
       <div className="recent-orders" style={{ marginTop: 0 }}>
         <div className="orders-header">
-          <div className="orders-title">📌 Today Released POs ({todayReleased.length})</div>
-          <div className="chart-period">{formatDate(today)} — {todayReleasedAll.reduce((s, r) => s + num(r['PO Qty']), 0)} units • {Math.round(todayReleasedAll.reduce((s, r) => s + num(r['Tonnage']), 0)).toLocaleString()} KG • ₹{Math.round(sumPOField(todayReleasedAll, 'PO Value with Tax')).toLocaleString()}</div>
-          <CSVButton makeRows={todayCSVRows} filename="today_released_pos.csv" style={{ padding: '8px 20px', fontSize: 13 }} />
+          <div className="orders-title">📌 Last 2 Days Released POs ({todayReleased.length})</div>
+          <div className="chart-period">{formatDate(releasedFrom)} — {formatDate(today)} — {todayReleasedAll.reduce((s, r) => s + num(r['PO Qty']), 0)} units • {Math.round(todayReleasedAll.reduce((s, r) => s + num(r['Tonnage']), 0)).toLocaleString()} KG • ₹{Math.round(sumPOField(todayReleasedAll, 'PO Value with Tax')).toLocaleString()}</div>
+          <CSVButton makeRows={todayCSVRows} filename="last_2_days_released_pos.csv" style={{ padding: '8px 20px', fontSize: 13 }} />
         </div>
         {todayReleased.length ? (
           <table style={{ minWidth: 900 }}>
