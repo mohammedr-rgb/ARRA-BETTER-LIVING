@@ -20,7 +20,7 @@ const PIE_COLORS = {
   Unknown: '#64748b',
 }
 
-export default function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO, searchQuery = '', onSearch }) {
+export default function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
@@ -332,27 +332,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
             })}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          {onSearch && (
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => onSearch(e.target.value)}
-                placeholder="🔍 Search PO #, product, city, status…"
-                style={{ background: '#1e293b', border: '1px solid #475569', borderRadius: 8, color: '#f1f5f9', padding: '10px 14px', fontSize: 13, minWidth: 280, outline: 'none' }}
-              />
-              {searchQuery && (
-                <span
-                  onClick={() => onSearch('')}
-                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b', cursor: 'pointer', fontSize: 12, background: '#334155', borderRadius: 50, padding: '1px 6px' }}
-                  title="Clear search"
-                >
-                  ✕
-                </span>
-              )}
-            </div>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <BoardReport data={data} metrics={metrics} />
           <ProfileSection />
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+﻿import { useState, useEffect, useMemo, useCallback } from 'react'
 import { num, parseCSV, parseMMDDDate, uniqueByPO, sumPOField, sumField, loadCSVFromFile } from './lib/utils'
 import { UserContext } from './lib/userContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -16,8 +16,6 @@ import SettingsTab from './tabs/SettingsTab'
 import { PODetailsPage } from './components/PODetailsPage'
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
-
-const SEARCH_FIELDS = ['PO Number', 'Product', 'City', 'Platform', 'Appointment ID', 'FacilityName', 'Transporter', 'Entity', 'Invoice No', 'RTO Reason', 'Status']
 
 function App() {
   const [data, setData] = useState([])
@@ -37,7 +35,6 @@ function App() {
     return params.get('platform') || 'All'
   })
   const [viewPO, setViewPO] = useState(null)
-  const [searchQuery, setSearchQuery] = useState('')
   const [autoRefresh, setAutoRefresh] = useState(0) // 0 = off, 5/15/30 = minutes
 
   // URL deep linking
@@ -109,12 +106,6 @@ function App() {
     if (globalPlatform === 'All') return data
     return data.filter(r => r['Platform'] === globalPlatform)
   }, [data, globalPlatform])
-
-  const searchedData = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return filteredData
-    return filteredData.filter(r => SEARCH_FIELDS.some(f => String(r[f] || '').toLowerCase().includes(q)))
-  }, [filteredData, searchQuery])
 
   const metrics = useMemo(() => {
     const poData = uniqueByPO(filteredData)
@@ -206,7 +197,7 @@ function App() {
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: '#0f172a', color: '#94a3b8', fontSize: 18, gap: 12 }}>
-        <div style={{ fontSize: 22 }}>⏳</div>
+        <div style={{ fontSize: 22 }}>â³</div>
         Loading dashboard data...
       </div>
     )
@@ -215,11 +206,11 @@ function App() {
   if (error && !data.length) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: '#0f172a', padding: 24, textAlign: 'center' }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>âš ï¸</div>
         <div style={{ color: '#f1f5f9', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Failed to load dashboard data</div>
         <div style={{ color: '#ef4444', fontSize: 13, marginBottom: 24, maxWidth: 480, wordBreak: 'break-word' }}>{error}</div>
         <button onClick={loadData} style={{ background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-          ↻ Retry
+          â†» Retry
         </button>
       </div>
     )
@@ -228,11 +219,11 @@ function App() {
   if (!data.length) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: '#0f172a', padding: 24, textAlign: 'center' }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>📭</div>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>ðŸ“­</div>
         <div style={{ color: '#f1f5f9', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>No data available</div>
         <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 24 }}>The source sheet returned no rows. Try refreshing.</div>
         <button onClick={loadData} style={{ background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-          ↻ Refresh
+          â†» Refresh
         </button>
       </div>
     )
@@ -248,42 +239,28 @@ function App() {
   return (
     <>
       <div className={`mobile-overlay ${mobileMenu ? 'visible' : ''}`} onClick={closeNav} />
-      <button className="menu-toggle" onClick={() => setMobileMenu(v => !v)}>☰</button>
+      <button className="menu-toggle" onClick={() => setMobileMenu(v => !v)}>â˜°</button>
       <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
-        <button className="menu-close" onClick={closeNav}>✕</button>
-        <div className="logo"><span className="brand-icon">✦</span> <span className="brand-gradient">ARRA BETTER LIVING</span></div>
+        <button className="menu-close" onClick={closeNav}>âœ•</button>
+        <div className="logo"><span className="brand-icon">âœ¦</span> <span className="brand-gradient">ARRA BETTER LIVING</span></div>
         <div style={{ padding: '8px 16px 4px' }}>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Platform Filter</div>
           <select value={globalPlatform} onChange={e => handlePlatformChange(e.target.value)} style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, cursor: 'pointer', outline: 'none' }}>
             {platforms.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
-        <div style={{ padding: '4px 16px 12px' }}>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Global Search</div>
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="🔍 PO #, product, city…"
-            style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, outline: 'none' }}
-          />
-          {searchQuery && (
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>
-              {uniqueByPO(searchedData).length} matching orders — <a href="#" onClick={e => { e.preventDefault(); setSearchQuery('') }} style={{ color: '#3b82f6', textDecoration: 'none' }}>clear</a>
-            </div>
-          )}
-        </div>
         <nav>
-          {navItem('dashboard', '📈', 'Dashboard')}
-          {navItem('orders', '📦', 'Orders')}
-          {navItem('inventory', '🏭', 'Inventory')}
-          {navItem('stock', '🗃️', 'Stock')}
-          {navItem('logistics', '🚚', 'Logistics')}
-          {navItem('dispatch', '📤', 'Dispatch')}
-          {navItem('reports', '📋', 'Reports')}
-          {navItem('rto', '↩️', 'RTO')}
-          {navItem('finance', '💰', 'Finance')}
-          {navItem('performance', '🔬', 'Performance')}
-          {navItem('settings', '⚙️', 'Settings')}
+          {navItem('dashboard', 'ðŸ“ˆ', 'Dashboard')}
+          {navItem('orders', 'ðŸ“¦', 'Orders')}
+          {navItem('inventory', 'ðŸ­', 'Inventory')}
+          {navItem('stock', 'ðŸ—ƒï¸', 'Stock')}
+          {navItem('logistics', 'ðŸšš', 'Logistics')}
+          {navItem('dispatch', 'ðŸ“¤', 'Dispatch')}
+          {navItem('reports', 'ðŸ“‹', 'Reports')}
+          {navItem('rto', 'â†©ï¸', 'RTO')}
+          {navItem('finance', 'ðŸ’°', 'Finance')}
+          {navItem('performance', 'ðŸ”¬', 'Performance')}
+          {navItem('settings', 'âš™ï¸', 'Settings')}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #334155' }}>
           <div style={{ marginBottom: 10 }}>
@@ -315,7 +292,7 @@ function App() {
             const a = document.createElement('a'); a.href = url; a.download = 'full_dataset.csv'; a.click()
             URL.revokeObjectURL(url)
           }} style={{ width: '100%', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#22c55e', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-            ⬇ Download Full Data
+            â¬‡ Download Full Data
           </button>
           <button onClick={() => {
             const input = document.createElement('input');
@@ -336,13 +313,13 @@ function App() {
             };
             input.click();
           }} style={{ width: '100%', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-            📂 Load CSV File
+            ðŸ“‚ Load CSV File
           </button>
           <button onClick={loadData} disabled={isRefreshing} style={{ width: '100%', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: isRefreshing ? 0.6 : 1 }}>
-            ↻ {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+            â†» {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
           </button>
           <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, textAlign: 'center', lineHeight: 1.5 }}>
-            {lastUpdated ? <>Last updated<br />{lastUpdated.toLocaleString()}</> : 'Last updated: —'}
+            {lastUpdated ? <>Last updated<br />{lastUpdated.toLocaleString()}</> : 'Last updated: â€”'}
           </div>
         </div>
       </aside>
@@ -356,34 +333,34 @@ function App() {
           ) : (
             <>
               <ErrorBoundary key="dashboard">
-                {tab === 'dashboard' && <DashboardTab data={searchedData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} searchQuery={searchQuery} onSearch={setSearchQuery} />}
+                {tab === 'dashboard' && <DashboardTab data={filteredData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="orders">
-                {tab === 'orders' && <OrdersTab data={searchedData} platformFilter={globalPlatform} onOpenPO={openPO} />}
+                {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="inventory">
-                {tab === 'inventory' && <InventoryTab data={searchedData} />}
+                {tab === 'inventory' && <InventoryTab data={filteredData} />}
               </ErrorBoundary>
               <ErrorBoundary key="stock">
-                {tab === 'stock' && <StockTab data={searchedData} onOpenPO={openPO} />}
+                {tab === 'stock' && <StockTab data={filteredData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="logistics">
-                {tab === 'logistics' && <LogisticsTab data={searchedData} onOpenPO={openPO} />}
+                {tab === 'logistics' && <LogisticsTab data={filteredData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="dispatch">
-                {tab === 'dispatch' && <DispatchTab data={searchedData} onOpenPO={openPO} />}
+                {tab === 'dispatch' && <DispatchTab data={filteredData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="reports">
-                {tab === 'reports' && <ReportsTab data={searchedData} platformFilter={globalPlatform} />}
+                {tab === 'reports' && <ReportsTab data={filteredData} platformFilter={globalPlatform} />}
               </ErrorBoundary>
               <ErrorBoundary key="rto">
-                {tab === 'rto' && <RTOTab data={searchedData} onOpenPO={openPO} />}
+                {tab === 'rto' && <RTOTab data={filteredData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="finance">
-                {tab === 'finance' && <FinanceTab data={searchedData} onOpenPO={openPO} />}
+                {tab === 'finance' && <FinanceTab data={filteredData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="performance">
-                {tab === 'performance' && <PerformanceTab data={searchedData} platformFilter={globalPlatform} />}
+                {tab === 'performance' && <PerformanceTab data={filteredData} platformFilter={globalPlatform} />}
               </ErrorBoundary>
               <ErrorBoundary key="settings">
                 {tab === 'settings' && <SettingsTab />}
