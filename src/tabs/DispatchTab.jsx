@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { num, uniqueByPO, sumField, csvEscape } from '../lib/utils'
+import { num, uniqueByPO, sumField, csvEscape, parseMMDDDate } from '../lib/utils'
 import { TooltipRow, StatCard } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
@@ -14,16 +14,46 @@ function getBoxType(row) {
   return 'Standard Box'
 }
 
+const PRIORITY_STYLE = {
+  0: { label: 'Critical', color: '#dc2626' },
+  1: { label: 'High', color: '#ef4444' },
+  2: { label: 'Medium', color: '#eab308' },
+  3: { label: 'Low', color: '#22c55e' },
+  4: { label: '—', color: '#64748b' },
+}
+
+function priorityFor(row) {
+  const d = parseMMDDDate(row['Appointment Date(MM-DD-YYYY)'])
+  if (!d) return { rank: 4, label: '—' }
+  const today = new Date()
+  const base = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const days = Math.floor((d - base) / 86400000)
+  if (days < 0) return { rank: 0, label: 'Critical' }
+  if (days <= 7) return { rank: 1, label: 'High' }
+  if (days <= 14) return { rank: 2, label: 'Medium' }
+  return { rank: 3, label: 'Low' }
+}
+
+function PriorityPill({ rank }) {
+  const s = PRIORITY_STYLE[rank] || PRIORITY_STYLE[4]
+  return (
+    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', background: `${s.color}1a`, color: s.color, border: `1px solid ${s.color}40` }}>
+      {s.label}
+    </span>
+  )
+}
+
+const DISPATCH_STATUSES = new Set(['Ready for Dispatch', 'Pending for Dispatch', 'Pending for Schedule'])
+
 export default function DispatchTab({ data, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const [dispatchFilters, setDispatchFilters] = useState(new Set())
   const [pendingFilter, setPendingFilter] = useState(null)
 
   const pendingData = useMemo(() => {
-    const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
     const seen = new Set()
     return data.filter(r => {
-      if (!statuses.has(r['Status'])) return false
+      if (!DISPATCH_STATUSES.has(r['Status'])) return false
       const key = r['PO Number'] + '|' + r['Product']
       if (seen.has(key)) return false
       seen.add(key)
@@ -76,6 +106,19 @@ export default function DispatchTab({ data, onOpenPO }) {
     }
   }, [poData, data])
 
+  const readyMetrics = useMemo(() => {
+    const readyLines = data.filter(r => r['Status'] === 'Ready for Dispatch')
+    const readyPOs = uniqueByPO(readyLines)
+    return {
+      readyPOs: readyPOs.length,
+      readyLines: readyLines.length,
+      readyQty: sumField(readyLines, 'PO Qty'),
+      readyBoxes: sumField(readyLines, 'Box Count'),
+      readyTonnage: sumField(readyLines, 'Tonnage'),
+      readyValue: sumField(readyLines, 'PO Value with Tax'),
+    }
+  }, [data])
+
   const toggleDispatchFilter = (name) => {
     setDispatchFilters(prev => {
       const all = new Set(dispatchMetrics.byPlatform.map(p => p.name))
@@ -102,9 +145,9 @@ export default function DispatchTab({ data, onOpenPO }) {
   }, [dispatchMetrics, dispatchFilters])
 
   const downloadPendingCSV = () => {
-    const statuses = new Set(['Pending for Dispatch', 'Pending for Schedule'])
-    const filtered = data.filter(r => statuses.has(r['Status']))
+    const filtered = data.filter(r => DISPATCH_STATUSES.has(r['Status']))
     if (!filtered.length) return
+    const sorted = [...filtered].sort((a, b) => priorityFor(a).rank - priorityFor(b).rank || String(a['Appointment Date(MM-DD-YYYY)'] || '').localeCompare(String(b['Appointment Date(MM-DD-YYYY)'] || '')))
     const cols = [
       ['City', 'City'],
       ['FacilityName', 'Facility Name'],
@@ -119,11 +162,13 @@ export default function DispatchTab({ data, onOpenPO }) {
       ['MRP', 'MRP'],
       ['Expiry Date(MM-DD-YYYY)', 'PO Expiry Date'],
       ['Appointment Date(MM-DD-YYYY)', 'Appointment Date'],
+      ['__priority', 'Priority'],
       ['PO Released Date(MM-DD-YYYY)', 'PO Released Date'],
       ['Status', 'Status'],
     ]
     const header = cols.map(c => c[1]).join(',')
-    const body = filtered.map(r => cols.map(([k]) => {
+    const body = sorted.map(r => cols.map(([k]) => {
+      if (k === '__priority') return csvEscape(priorityFor(r).label)
       if (k === 'Box Type') return csvEscape(getBoxType(r))
       if (k === 'Tonnage') return num(r[k])
       if (k === 'Box Count') return num(r[k])
@@ -165,7 +210,7 @@ export default function DispatchTab({ data, onOpenPO }) {
       <header>
         <div>
           <h1>Dispatch Overview</h1>
-          <div className="date">{dispatchMetrics.openDispatches} pending POs • {pendingData.length} product lines</div>
+          <div className="date">{readyMetrics.readyPOs} ready POs • {dispatchMetrics.openDispatches} pending POs • {pendingData.length} product lines</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={downloadPendingCSV} style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#22c55e', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -243,6 +288,22 @@ export default function DispatchTab({ data, onOpenPO }) {
           tooltipStyle={{ zIndex: 9999 }}
         />
         <StatCard
+          label="Ready for Dispatch" icon="📦" color="#22c55e"
+          value={readyMetrics.readyPOs} change={`${readyMetrics.readyLines} product lines ready`}
+          tooltip={
+            <>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Ready for Dispatch Details</div>
+              <TooltipRow label="Unique POs" value={readyMetrics.readyPOs} valueColor="#22c55e" />
+              <TooltipRow label="Product Lines" value={readyMetrics.readyLines} valueColor="#22c55e" />
+              <TooltipRow label="Qty (Units)" value={Math.round(readyMetrics.readyQty).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Box Count" value={Math.round(readyMetrics.readyBoxes).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Tonnage" value={Math.round(readyMetrics.readyTonnage).toLocaleString() + ' KG'} valueColor="#22c55e" />
+              <TooltipRow label="PO Value" value={'₹' + Math.round(readyMetrics.readyValue).toLocaleString()} valueColor="#22c55e" />
+            </>
+          }
+          tooltipStyle={{ zIndex: 100 }}
+        />
+        <StatCard
           label="Dispatch Tonnage" icon="⚖️" color="#a855f7"
           value={Math.round(dispatchMetrics.openTonnage).toLocaleString()} change="Open tonnage in transit"
           tooltip={
@@ -282,8 +343,8 @@ export default function DispatchTab({ data, onOpenPO }) {
 
       <div className="recent-orders">
         <div className="orders-header">
-          <div className="orders-title">Pending for Dispatch / Schedule</div>
-          <div className="chart-period">{filteredPendingData.length} lines{pendingFilter ? ` • ${pendingFilter}` : ''}</div>
+          <div className="orders-title">Ready for Dispatch / Pending for Dispatch &amp; Schedule</div>
+          <div className="chart-period">{filteredPendingData.length} lines{pendingFilter ? ` • ${pendingFilter}` : ''} • Status: Ready for Dispatch, Pending for Dispatch, Pending for Schedule</div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
           <button
@@ -315,12 +376,13 @@ export default function DispatchTab({ data, onOpenPO }) {
             { key: 'mrp', label: 'MRP', accessor: r => r['MRP'] || '—', align: 'right' },
             { key: 'cost', label: 'Unit Cost', accessor: r => r['Unit Cost'] || '—', align: 'right' },
             { key: 'appt', label: 'Appointment / Status', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || r['Status'], render: r => r['Appointment Date(MM-DD-YYYY)'] ? r['Appointment Date(MM-DD-YYYY)'] : <span style={{ color: '#eab308' }}>{r['Status']}</span> },
+            { key: 'priority', label: 'Priority', accessor: r => priorityFor(r).rank, render: r => <PriorityPill rank={priorityFor(r).rank} /> },
           ]}
           rows={filteredPendingData}
           pageSize={10}
           filename="pending_dispatch_schedule.csv"
           onRowClick={onOpenPO}
-          emptyMessage="No pending records"
+          emptyMessage="No ready or pending records"
         />
       </div>
     </>
