@@ -25,7 +25,10 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
-  const [selectedMonths, setSelectedMonths] = useState(new Set())
+  const [selectedMonths, setSelectedMonths] = useState(() => {
+    const now = new Date()
+    return new Set([now.getFullYear() * 12 + now.getMonth()])
+  })
 
   const periodData = useMemo(() => {
     if (!selectedMonths.size) return data
