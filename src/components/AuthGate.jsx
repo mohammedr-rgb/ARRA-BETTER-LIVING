@@ -43,6 +43,16 @@ function readSession() {
   }
 }
 
+export function getAuthToken() {
+  const session = readSession()
+  return session?.idToken || null
+}
+
+export function forceReauth() {
+  sessionStorage.removeItem(SESSION_KEY)
+  window.location.reload()
+}
+
 export function useAuth() {
   const [user, setUser] = useState(readSession)
 
@@ -76,6 +86,7 @@ export function AuthGate({ children }) {
         name: payload.name,
         picture: payload.picture,
         exp: payload.exp,
+        idToken: response.credential,
       }
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(session))
       setAuthError(null)

@@ -14,9 +14,10 @@ import FinanceTab from './tabs/FinanceTab'
 import PerformanceTab from './tabs/PerformanceTab'
 import SettingsTab from './tabs/SettingsTab'
 import { PODetailsPage } from './components/PODetailsPage'
-import { AuthGate, UserBadge } from './components/AuthGate'
+import { AuthGate, UserBadge, getAuthToken, forceReauth } from './components/AuthGate'
 
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
+const API_URL = 'https://script.google.com/a/macros/gemedible.com/s/AKfycbxxID0Wmqp7w6ps_Tw45LbsVwnoksTEDgu4yUxkED4d2C2Atw_01QG5lWcsGJQ7vVmy6g/exec'
+const FALLBACK_SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
 
 function Dashboard({ authUser, onLogout }) {
   const [data, setData] = useState([])
@@ -82,12 +83,23 @@ function Dashboard({ authUser, onLogout }) {
   const loadData = useCallback(() => {
     setIsRefreshing(true)
     setError(null)
-    fetch(SHEET_URL)
+
+    const useBackend = !!API_URL
+    const url = useBackend ? `${API_URL}?token=${encodeURIComponent(getAuthToken() || '')}` : FALLBACK_SHEET_URL
+
+    fetch(url)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`)
         return r.text()
       })
       .then(text => {
+        if (useBackend && /^__ERROR_(401|403)__/.test(text)) {
+          forceReauth()
+          throw new Error('Session expired — signing you in again.')
+        }
+        if (useBackend && text.startsWith('__ERROR_')) {
+          throw new Error(text.split('\n').slice(1).join('\n') || 'Backend error')
+        }
         const parsed = parseCSV(text)
         setRawCSV(text)
         setData(parsed)
