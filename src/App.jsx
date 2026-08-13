@@ -14,10 +14,11 @@ import FinanceTab from './tabs/FinanceTab'
 import PerformanceTab from './tabs/PerformanceTab'
 import SettingsTab from './tabs/SettingsTab'
 import { PODetailsPage } from './components/PODetailsPage'
+import { AuthGate, UserBadge } from './components/AuthGate'
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
 
-function App() {
+function Dashboard({ authUser, onLogout }) {
   const [data, setData] = useState([])
   const [rawCSV, setRawCSV] = useState('')
   const [loading, setLoading] = useState(true)
@@ -261,6 +262,9 @@ function App() {
       <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
         <button className="menu-close" onClick={closeNav}>✕</button>
         <div className="logo"><span className="brand-icon">✦</span> <span className="brand-gradient">ARRA BETTER LIVING</span></div>
+        <div style={{ padding: '8px 16px 0' }}>
+          <UserBadge user={authUser} logout={onLogout} />
+        </div>
         <div style={{ padding: '8px 16px 4px' }}>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Platform Filter</div>
           <select value={globalPlatform} onChange={e => handlePlatformChange(e.target.value)} style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, cursor: 'pointer', outline: 'none' }}>
@@ -388,6 +392,14 @@ function App() {
         </div>
       </UserContext.Provider>
     </>
+  )
+}
+
+function App() {
+  return (
+    <AuthGate>
+      {({ user, logout }) => <Dashboard authUser={user} onLogout={logout} />}
+    </AuthGate>
   )
 }
 
