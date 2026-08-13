@@ -25,23 +25,43 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
+  const [selectedMonths, setSelectedMonths] = useState(new Set())
+
+  const periodData = useMemo(() => {
+    if (!selectedMonths.size) return data
+    return data.filter(r => {
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      return d && selectedMonths.has(d.getFullYear() * 12 + d.getMonth())
+    })
+  }, [data, selectedMonths])
+
+  const toggleMonth = (mk) => {
+    setSelectedMonths(prev => {
+      const next = new Set(prev)
+      if (next.has(mk)) next.delete(mk)
+      else next.add(mk)
+      return next
+    })
+  }
+
+  const resetMonths = () => setSelectedMonths(new Set())
 
   const drillPOs = useMemo(() => {
     if (!drill) return []
     const poSet = new Set()
-    for (const r of data) {
+    for (const r of periodData) {
       if (drill.city && r['City'] !== drill.city) continue
       if (drill.status && (r['Status'] || '') !== drill.status) continue
       poSet.add(r['PO Number'])
     }
     const seen = new Set()
-    return data.filter(r => {
+    return periodData.filter(r => {
       const po = r['PO Number']
       if (!po || !poSet.has(po) || seen.has(po)) return false
       seen.add(po)
       return true
     })
-  }, [data, drill])
+  }, [periodData, drill])
 
   const drillColumns = [
     { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
@@ -58,10 +78,12 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
   const platformPerf = useMemo(() => {
     const now = new Date()
     const currentMk = now.getFullYear() * 12 + now.getMonth()
-    const allRows = data.filter(r => {
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
-      return d && (d.getFullYear() * 12 + d.getMonth()) === currentMk
-    })
+    const allRows = selectedMonths.size
+      ? periodData
+      : data.filter(r => {
+          const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+          return d && (d.getFullYear() * 12 + d.getMonth()) === currentMk
+        })
     const poRows = uniqueByPO(allRows)
     const map = {}
     for (const r of poRows) {
@@ -78,7 +100,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
       map[p].tonnage += num(r['Tonnage'])
     }
     return Object.values(map).sort((a, b) => b.orders - a.orders)
-  }, [data])
+  }, [data, periodData, selectedMonths])
 
   const monthData = useMemo(() => {
     const map = {}
@@ -131,8 +153,148 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
 
   const last3Months = useMemo(() => monthData.slice(-3), [monthData])
 
+  const monthOptions = useMemo(() =>
+    [...monthData].reverse().map(m => ({ mk: Number(m.key), label: m.label }))
+  , [monthData])
+
+  const scopeLabel = useMemo(() => {
+    if (!selectedMonths.size) return null
+    return [...selectedMonths]
+      .sort((a, b) => a - b)
+      .map(mk => MONTH_NAMES[mk % 12] + ' ' + String(Math.floor(mk / 12)).slice(2))
+      .join(', ')
+  }, [selectedMonths])
+
+  const periodMetrics = useMemo(() => {
+    const poData = uniqueByPO(periodData)
+    const fillByPO = {}
+    for (const r of periodData) {
+      if (r['Status'] !== 'Delivered') continue
+      const po = r['PO Number']
+      if (!po) continue
+      if (!fillByPO[po]) fillByPO[po] = { qty: 0, rejected: 0 }
+      fillByPO[po].qty += num(r['PO Qty'])
+      fillByPO[po].rejected += num(r['Rejected Qty'])
+    }
+    const totalPOQty = Object.values(fillByPO).reduce((s, v) => s + v.qty, 0)
+    const totalRejectedQty = Object.values(fillByPO).reduce((s, v) => s + v.rejected, 0)
+    const delivered = periodData.filter(r => r['Status'] === 'Delivered')
+    const cities = [...new Set(poData.map(r => r['City']).filter(Boolean))]
+    return {
+      totalOrders: poData.length,
+      totalValue: Math.round(sumPOField(periodData, 'PO Value with Tax')),
+      totalTonnage: Math.round(sumField(periodData, 'Tonnage')),
+      totalBoxes: Math.round(sumField(periodData, 'Box Count')),
+      deliveredOrders: poData.filter(r => r['Status'] === 'Delivered').length,
+      deliveredTonnage: Math.round(sumField(delivered, 'Tonnage')),
+      cities: cities.length,
+      avgFillRate: totalPOQty ? Math.round((totalPOQty - totalRejectedQty) / totalPOQty * 100) : 0,
+    }
+  }, [periodData])
+
+  const periodInvoiced = useMemo(() => {
+    const seen = new Set()
+    const poValues = {}
+    let tonnage = 0
+    for (const r of periodData) {
+      if (!(r['Invoice No'] || '').trim() && !(r['Invoice Date (MM-DD-YYYY)'] || '').trim()) continue
+      const po = r['PO Number']
+      if (po) {
+        seen.add(po)
+        const iv = num(r['Invoice Value'])
+        if (iv > 0 && iv > (poValues[po] || 0)) poValues[po] = iv
+      }
+      tonnage += num(r['Tonnage'])
+    }
+    const released = uniqueByPO(periodData).length
+    return {
+      orders: seen.size,
+      value: Math.round(Object.values(poValues).reduce((s, v) => s + v, 0)),
+      tonnage: Math.round(tonnage),
+      pct: released ? Math.round(seen.size / released * 100) : null,
+    }
+  }, [periodData])
+
+  const periodCityData = useMemo(() => {
+    const map = {}
+    for (const r of periodData) {
+      const c = r['City']; if (!c) continue
+      if (!map[c]) map[c] = { city: c, orders: new Set(), tonnage: 0, delivered: 0, deliveredTonnage: 0, poValues: {} }
+      map[c].orders.add(r['PO Number'])
+      map[c].tonnage += num(r['Tonnage'])
+      const po = r['PO Number']
+      const v = num(r['PO Value with Tax'])
+      if (po && v > 0 && v > (map[c].poValues[po] || 0)) map[c].poValues[po] = v
+      if (r['Status'] === 'Delivered') {
+        map[c].delivered++
+        map[c].deliveredTonnage += num(r['Tonnage'])
+      }
+    }
+    return Object.values(map)
+      .map(x => ({ ...x, orders: x.orders.size, value: Math.round(Object.values(x.poValues).reduce((s, v) => s + v, 0)) }))
+      .sort((a, b) => b.orders - a.orders)
+  }, [periodData])
+
+  const periodStatusData = useMemo(() => {
+    const map = {}
+    uniqueByPO(periodData).forEach(r => {
+      const s = r['Status'] || 'Unknown'
+      map[s] = (map[s] || 0) + 1
+    })
+    return Object.entries(map).map(([name, value]) => ({ name, value }))
+  }, [periodData])
+
+  const prevWindowData = useMemo(() => {
+    if (!selectedMonths.size) return null
+    const mks = [...selectedMonths].sort((a, b) => a - b)
+    const len = mks.length
+    const target = new Set()
+    for (let i = 0; i < len; i++) target.add(mks[0] - len + i)
+    return data.filter(r => {
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      return d && target.has(d.getFullYear() * 12 + d.getMonth())
+    })
+  }, [data, selectedMonths])
+
+  const periodDeltasScoped = useMemo(() => {
+    if (!selectedMonths.size || !prevWindowData) return null
+    const stats = (rows) => {
+      const po = uniqueByPO(rows)
+      const fillByPO = {}
+      for (const r of rows) {
+        if (r['Status'] !== 'Delivered') continue
+        const poKey = r['PO Number']
+        if (!poKey) continue
+        if (!fillByPO[poKey]) fillByPO[poKey] = { qty: 0, rejected: 0 }
+        fillByPO[poKey].qty += num(r['PO Qty'])
+        fillByPO[poKey].rejected += num(r['Rejected Qty'])
+      }
+      const tq = Object.values(fillByPO).reduce((s, v) => s + v.qty, 0)
+      const tr = Object.values(fillByPO).reduce((s, v) => s + v.rejected, 0)
+      return {
+        orders: po.length,
+        value: sumPOField(rows, 'PO Value with Tax'),
+        tonnage: sumField(rows, 'Tonnage'),
+        boxes: sumField(rows, 'Box Count'),
+        fillRate: tq ? Math.round((tq - tr) / tq * 100) : null,
+      }
+    }
+    const cur = stats(periodData)
+    const pre = stats(prevWindowData)
+    const delta = (c, p) => (p && p > 0) ? Math.round((c - p) / p * 1000) / 10 : null
+    return {
+      orders: delta(cur.orders, pre.orders),
+      value: delta(cur.value, pre.value),
+      tonnage: delta(cur.tonnage, pre.tonnage),
+      boxes: delta(cur.boxes, pre.boxes),
+      fillRate: cur.fillRate !== null && pre.fillRate !== null ? delta(cur.fillRate, pre.fillRate) : null,
+    }
+  }, [selectedMonths, prevWindowData, periodData])
+
+  const cardDeltas = selectedMonths.size ? (periodDeltasScoped || {}) : periodDeltas
+
   const openMetrics = useMemo(() => {
-    const active = data.filter(r => !['Delivered', 'RTO'].includes(r['Status'] || ''))
+    const active = periodData.filter(r => !['Delivered', 'RTO'].includes(r['Status'] || ''))
     const poSet = new Set(active.map(r => r['PO Number']).filter(Boolean))
     const byPO = {}
     for (const r of active) {
@@ -155,7 +317,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
       boxes: sumField(active, 'Box Count'),
       fillRate: totalQty ? Math.round(totalDel / totalQty * 100) : null,
     }
-  }, [data])
+  }, [periodData])
 
   const periodDeltas = useMemo(() => {
     let maxDate = null
@@ -207,7 +369,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
   const insights = useMemo(() => {
     const list = []
     const now = new Date()
-    const poRows = uniqueByPO(data)
+    const poRows = uniqueByPO(periodData)
 
     if (monthData.length >= 2) {
       const m0 = monthData[0]
@@ -274,7 +436,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
     if (stale > 0) list.push({ type: 'warn', text: `${stale} open POs are older than 30 days — prioritize dispatch` })
 
     return list.slice(0, 6)
-  }, [data, monthData])
+  }, [periodData, monthData])
 
   const trendMonths = useMemo(() => monthData.slice(0, 6), [monthData])
 
@@ -295,7 +457,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
       <header>
         <div>
           <h1>Sales Dashboard</h1>
-          <div className="date">{platformFilter !== 'All' ? `Platform: ${platformFilter} • ` : ''}{metrics.totalOrders} orders across {metrics.cities} cities</div>
+          <div className="date">{platformFilter !== 'All' ? `Platform: ${platformFilter} • ` : ''}{scopeLabel ? `${scopeLabel} • ` : ''}{periodMetrics.totalOrders} orders across {periodMetrics.cities} cities{selectedMonths.size > 0 ? ` • ${periodInvoiced.orders} invoiced` : ''}</div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             {platformPerf.map(p => {
               const dr = (p.delivered + p.rto) ? (p.delivered / (p.delivered + p.rto) * 100).toFixed(0) : '—'
@@ -332,6 +494,27 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
               )
             })}
           </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10, alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.5 }}>PERIOD</span>
+            <button
+              onClick={resetMonths}
+              style={{ padding: '4px 10px', borderRadius: 16, border: '1px solid ' + (selectedMonths.size === 0 ? '#3b82f6' : '#334155'), background: selectedMonths.size === 0 ? 'rgba(59,130,246,0.15)' : '#1e293b', color: selectedMonths.size === 0 ? '#3b82f6' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+            >
+              All
+            </button>
+            {monthOptions.map(m => {
+              const on = selectedMonths.has(m.mk)
+              return (
+                <button
+                  key={m.mk}
+                  onClick={() => toggleMonth(m.mk)}
+                  style={{ padding: '4px 10px', borderRadius: 16, border: '1px solid ' + (on ? '#22c55e' : '#334155'), background: on ? 'rgba(34,197,94,0.15)' : '#1e293b', color: on ? '#22c55e' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {m.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <BoardReport data={data} metrics={metrics} />
@@ -365,8 +548,8 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
       <div className="stats-grid">
         <StatCard
           label="Total Orders" icon="📋" color="#3b82f6"
-          value={metrics.totalOrders} change={`▲ ${metrics.deliveredOrders} delivered`} changeColor="#22c55e"
-          delta={periodDeltas.orders}
+          value={periodMetrics.totalOrders} change={`▲ ${periodMetrics.deliveredOrders} delivered`} changeColor="#22c55e"
+          delta={cardDeltas.orders}
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Orders</div>
@@ -379,8 +562,8 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
         />
         <StatCard
           label="PO Value (with Tax)" icon="💰" color="#22c55e"
-          value={'₹' + metrics.totalValue.toLocaleString()} change="▲ Total value" changeColor="#22c55e"
-          delta={periodDeltas.value}
+          value={'₹' + periodMetrics.totalValue.toLocaleString()} change="▲ Total value" changeColor="#22c55e"
+          delta={cardDeltas.value}
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open PO Value</div>
@@ -392,8 +575,8 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
         />
         <StatCard
           label="Total Tonnage" icon="⚖️" color="#a855f7"
-          value={metrics.totalTonnage + ' KG'} change={`▲ ${metrics.deliveredTonnage} KG delivered`} changeColor="#22c55e"
-          delta={periodDeltas.tonnage}
+          value={periodMetrics.totalTonnage + ' KG'} change={`▲ ${periodMetrics.deliveredTonnage} KG delivered`} changeColor="#22c55e"
+          delta={cardDeltas.tonnage}
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Tonnage</div>
@@ -405,8 +588,8 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
         />
         <StatCard
           label="Box Count" icon="📦" color="#eab308"
-          value={metrics.totalBoxes} change="▲ Total boxes shipped" changeColor="#22c55e"
-          delta={periodDeltas.boxes}
+          value={periodMetrics.totalBoxes} change="▲ Total boxes shipped" changeColor="#22c55e"
+          delta={cardDeltas.boxes}
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Box Count</div>
@@ -418,15 +601,28 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
         />
         <StatCard
           label="Fill Rate" icon="🎯" color="#6366f1"
-          value={metrics.avgFillRate + '%'} valueColor={metrics.avgFillRate >= 80 ? '#22c55e' : metrics.avgFillRate >= 50 ? '#eab308' : '#ef4444'}
+          value={periodMetrics.avgFillRate + '%'} valueColor={periodMetrics.avgFillRate >= 80 ? '#22c55e' : periodMetrics.avgFillRate >= 50 ? '#eab308' : '#ef4444'}
           change="Average fill rate" changeColor="#94a3b8"
-          delta={periodDeltas.fillRate}
+          delta={cardDeltas.fillRate}
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Fill Rate</div>
               <TooltipRow label="Open Fill Rate" value={openMetrics.fillRate !== null ? openMetrics.fillRate + '%' : '—'} valueColor="#6366f1" />
               <TooltipRow label="Open Orders" value={openMetrics.orders} valueColor="#3b82f6" />
               <TooltipRow label="Open Tonnage" value={Math.round(openMetrics.tonnage) + ' KG'} />
+            </>
+          }
+          tooltipStyle={{ zIndex: 100 }}
+        />
+        <StatCard
+          label="Invoiced Value" icon="🧾" color="#06b6d4"
+          value={'₹' + periodInvoiced.value.toLocaleString()} change={`${periodInvoiced.orders} of ${periodMetrics.totalOrders} POs invoiced`} changeColor="#22c55e"
+          tooltip={
+            <>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Invoiced against released POs</div>
+              <TooltipRow label="Invoiced POs" value={periodInvoiced.orders} valueColor="#06b6d4" />
+              <TooltipRow label="Invoiced Tonnage" value={periodInvoiced.tonnage + ' KG'} />
+              <TooltipRow label="% of released invoiced" value={periodInvoiced.pct !== null ? periodInvoiced.pct + '%' : '—'} />
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
@@ -450,7 +646,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
             </div>
           </div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={cityData}>
+            <BarChart data={periodCityData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="city" stroke="#64748b" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={80} interval={0} />
               <YAxis stroke="#64748b" tick={{ fontSize: 12 }} tickFormatter={v => cityMetric === 'value' ? '₹' + (v / 1000 >= 100 ? Math.round(v / 100000) + 'L' : (v / 1000).toFixed(0) + 'k') : v.toLocaleString()} />
@@ -484,7 +680,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={statusData}
+                data={periodStatusData}
                 cx="50%"
                 cy="50%"
                 outerRadius={110}
@@ -495,7 +691,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
                 onClick={(d) => d && d.payload && setDrill({ city: null, status: d.payload.name })}
                 style={{ cursor: 'pointer' }}
               >
-                {statusData.map((entry) => (
+                {periodStatusData.map((entry) => (
                   <Cell key={entry.name} fill={PIE_COLORS[entry.name] || '#64748b'} />
                 ))}
               </Pie>
