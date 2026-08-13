@@ -401,19 +401,20 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
     }
 
     const fillMap = {}
-    for (const r of poRows) {
+    for (const r of periodData) {
+      if (r['Status'] !== 'Delivered') continue
       const p = r['Product']; if (!p) continue
-      if (!fillMap[p]) fillMap[p] = { po: 0, del: 0, count: 0 }
+      if (!fillMap[p]) fillMap[p] = { po: 0, rej: 0, pos: new Set() }
       fillMap[p].po += num(r['PO Qty'])
-      fillMap[p].del += num(r['Delivered QTY'])
-      fillMap[p].count++
+      fillMap[p].rej += num(r['Rejected Qty'])
+      fillMap[p].pos.add(r['PO Number'])
     }
     const lowFill = Object.entries(fillMap)
-      .filter(([, v]) => v.count >= 2 && v.po > 0 && v.del / v.po < 0.7)
-      .sort((a, b) => a[1].del / a[1].po - b[1].del / b[1].po)[0]
+      .filter(([, v]) => v.pos.size >= 2 && v.po > 0 && (v.po - v.rej) / v.po < 0.7)
+      .sort((a, b) => (a[1].po - a[1].rej) / a[1].po - (b[1].po - b[1].rej) / b[1].po)[0]
     if (lowFill) {
       const name = lowFill[0].length > 38 ? lowFill[0].slice(0, 38) + '…' : lowFill[0]
-      list.push({ type: 'danger', text: `Low fill rate: "${name}" at ${Math.round(lowFill[1].del / lowFill[1].po * 100)}% (target ≥70%)` })
+      list.push({ type: 'danger', text: `Low fill rate: "${name}" at ${Math.round((lowFill[1].po - lowFill[1].rej) / lowFill[1].po * 100)}% (target ≥70%)` })
     }
 
     const platStats = {}
