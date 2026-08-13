@@ -378,6 +378,7 @@ function AppointmentView({ data, onOpenPO }) {
     facility: r => r['FacilityName'],
     transporter: r => r['Transporter'],
     tonnage: r => num(r._tonnage),
+    boxcount: r => num(r._boxes),
     apptdate: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)']),
     apptid: r => r['Appointment ID'],
     invoice: r => r['Invoice No'],
@@ -393,16 +394,20 @@ function AppointmentView({ data, onOpenPO }) {
       if (!d) return
       const po = r['PO Number']
       const ton = num(r['Tonnage'])
+      const bx = num(r['Box Count'])
       const ds = formatDate(d)
       if (ds === todayStr) {
-        if (!tMap.has(po)) tMap.set(po, { ...r, _tonnage: 0 })
+        if (!tMap.has(po)) tMap.set(po, { ...r, _tonnage: 0, _boxes: 0 })
         tMap.get(po)._tonnage += ton
+        tMap.get(po)._boxes += bx
       } else if (ds === tomorrowStr) {
-        if (!tmMap.has(po)) tmMap.set(po, { ...r, _tonnage: 0 })
+        if (!tmMap.has(po)) tmMap.set(po, { ...r, _tonnage: 0, _boxes: 0 })
         tmMap.get(po)._tonnage += ton
+        tmMap.get(po)._boxes += bx
       } else if (d >= today && d <= weekEnd) {
-        if (!wMap.has(po)) wMap.set(po, { ...r, _tonnage: 0 })
+        if (!wMap.has(po)) wMap.set(po, { ...r, _tonnage: 0, _boxes: 0 })
         wMap.get(po)._tonnage += ton
+        wMap.get(po)._boxes += bx
       }
     })
     const statusT = {}; const statusTm = {}; const statusW = {}
@@ -433,6 +438,7 @@ function AppointmentView({ data, onOpenPO }) {
             <SortTh label="Facility" k="facility" sort={sort} />
             <SortTh label="Transporter" k="transporter" sort={sort} />
             <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} className="num" />
+            <SortTh label="Boxes" k="boxcount" sort={sort} className="num" />
             <SortTh label="Appt Date" k="apptdate" sort={sort} />
             <SortTh label="Appt ID" k="apptid" sort={sort} className="num" />
             <SortTh label="Invoice #" k="invoice" sort={sort} className="num" />
@@ -454,6 +460,7 @@ function AppointmentView({ data, onOpenPO }) {
               <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['FacilityName'] || '—'}</td>
               <td>{r['Transporter'] || '—'}</td>
               <td className="num" style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
+              <td className="num" style={{ fontWeight: 600 }}>{Math.round(r._boxes).toLocaleString()}</td>
               <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)']}</td>
               <td className="num" style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
               <td className="num" style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Invoice No'] || '—'}</td>
@@ -469,9 +476,9 @@ function AppointmentView({ data, onOpenPO }) {
 
   const makeCSVRows = (rows, title) => {
     const lines = [title]
-    lines.push('PO Number,City,Platform,Facility,Transporter,Tonnage (KG),Appointment Date,Appointment ID,Invoice No,Tracking No,Status,Remarks')
+    lines.push('PO Number,City,Platform,Facility,Transporter,Tonnage (KG),Box Count,Appointment Date,Appointment ID,Invoice No,Tracking No,Status,Remarks')
     rows.forEach(r => {
-      lines.push([r['PO Number'], r['City'], r['Platform'], r['FacilityName'], r['Transporter'], num(r._tonnage), r['Appointment Date(MM-DD-YYYY)'], r['Appointment ID'], r['Invoice No'], r['Tracking No'], r['Status'], r['Remarks']].map(x => csvEscape(String(x ?? ''))).join(','))
+      lines.push([r['PO Number'], r['City'], r['Platform'], r['FacilityName'], r['Transporter'], num(r._tonnage), Math.round(num(r._boxes)), r['Appointment Date(MM-DD-YYYY)'], r['Appointment ID'], r['Invoice No'], r['Tracking No'], r['Status'], r['Remarks']].map(x => csvEscape(String(x ?? ''))).join(','))
     })
     return lines
   }
