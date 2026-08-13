@@ -188,26 +188,6 @@ function Dashboard({ authUser, onLogout }) {
     }
   }, [filteredData])
 
-  const cityData = useMemo(() => {
-    const map = {}
-    for (const r of filteredData) {
-      const c = r['City']; if (!c) continue
-      if (!map[c]) map[c] = { city: c, orders: new Set(), tonnage: 0, delivered: 0, deliveredTonnage: 0, poValues: {} }
-      map[c].orders.add(r['PO Number'])
-      map[c].tonnage += num(r['Tonnage'])
-      const po = r['PO Number']
-      const v = num(r['PO Value with Tax'])
-      if (po && v > 0 && v > (map[c].poValues[po] || 0)) map[c].poValues[po] = v
-      if (r['Status'] === 'Delivered') {
-        map[c].delivered++
-        map[c].deliveredTonnage += num(r['Tonnage'])
-      }
-    }
-    return Object.values(map)
-      .map(x => ({ ...x, orders: x.orders.size, value: Math.round(Object.values(x.poValues).reduce((s, v) => s + v, 0)) }))
-      .sort((a, b) => b.orders - a.orders)
-  }, [filteredData])
-
   const statusData = useMemo(() => {
     const poData = uniqueByPO(filteredData)
     const map = {}
@@ -370,7 +350,7 @@ function Dashboard({ authUser, onLogout }) {
           ) : (
             <>
               <ErrorBoundary key="dashboard">
-                {tab === 'dashboard' && <DashboardTab data={filteredData} allData={data} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} onSearchOpen={openPOInNewTab} />}
+                {tab === 'dashboard' && <DashboardTab data={filteredData} allData={data} metrics={metrics} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} onSearchOpen={openPOInNewTab} />}
               </ErrorBoundary>
               <ErrorBoundary key="orders">
                 {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} onOpenPO={openPO} />}

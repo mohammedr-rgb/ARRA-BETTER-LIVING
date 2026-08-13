@@ -11,8 +11,6 @@ import { ExecutiveSummary } from '../components/ExecutiveSummary'
 import { FulfillmentMetrics } from '../components/FulfillmentMetrics'
 import { BoardReport } from '../components/BoardReport'
 import { UniversalSearch } from '../components/UniversalSearch'
-import { SankeyFlow } from '../components/SankeyFlow'
-import { CityHeatmap } from '../components/CityHeatmap'
 
 const PIE_COLORS = {
   Delivered: '#22c55e',
@@ -23,7 +21,7 @@ const PIE_COLORS = {
   Unknown: '#64748b',
 }
 
-export default function DashboardTab({ data, allData, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO, onSearchOpen }) {
+export default function DashboardTab({ data, allData, metrics, statusData, recentOrders, platformFilter, onOpenPO, onSearchOpen }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
@@ -552,11 +550,6 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
       )}
 
       <FulfillmentMetrics data={data} />
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
-        <SankeyFlow data={data} />
-        <CityHeatmap cityData={cityData} />
-      </div>
 
       <div className="stats-grid">
         <StatCard
