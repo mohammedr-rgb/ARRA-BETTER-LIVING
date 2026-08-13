@@ -30,7 +30,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
   const periodData = useMemo(() => {
     if (!selectedMonths.size) return data
     return data.filter(r => {
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
       return d && selectedMonths.has(d.getFullYear() * 12 + d.getMonth())
     })
   }, [data, selectedMonths])
@@ -81,7 +81,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
     const allRows = selectedMonths.size
       ? periodData
       : data.filter(r => {
-          const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+          const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
           return d && (d.getFullYear() * 12 + d.getMonth()) === currentMk
         })
     const poRows = uniqueByPO(allRows)
@@ -105,7 +105,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
   const monthData = useMemo(() => {
     const map = {}
     data.forEach(r => {
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
       if (!d) return
       const mk = d.getFullYear() * 12 + d.getMonth()
       if (!map[mk]) map[mk] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, delivered: new Set(), rto: new Set(), cities: new Set(), platforms: {}, platformValues: {} }
@@ -251,7 +251,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
     const target = new Set()
     for (let i = 0; i < len; i++) target.add(mks[0] - len + i)
     return data.filter(r => {
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
       return d && target.has(d.getFullYear() * 12 + d.getMonth())
     })
   }, [data, selectedMonths])
@@ -457,7 +457,7 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
       <header>
         <div>
           <h1>Sales Dashboard</h1>
-          <div className="date">{platformFilter !== 'All' ? `Platform: ${platformFilter} • ` : ''}{scopeLabel ? `${scopeLabel} • ` : ''}{periodMetrics.totalOrders} orders across {periodMetrics.cities} cities{selectedMonths.size > 0 ? ` • ${periodInvoiced.orders} invoiced` : ''}</div>
+          <div className="date">{platformFilter !== 'All' ? `Platform: ${platformFilter} • ` : ''}{scopeLabel ? `${scopeLabel} • ` : ''}{periodMetrics.totalOrders} orders across {periodMetrics.cities} cities{selectedMonths.size > 0 ? ` • ₹${periodInvoiced.value.toLocaleString()} invoiced` : ''}</div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             {platformPerf.map(p => {
               const dr = (p.delivered + p.rto) ? (p.delivered / (p.delivered + p.rto) * 100).toFixed(0) : '—'
@@ -615,14 +615,14 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
           tooltipStyle={{ zIndex: 100 }}
         />
         <StatCard
-          label="Invoiced Value" icon="🧾" color="#06b6d4"
-          value={'₹' + periodInvoiced.value.toLocaleString()} change={`${periodInvoiced.orders} of ${periodMetrics.totalOrders} POs invoiced`} changeColor="#22c55e"
+          label="Invoice Value" icon="🧾" color="#06b6d4"
+          value={'₹' + periodInvoiced.value.toLocaleString()} change={`${periodInvoiced.orders} POs invoiced this period`} changeColor="#22c55e"
           tooltip={
             <>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Invoiced against released POs</div>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Invoices raised in the selected period</div>
               <TooltipRow label="Invoiced POs" value={periodInvoiced.orders} valueColor="#06b6d4" />
               <TooltipRow label="Invoiced Tonnage" value={periodInvoiced.tonnage + ' KG'} />
-              <TooltipRow label="% of released invoiced" value={periodInvoiced.pct !== null ? periodInvoiced.pct + '%' : '—'} />
+              <TooltipRow label="Avg Invoice / PO" value={periodInvoiced.orders ? '₹' + Math.round(periodInvoiced.value / periodInvoiced.orders).toLocaleString() : '—'} />
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
