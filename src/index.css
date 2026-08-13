@@ -283,12 +283,16 @@ header .profile .role {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .recent-orders .orders-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   margin-bottom: 20px;
 }
 
