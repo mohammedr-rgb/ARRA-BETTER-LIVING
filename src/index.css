@@ -335,6 +335,25 @@ header .profile .role {
   text-align: right;
 }
 
+.recent-orders td.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.table-scroll {
+  overflow: auto;
+  max-height: 520px;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-card);
+  box-shadow: 0 1px 0 var(--border);
+}
+
 .recent-orders tr:last-child td {
   border-bottom: none;
 }

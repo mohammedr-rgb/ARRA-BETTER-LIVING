@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSort, applySort } from '../lib/useSort'
-import { csvEscape, downloadCSV } from '../lib/utils'
+import { csvEscape, csvNum, downloadCSV } from '../lib/utils'
 import { EmptyState } from './ui'
 
 const controlStyle = {
@@ -50,7 +50,10 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
     const lines = []
     lines.push(columns.map(c => csvEscape(c.label)).join(','))
     sorted.forEach(r => {
-      lines.push(columns.map(c => csvEscape(String(accessors[c.key](r) ?? ''))).join(','))
+      lines.push(columns.map(c => {
+        const v = accessors[c.key](r)
+        return csvEscape(c.align === 'right' ? csvNum(v) : String(v ?? ''))
+      }).join(','))
     })
     downloadCSV(lines, filename)
   }
@@ -70,7 +73,7 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
         )}
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div className="table-scroll">
         <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
           <thead>
             <tr>
@@ -97,11 +100,14 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
                 onClick={() => onRowClick && onRowClick(r)}
                 style={onRowClick ? { cursor: 'pointer' } : undefined}
               >
-                {columns.map(c => (
-                  <td key={c.key} style={{ padding: '12px 10px', fontSize: 13, borderBottom: '1px solid #1e293b', textAlign: c.align || 'left', whiteSpace: 'nowrap' }}>
-                    {c.render ? c.render(r, i) : String(accessors[c.key](r) ?? '—')}
-                  </td>
-                ))}
+                {columns.map(c => {
+                  const numeric = c.align === 'right'
+                  return (
+                    <td key={c.key} style={{ padding: '12px 10px', fontSize: 13, borderBottom: '1px solid #1e293b', textAlign: c.align || 'left', whiteSpace: 'nowrap', fontVariantNumeric: numeric ? 'tabular-nums' : undefined, ...(numeric ? {} : { maxWidth: c.maxWidth || 280, overflow: 'hidden', textOverflow: 'ellipsis' }) }}>
+                      {c.render ? c.render(r, i) : String(accessors[c.key](r) ?? '—')}
+                    </td>
+                  )
+                })}
               </tr>
             ))}
           </tbody>

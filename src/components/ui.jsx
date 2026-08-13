@@ -1,6 +1,6 @@
 import { useState, useContext, useId } from 'react'
 import { UserContext } from '../lib/userContext'
-import { mdmToISO, isoToMdm } from '../lib/utils'
+import { mdmToISO, isoToMdm, downloadCSV } from '../lib/utils'
 
 const dateInputStyle = {
   background: '#1e293b',
@@ -134,24 +134,21 @@ export function RangePresets({ onFrom, onTo, style }) {
 }
 
 export function CSVButton({ makeRows, filename, children = '⬇ Download CSV', style }) {
+  const [savedMsg, setSavedMsg] = useState(null)
+  const onClick = () => {
+    const rows = makeRows()
+    downloadCSV(rows, filename)
+    setSavedMsg(`✓ Saved (${rows.length} rows)`)
+    setTimeout(() => setSavedMsg(null), 2000)
+  }
   return (
     <button
-      onClick={() => downloadCSV(makeRows(), filename)}
-      style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', whiteSpace: 'nowrap', ...style }}
+      onClick={onClick}
+      style={{ background: savedMsg ? '#16a34a' : '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', ...style }}
     >
-      {children}
+      {savedMsg || children}
     </button>
   )
-}
-
-function downloadCSV(rows, filename) {
-  const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 export function SortTh({ label, k, sort, style, className }) {

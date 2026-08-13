@@ -180,6 +180,7 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
           <CSVButton makeRows={todayCSVRows} filename="last_2_days_released_pos.csv" style={{ padding: '8px 20px', fontSize: 13 }} />
         </div>
         {todayReleased.length ? (
+          <div className="table-scroll">
           <table style={{ minWidth: 900 }}>
             <thead>
               <tr>
@@ -210,6 +211,7 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
               ))}
             </tbody>
           </table>
+          </div>
         ) : (
           <EmptyState message="No POs released in the last 2 days" />
         )}
@@ -220,6 +222,7 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
           <div className="orders-title">City-wise {statusFilter} Orders</div>
           <div className="chart-period">{formatDate(monthFrom)} to {formatDate(today)}</div>
         </div>
+        <div className="table-scroll">
         <table>
           <thead>
             <tr>
@@ -254,6 +257,7 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       <AppointmentView data={data} platformFilter={platformFilter} onOpenPO={onOpenPO} />
@@ -318,6 +322,7 @@ function PriorityPushView({ data, platformFilter, onOpenPO }) {
         <CSVButton makeRows={csvRows} filename="priority_push_appointments.csv" style={{ padding: '8px 20px', fontSize: 13 }} />
       </div>
       {pushRows.length ? (
+        <div className="table-scroll">
         <table>
           <thead>
             <tr>
@@ -354,6 +359,7 @@ function PriorityPushView({ data, platformFilter, onOpenPO }) {
             ))}
           </tbody>
         </table>
+        </div>
       ) : (
         <EmptyState message="No POs marked Reached Destination" />
       )}
@@ -429,6 +435,7 @@ function AppointmentView({ data, onOpenPO }) {
   const renderTable = (rows, sort) => {
     if (!rows.length) return <EmptyState message="No appointments" />
     return (
+      <div className="table-scroll">
       <table>
         <thead>
           <tr>
@@ -471,6 +478,7 @@ function AppointmentView({ data, onOpenPO }) {
           ))}
         </tbody>
       </table>
+      </div>
     )
   }
 

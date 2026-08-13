@@ -50,8 +50,15 @@ export function csvEscape(v: unknown): string {
   return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+export function csvNum(v: unknown): string {
+  const s = String(v ?? '').trim();
+  if (!s || s === '—' || s === '-') return '';
+  const n = parseFloat(s.replace(/[^0-9.-]/g, ''));
+  return isFinite(n) ? String(n) : '';
+}
+
 export function downloadCSV(rows: string[], filename: string): void {
-  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
