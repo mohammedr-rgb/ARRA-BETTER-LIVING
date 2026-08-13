@@ -100,6 +100,9 @@ function Dashboard({ authUser, onLogout }) {
         if (useBackend && text.startsWith('__ERROR_')) {
           throw new Error(text.split('\n').slice(1).join('\n') || 'Backend error')
         }
+        if (useBackend && text.trim().startsWith('<!DOCTYPE')) {
+          throw new Error('Backend returned a Google sign-in page. Check the Apps Script deployment access (must allow the app to call it with a token).')
+        }
         const parsed = parseCSV(text)
         setRawCSV(text)
         setData(parsed)
