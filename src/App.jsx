@@ -16,7 +16,7 @@ import SettingsTab from './tabs/SettingsTab'
 import { PODetailsPage } from './components/PODetailsPage'
 import { AuthGate, UserBadge, getAuthToken, forceReauth } from './components/AuthGate'
 
-const API_URL = 'https://script.google.com/a/macros/gemedible.com/s/AKfycbxxID0Wmqp7w6ps_Tw45LbsVwnoksTEDgu4yUxkED4d2C2Atw_01QG5lWcsGJQ7vVmy6g/exec'
+const API_URL = 'https://script.google.com/macros/s/AKfycbyTPATdTTq6ZOUHDyG37foHyVZgTfIfCBxjTSxs3vbbECkeAHUTTUrrOttSpKKCOVqMjA/exec'
 const FALLBACK_SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
 
 function Dashboard({ authUser, onLogout }) {
