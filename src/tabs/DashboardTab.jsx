@@ -553,6 +553,11 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
 
       <FulfillmentMetrics data={data} />
 
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+        <SankeyFlow data={data} />
+        <CityHeatmap cityData={cityData} />
+      </div>
+
       <div className="stats-grid">
         <StatCard
           label="Total Orders" icon="📋" color="#3b82f6"
