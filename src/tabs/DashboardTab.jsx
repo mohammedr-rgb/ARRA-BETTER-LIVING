@@ -291,8 +291,6 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
     }
   }, [selectedMonths, prevWindowData, periodData])
 
-  const cardDeltas = selectedMonths.size ? (periodDeltasScoped || {}) : periodDeltas
-
   const openMetrics = useMemo(() => {
     const active = periodData.filter(r => !['Delivered', 'RTO'].includes(r['Status'] || ''))
     const poSet = new Set(active.map(r => r['PO Number']).filter(Boolean))
@@ -365,6 +363,8 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
       fillRate: curr.fillRate !== null && prev.fillRate !== null ? delta(curr.fillRate, prev.fillRate) : null,
     }
   }, [data])
+
+  const cardDeltas = selectedMonths.size ? (periodDeltasScoped || {}) : periodDeltas
 
   const insights = useMemo(() => {
     const list = []
