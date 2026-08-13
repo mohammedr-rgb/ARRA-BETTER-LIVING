@@ -186,9 +186,9 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
                 <th>PO #</th>
                 <th>City</th>
                 <th>Platform</th>
-                <th>Qty</th>
-                <th>Tonnage</th>
-                <th>Value</th>
+                <th className="num">Qty</th>
+                <th className="num">Tonnage</th>
+                <th className="num">Value</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -202,9 +202,9 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
                   <td><PONumberLink row={row} onOpenPO={onOpenPO} /></td>
                   <td>{row['City']}</td>
                   <td style={{ color: '#3b82f6', fontWeight: 600 }}>{row['Platform']}</td>
-                  <td>{num(row['PO Qty'])}</td>
-                  <td>{num(row['Tonnage'])}</td>
-                  <td>₹{num(row['PO Value with Tax']).toLocaleString()}</td>
+                  <td className="num">{num(row['PO Qty'])}</td>
+                  <td className="num">{num(row['Tonnage'])}</td>
+                  <td className="num">₹{num(row['PO Value with Tax']).toLocaleString()}</td>
                   <td><StatusPill status={row['Status']} /></td>
                 </tr>
               ))}
@@ -224,10 +224,10 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
           <thead>
             <tr>
               <th>City</th>
-              <th>Orders</th>
-              <th>Share</th>
-              <th>Value</th>
-              <th>Tonnage</th>
+              <th className="num">Orders</th>
+              <th className="num">Share</th>
+              <th className="num">Value</th>
+              <th className="num">Tonnage</th>
             </tr>
           </thead>
           <tbody>
@@ -238,17 +238,17 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
               return (
                 <tr key={i}>
                   <td style={{ fontWeight: 600 }}>{row.city}</td>
-                  <td>{row.orders}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <td className="num">{row.orders}</td>
+                  <td className="num">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
                       <div style={{ flex: 1, maxWidth: 80, height: 6, background: '#334155', borderRadius: 3, overflow: 'hidden' }}>
                         <div style={{ width: `${share}%`, height: '100%', background: '#3b82f6', borderRadius: 3 }} />
                       </div>
                       <span style={{ fontSize: 12, color: '#94a3b8' }}>{share}%</span>
                     </div>
                   </td>
-                  <td>₹{Math.round(row.value).toLocaleString()}</td>
-                  <td>{Math.round(row.tonnage)} KG</td>
+                  <td className="num">₹{Math.round(row.value).toLocaleString()}</td>
+                  <td className="num">{Math.round(row.tonnage)} KG</td>
                 </tr>
               )
             })}
@@ -326,9 +326,9 @@ function PriorityPushView({ data, platformFilter, onOpenPO }) {
               <SortTh label="Platform" k="platform" sort={sort} />
               <SortTh label="Facility" k="facility" sort={sort} />
               <SortTh label="Transporter" k="transporter" sort={sort} />
-              <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} />
+              <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} className="num" />
               <SortTh label="Appt Date" k="apptdate" sort={sort} />
-              <SortTh label="Appt ID" k="apptid" sort={sort} />
+              <SortTh label="Appt ID" k="apptid" sort={sort} className="num" />
               <SortTh label="Status" k="status" sort={sort} />
               <SortTh label="Remarks" k="remarks" sort={sort} />
             </tr>
@@ -345,9 +345,9 @@ function PriorityPushView({ data, platformFilter, onOpenPO }) {
                 <td style={{ color: '#3b82f6', fontWeight: 600 }}>{r['Platform']}</td>
                 <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['FacilityName'] || '—'}</td>
                 <td>{r['Transporter'] || '—'}</td>
-                <td style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
+                <td className="num" style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
                 <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)'] || '—'}</td>
-                <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
+                <td className="num" style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
                 <td><StatusPill status={r['Status']} /></td>
                 <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Remarks'] || '—'}</td>
               </tr>
@@ -432,11 +432,11 @@ function AppointmentView({ data, onOpenPO }) {
             <SortTh label="Platform" k="platform" sort={sort} />
             <SortTh label="Facility" k="facility" sort={sort} />
             <SortTh label="Transporter" k="transporter" sort={sort} />
-            <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} />
+            <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} className="num" />
             <SortTh label="Appt Date" k="apptdate" sort={sort} />
-            <SortTh label="Appt ID" k="apptid" sort={sort} />
-            <SortTh label="Invoice #" k="invoice" sort={sort} />
-            <SortTh label="Tracking #" k="tracking" sort={sort} />
+            <SortTh label="Appt ID" k="apptid" sort={sort} className="num" />
+            <SortTh label="Invoice #" k="invoice" sort={sort} className="num" />
+            <SortTh label="Tracking #" k="tracking" sort={sort} className="num" />
             <SortTh label="Status" k="status" sort={sort} />
             <SortTh label="Remarks" k="remarks" sort={sort} />
           </tr>
@@ -453,11 +453,11 @@ function AppointmentView({ data, onOpenPO }) {
               <td style={{ color: '#3b82f6', fontWeight: 600 }}>{r['Platform']}</td>
               <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['FacilityName'] || '—'}</td>
               <td>{r['Transporter'] || '—'}</td>
-              <td style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
+              <td className="num" style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
               <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)']}</td>
-              <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
-              <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Invoice No'] || '—'}</td>
-              <td style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Tracking No'] || '—'}</td>
+              <td className="num" style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
+              <td className="num" style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Invoice No'] || '—'}</td>
+              <td className="num" style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Tracking No'] || '—'}</td>
               <td><StatusPill status={r['Status']} /></td>
               <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Remarks'] || '—'}</td>
             </tr>

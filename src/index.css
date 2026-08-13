@@ -326,6 +326,11 @@ header .profile .role {
   border-bottom: 1px solid var(--border);
 }
 
+.recent-orders th.num,
+.recent-orders td.num {
+  text-align: right;
+}
+
 .recent-orders tr:last-child td {
   border-bottom: none;
 }

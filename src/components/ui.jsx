@@ -154,10 +154,10 @@ function downloadCSV(rows, filename) {
   URL.revokeObjectURL(url)
 }
 
-export function SortTh({ label, k, sort, style }) {
+export function SortTh({ label, k, sort, style, className }) {
   const active = sort.key === k
   return (
-    <th onClick={() => sort.toggle(k)} style={{ cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none', ...style }}>
+    <th onClick={() => sort.toggle(k)} style={{ cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none', ...style }} className={className}>
       {label}
       <span style={{ marginLeft: 4, fontSize: 10, color: active ? '#3b82f6' : '#475569' }}>{active ? (sort.dir === 'asc' ? '▲' : '▼') : '⇅'}</span>
     </th>
