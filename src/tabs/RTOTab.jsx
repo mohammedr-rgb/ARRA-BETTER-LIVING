@@ -7,6 +7,10 @@ import { toNumKG, uniqueByPO, parseDate, formatDate } from '../lib/utils'
 import { EmptyState, ProfileSection, DateRangePicker, RangePresets } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
+import { SmartAlerts } from '../components/SmartAlerts'
+import { AlertsPanel } from '../components/AlertsPanel'
+import { RTRiskSummary } from '../components/RTRiskScore'
+import { POAgingHeatmap } from '../components/POAgingHeatmap'
 
 const REASONS_COLORS = ['#ef4444', '#f97316', '#eab308', '#a855f7', '#3b82f6', '#22c55e', '#06b6d4', '#8b5cf6']
 
@@ -86,6 +90,11 @@ export default function RTOTab({ data, onOpenPO }) {
         </div>
         <ProfileSection />
       </header>
+
+      <RTRiskSummary data={filteredData} />
+      <SmartAlerts data={filteredData} />
+      <AlertsPanel data={filteredData} />
+      <POAgingHeatmap data={filteredData} />
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap' }}>
         <RangePresets onFrom={setDateFrom} onTo={setDateTo} />

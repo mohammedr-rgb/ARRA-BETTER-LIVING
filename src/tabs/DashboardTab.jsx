@@ -11,6 +11,8 @@ import { ExecutiveSummary } from '../components/ExecutiveSummary'
 import { FulfillmentMetrics } from '../components/FulfillmentMetrics'
 import { BoardReport } from '../components/BoardReport'
 import { UniversalSearch } from '../components/UniversalSearch'
+import { SankeyFlow } from '../components/SankeyFlow'
+import { CityHeatmap } from '../components/CityHeatmap'
 
 const PIE_COLORS = {
   Delivered: '#22c55e',
@@ -527,6 +529,8 @@ export default function DashboardTab({ data, allData, metrics, cityData, statusD
 </header>
 
       <UniversalSearch data={allData || data} onSelect={onSearchOpen} />
+
+      <ExecutiveSummary data={data} />
 
        {insights.length > 0 && (
         <div style={{ marginBottom: 20, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 12, padding: '16px 20px' }}>
