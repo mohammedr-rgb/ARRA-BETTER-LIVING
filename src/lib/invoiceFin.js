@@ -67,6 +67,7 @@ export function normEntity(name) {
   if (n.includes('MOKSH')) return 'MOKSH ENTERPRISES'
   if (n.includes('CLOUDSTORE')) return 'CLOUDSTORE RETAIL'
   if (n.includes('PJTJ')) return 'PJTJ TECHNOLOGIES'
+  if (n.includes('BLINK')) return 'BLINK COMMERCE'
   return null
 }
 
@@ -202,7 +203,7 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
   bank.forEach((b, bi) => {
     bankTotal += b.amt
     if (b.entity) bankByEntity[b.entity] = (bankByEntity[b.entity] || 0) + b.amt
-    if (!bankUsed.has(bi)) {
+    if (!bankUsed.has(bi) && b.entity && b.entity !== 'BLINK COMMERCE') {
       bankFlags.push({ kind: 'not_in_report', date: toISODate(b.d), amount: b.amt, entity: b.entity, ref: b.ref, note: 'Bank credit not present in Swiggy payment report' })
     }
   })
@@ -312,7 +313,17 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     } else if (s && /unpaid/i.test(s.payStatus) && x.cls === 'PAID') {
       x.mismatchNote = 'Swiggy invoice report shows Unpaid but Zoho shows paid; no bank credit found'
     } else if (x.cls === 'PAID' && !x.inSw) {
-      x.mismatchNote = 'Paid in Zoho but no Swiggy invoice record (unconfirmed)'
+      if (x.lastPay) {
+        const hit = bank.find(b => b.d && Math.abs(b.amt - x.total) < 0.005 && Math.abs((b.d - x.lastPay) / 86400000) <= 3)
+        if (hit) {
+          x.bankStatus = 'CREDITED'
+          x.bankUtr = hit.ref
+        } else {
+          x.mismatchNote = 'Paid in Zoho (not in Swiggy report) but no matching credit in bank statement'
+        }
+      } else {
+        x.mismatchNote = 'Paid in Zoho but no Swiggy invoice record (unconfirmed)'
+      }
     }
   }
 

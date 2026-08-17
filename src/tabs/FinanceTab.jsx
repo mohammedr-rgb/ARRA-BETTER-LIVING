@@ -295,7 +295,7 @@ export default function FinanceTab({ data, onOpenPO }) {
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
             <div className="orders-title" style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>
-              📒 Invoice Receivables — Swiggy Entities
+              📒 Invoice Receivables
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <div className="chart-period" title="Due = invoice date + 30 days; original sheet due date shown in the due-date tooltip and in the download as Due Date (Sheet)">as of {fin.date} • {fin.masterCount} invoices • {fin.swCount} in Swiggy report • due = invoice +30 days</div>
