@@ -53,6 +53,34 @@ export default function FinanceTab({ data, onOpenPO }) {
 
   const fin = useMemo(() => rowsData ? computeFinance({ ...rowsData, overrides }) : null, [rowsData, overrides])
 
+  const pivotRows = useMemo(() => {
+    if (!fin) return []
+    const map = {}
+    for (const x of fin.invoices) {
+      const e = map[x.entity] || (map[x.entity] = { entity: x.entity, count: 0, billed: 0, paid: 0, pending: 0, overdue: 0, credited: 0, notCredited: 0, unmatched: 0, grnValue: 0 })
+      e.count++
+      e.billed += x.total
+      const net = x.net ?? x.total
+      if (x.cls === 'PAID') e.paid += net
+      else {
+        e.pending += net
+        if (x.cls === 'OVERDUE') e.overdue += net
+      }
+      if (x.bankStatus === 'CREDITED') e.credited += x.total
+      else if (x.bankStatus === 'NOT CREDITED') e.notCredited += x.total
+      else if (x.bankStatus === 'PARTIAL' || x.bankStatus === 'NO PAYMENT REPORT ROW') e.unmatched++
+      e.grnValue += x.grnValue || 0
+    }
+    const rows = Object.values(map).sort((a, b) => b.billed - a.billed)
+    const tot = { entity: 'TOTAL', count: 0, billed: 0, paid: 0, pending: 0, overdue: 0, credited: 0, notCredited: 0, unmatched: 0, grnValue: 0 }
+    for (const r of rows) {
+      tot.count += r.count; tot.billed += r.billed; tot.paid += r.paid; tot.pending += r.pending
+      tot.overdue += r.overdue; tot.credited += r.credited; tot.notCredited += r.notCredited
+      tot.unmatched += r.unmatched; tot.grnValue += r.grnValue
+    }
+    return [...rows, tot]
+  }, [fin])
+
   const loadFin = () => {
     setIsRefreshing(true)
     setError(null)
@@ -291,6 +319,43 @@ export default function FinanceTab({ data, onOpenPO }) {
               <button onClick={loadFin} disabled={isRefreshing} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: isRefreshing ? 0.6 : 1 }}>
                 ↻ {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </button>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16, padding: 14, borderRadius: 10, background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(148,163,184,0.15)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 10 }}>
+              📊 Download Summary <span style={{ color: '#64748b', fontWeight: 500 }}>— pivot by entity of the ⬇ Download Invoices rows</span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '6px 8px', borderBottom: '1px solid rgba(148,163,184,0.2)', color: '#94a3b8', fontSize: 11, fontWeight: 600, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>Entity</th>
+                    {['# Inv', 'Billed', 'Paid', 'Pending', 'Overdue', 'Bank Credited', 'Not Credited', 'Unmatched Ref', 'GRN Value'].map(h => (
+                      <th key={h} style={{ padding: '6px 8px', borderBottom: '1px solid rgba(148,163,184,0.2)', color: '#94a3b8', fontSize: 11, fontWeight: 600, textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pivotRows.map((r, i) => {
+                    const isTot = r.entity === 'TOTAL'
+                    return (
+                      <tr key={r.entity} style={isTot ? { borderTop: '2px solid rgba(148,163,184,0.35)' } : undefined}>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', color: '#e2e8f0', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.entity}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: '#94a3b8' }}>{r.count}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: '#f1f5f9' }}>{inr(r.billed)}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: '#22c55e' }}>{inr(r.paid)}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: '#a78bfa' }}>{inr(r.pending)}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: r.overdue ? '#ef4444' : '#94a3b8' }}>{inr(r.overdue)}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: '#4ade80' }}>{inr(r.credited)}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: r.notCredited ? '#fb923c' : '#94a3b8' }}>{inr(r.notCredited)}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: r.unmatched ? '#f59e0b' : '#94a3b8' }}>{r.unmatched || '—'}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: '#94a3b8' }}>{r.grnValue ? inr(r.grnValue) : '—'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
 
