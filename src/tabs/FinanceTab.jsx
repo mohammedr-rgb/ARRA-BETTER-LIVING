@@ -129,7 +129,7 @@ export default function FinanceTab({ data, onOpenPO }) {
     if (!fin) return []
     const head = [
       'Invoice Number', 'Entity', 'Customer', 'Amount', 'Balance',
-      'Invoice Date', 'Due Date', 'Credit Period', 'PO No.',
+      'Invoice Date', 'Due Date', 'Due Date (Sheet)', 'Credit Period', 'PO No.',
       'Swiggy GRN No.', 'GRN No(s)', 'GRN Value', 'DN No(s)', 'DN Value',
       'Swiggy Pay Ref', 'Last Payment Date', 'Swiggy Outstanding', 'Swiggy Payment Status',
       'Purchase Return', 'Other Debit',
@@ -140,7 +140,7 @@ export default function FinanceTab({ data, onOpenPO }) {
     ]
     const lines = fin.invoices.map(x => [
       x.num, x.entity, x.cust, x.total, x.balance,
-      iso(x.invDate), iso(x.due), x.creditPeriod || '', x.poNo || '',
+      iso(x.invDate), iso(x.due), iso(x.dueSheet), x.creditPeriod || '', x.poNo || '',
       x.swGrnNo || '', x.grnNums || '', x.grnValue || '', x.dnNums || '', x.dnValue || '',
       x.payRef || '', iso(x.lastPay) === '—' ? '' : iso(x.lastPay), x.outstd ?? '', x.payStatus || '',
       x.purchaseReturn || 0, x.otherDebit || 0,
@@ -259,7 +259,7 @@ export default function FinanceTab({ data, onOpenPO }) {
       ? <span style={{ color: '#a78bfa' }}>{inr(r.net)} <span style={{ color: '#64748b', fontSize: 10 }}>(was {inr(r.total)})</span></span>
       : inr(r.total) },
     { key: 'adj', label: 'Adj.', accessor: r => r.adjustment || 0, align: 'right', render: r => r.adjustment > 0 ? <span style={{ color: '#a78bfa', fontWeight: 600 }}>{inr(r.adjustment)}</span> : '—' },
-    { key: 'due', label: 'Due Date', accessor: r => r.due, render: r => iso(r.due) },
+    { key: 'due', label: 'Due Date', accessor: r => r.due, render: r => <span title={'Original sheet due: ' + iso(r.dueSheet)}>{iso(r.due)}</span> },
     { key: 'days', label: 'Days Overdue', accessor: r => daysLate(r.due, new Date(fin.date)), align: 'right', render: r => {
       const d = daysLate(r.due, new Date(fin.date))
       const b = d <= 15 ? '0-15' : d <= 30 ? '16-30' : d <= 60 ? '31-60' : '60+'
@@ -298,7 +298,7 @@ export default function FinanceTab({ data, onOpenPO }) {
               📒 Invoice Receivables — Swiggy Entities
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <div className="chart-period">as of {fin.date} • {fin.masterCount} invoices • {fin.swCount} in Swiggy report</div>
+              <div className="chart-period" title="Due = invoice date + 30 days; original sheet due date shown in the due-date tooltip and in the download as Due Date (Sheet)">as of {fin.date} • {fin.masterCount} invoices • {fin.swCount} in Swiggy report • due = invoice +30 days</div>
               {overrideCount > 0 && (
                 <span title="Internal remarks/adjustments loaded from your uploaded file" style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: 'rgba(139,92,246,0.15)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.3)', whiteSpace: 'nowrap' }}>
                   ✏️ {overrideCount} invoice{overrideCount > 1 ? 's' : ''} adjusted · {inr(overrideTotal)}

@@ -241,7 +241,13 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     const sw = swReport[num]
     let paid = z.status === 'Closed' || z.status === 'Paid' || z.balance <= 0 || z.lastPay !== null
     if (sw && ['paid', 'no due'].includes(sw.payStatus.toLowerCase()) && sw.payAmt > 0) paid = true
-    const due = z.due || (sw ? sw.due : null)
+    const sheetDue = z.due || (sw ? sw.due : null)
+    let due = sheetDue
+    if (z.invDate && !isNaN(z.invDate)) {
+      const calc = new Date(z.invDate.getTime() + 30 * 86400000)
+      calc.setHours(0, 0, 0, 0)
+      due = calc
+    }
     let cls
     if (paid) cls = 'PAID'
     else if (!due) cls = 'PENDING_NO_DUE'
@@ -249,7 +255,7 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     else cls = 'NOT_DUE'
     master.push({
       num, entity: z.entity, cust: z.cust, status: z.status,
-      total: z.total, balance: z.balance, due,
+      total: z.total, balance: z.balance, due, dueSheet: sheetDue,
       invDate: z.invDate, lastPay: z.lastPay, terms: z.terms, cls,
       inSw: !!sw, swStatus: sw ? sw.payStatus : null, swOutstd: sw ? sw.outstd : null,
     })
