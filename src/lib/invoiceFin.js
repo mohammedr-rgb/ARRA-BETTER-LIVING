@@ -254,11 +254,13 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     else if (!due) cls = 'PENDING_NO_DUE'
     else if (due < TODAY) cls = 'OVERDUE'
     else cls = 'NOT_DUE'
+    const partialPaid = !!(sw && /partially/i.test(sw.payStatus) && sw.payAmt > 0)
     master.push({
       num, entity: z.entity, cust: z.cust, status: z.status,
       total: z.total, balance: z.balance, due, dueSheet: sheetDue,
       invDate: z.invDate, lastPay: z.lastPay, terms: z.terms, cls,
       inSw: !!sw, swStatus: sw ? sw.payStatus : null, swOutstd: sw ? sw.outstd : null,
+      partialPaid, swPayAmt: sw ? sw.payAmt : null,
     })
   }
 
@@ -365,6 +367,15 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     x.remark = remark
     x.note = note
     x.net = Math.max(0, x.total - adj)
+    // partially paid per Swiggy report → chase only the actual outstanding
+    if (x.partialPaid) {
+      const outstd = typeof x.outstd === 'number' && isFinite(x.outstd) && x.outstd >= 0
+        ? x.outstd
+        : Math.max(0, x.total - x.swPayAmt)
+      x.chaseAmt = Math.max(0, Math.min(x.net, outstd))
+    } else {
+      x.chaseAmt = x.net
+    }
     x.hasOverride = !!(ov && (adj > 0 || remark || note))
     totalAdjustment += x.adjustment
     if (x.hasOverride) overriddenCount++
@@ -412,24 +423,24 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
       totals.paid += x.net
       counts.paid++
     } else {
-      e.pending += x.net
+      e.pending += x.chaseAmt
       e.pendC = (e.pendC || 0) + 1
-      totals.pending += x.net
+      totals.pending += x.chaseAmt
       counts.pending++
       if (x.cls === 'OVERDUE') {
-        e.overdue += x.net
+        e.overdue += x.chaseAmt
         e.odC++
-        totals.overdue += x.net
+        totals.overdue += x.chaseAmt
         counts.overdue++
         const d = daysBetween(TODAY, x.due)
-        overdueAge[bucketKey(d)] = (overdueAge[bucketKey(d)] || 0) + x.net
+        overdueAge[bucketKey(d)] = (overdueAge[bucketKey(d)] || 0) + x.chaseAmt
       } else if (x.cls === 'NOT_DUE') {
-        e.notdue += x.net
+        e.notdue += x.chaseAmt
         e.ndC++
-        totals.notdue += x.net
+        totals.notdue += x.chaseAmt
         counts.notdue++
         const d = daysBetween(x.due, TODAY)
-        notdueWin[winKey(d)] = (notdueWin[winKey(d)] || 0) + x.net
+        notdueWin[winKey(d)] = (notdueWin[winKey(d)] || 0) + x.chaseAmt
       }
     }
   }
@@ -443,7 +454,7 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
 
   const paymentTotal = Object.values(payments).reduce((s, p) => s + p.amount, 0)
 
-  const overdueList = master.filter(x => x.cls === 'OVERDUE').sort((a, b) => b.net - a.net)
+  const overdueList = master.filter(x => x.cls === 'OVERDUE').sort((a, b) => b.chaseAmt - a.chaseAmt)
   const notDueList = master.filter(x => x.cls === 'NOT_DUE').sort((a, b) => (a.due || 0) - (b.due || 0))
 
   const cancelledNums = new Set(master.filter(x => x.cancelled).map(x => x.num))

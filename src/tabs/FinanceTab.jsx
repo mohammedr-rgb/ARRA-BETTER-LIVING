@@ -62,10 +62,11 @@ export default function FinanceTab({ data, onOpenPO }) {
       e.count++
       e.billed += x.total
       const net = x.net ?? x.total
+      const chase = x.chaseAmt ?? net
       if (x.cls === 'PAID') e.paid += net
       else {
-        e.pending += net
-        if (x.cls === 'OVERDUE') e.overdue += net
+        e.pending += chase
+        if (x.cls === 'OVERDUE') e.overdue += chase
       }
       if (x.bankStatus === 'CREDITED') e.credited += x.total
       else if (x.bankStatus === 'NOT CREDITED') e.notCredited += x.total
@@ -130,7 +131,7 @@ export default function FinanceTab({ data, onOpenPO }) {
   const downloadInvoiceRows = () => {
     if (!fin) return []
     const head = [
-      'Invoice Number', 'Entity', 'Customer', 'Amount', 'Balance',
+      'Invoice Number', 'Entity', 'Customer', 'Amount', 'Balance', 'Chase Amount',
       'Invoice Date', 'Due Date', 'Due Date (Sheet)', 'Credit Period', 'PO No.',
       'Swiggy GRN No.', 'GRN No(s)', 'GRN Value', 'DN No(s)', 'DN Value',
       'Swiggy Pay Ref', 'Last Payment Date', 'Swiggy Outstanding', 'Swiggy Payment Status',
@@ -142,7 +143,7 @@ export default function FinanceTab({ data, onOpenPO }) {
       'Mismatch Notes',
     ]
     const lines = fin.invoices.map(x => [
-      x.num, x.entity, x.cust, x.total, x.balance,
+      x.num, x.entity, x.cust, x.total, x.balance, x.chaseAmt ?? x.net ?? x.total,
       iso(x.invDate), iso(x.due), iso(x.dueSheet), x.creditPeriod || '', x.poNo || '',
       x.swGrnNo || '', x.grnNums || '', x.grnValue || '', x.dnNums || '', x.dnValue || '',
       x.payRef || '', iso(x.lastPay) === '—' ? '' : iso(x.lastPay), x.outstd ?? '', x.payStatus || '',
@@ -251,17 +252,22 @@ export default function FinanceTab({ data, onOpenPO }) {
 
   const overdueCsvRows = () => {
     if (!fin) return []
-    const head = ['Invoice Number', 'Entity', 'Amount', 'Adjustment', 'Net Amount', 'Due Date', 'Days Overdue', 'Aging Bucket', 'Zoho Status', 'In Swiggy Report', 'Swiggy Outstanding', 'Internal Remark']
-    const lines = fin.overdueList.map(x => [x.num, x.entity, x.total, x.adjustment || 0, x.net, iso(x.due), daysLate(x.due, new Date(fin.date)), '', x.status, x.inSw ? 'Yes' : 'No', x.swOutstd ?? '', x.remark || ''].map(v => csvEscape(v)).join(','))
+    const head = ['Invoice Number', 'Entity', 'Amount', 'Adjustment', 'Net Amount', 'Chase Amount', 'Due Date', 'Days Overdue', 'Aging Bucket', 'Zoho Status', 'In Swiggy Report', 'Swiggy Outstanding', 'Internal Remark']
+    const lines = fin.overdueList.map(x => [x.num, x.entity, x.total, x.adjustment || 0, x.net, x.chaseAmt, iso(x.due), daysLate(x.due, new Date(fin.date)), '', x.status, x.inSw ? 'Yes' : 'No', x.swOutstd ?? '', x.remark || ''].map(v => csvEscape(v)).join(','))
     return [head.join(','), ...lines]
   }
 
   const chaseColumns = [
     { key: 'inv', label: 'Invoice', accessor: r => r.num, render: r => <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{r.num}</span> },
     { key: 'entity', label: 'Entity', accessor: r => r.entity },
-    { key: 'amt', label: 'Amount', accessor: r => r.net, align: 'right', render: r => r.adjustment > 0
-      ? <span style={{ color: '#a78bfa' }}>{inr(r.net)} <span style={{ color: '#64748b', fontSize: 10 }}>(was {inr(r.total)})</span></span>
-      : inr(r.total) },
+    { key: 'amt', label: 'Amount', accessor: r => r.chaseAmt, align: 'right', render: r => {
+      if (r.partialPaid) {
+        return <span style={{ color: '#fbbf24' }}>{inr(r.chaseAmt)} <span style={{ color: '#64748b', fontSize: 10 }}>partially paid · of {inr(r.total)} billed</span></span>
+      }
+      return r.adjustment > 0
+        ? <span style={{ color: '#a78bfa' }}>{inr(r.chaseAmt)} <span style={{ color: '#64748b', fontSize: 10 }}>(was {inr(r.total)})</span></span>
+        : inr(r.total)
+    } },
     { key: 'adj', label: 'Adj.', accessor: r => r.adjustment || 0, align: 'right', render: r => r.adjustment > 0 ? <span style={{ color: '#a78bfa', fontWeight: 600 }}>{inr(r.adjustment)}</span> : '—' },
     { key: 'due', label: 'Due Date', accessor: r => r.due, render: r => <span title={'Original sheet due: ' + iso(r.dueSheet)}>{iso(r.due)}</span> },
     { key: 'days', label: 'Days Overdue', accessor: r => daysLate(r.due, new Date(fin.date)), align: 'right', render: r => {
