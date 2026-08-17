@@ -345,10 +345,12 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     }
   }
 
-  // ---- OVERRIDES (internal remarks & adjustments from uploaded file) ----
-  const sheetTotals = { paid: 0, pending: 0, overdue: 0, notdue: 0 }
+  // ---- OVERRIDES (team working remarks & adjustments from uploaded file) ----
+  const sheetTotals = { paid: 0, pending: 0, overdue: 0, notdue: 0, cancelled: 0 }
   let totalAdjustment = 0
   let overriddenCount = 0
+  let cancelledCount = 0
+  let cancelledTotal = 0
   for (const x of master) {
     const ov = overrides[x.num]
     let adj = 0
@@ -366,6 +368,15 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     x.hasOverride = !!(ov && (adj > 0 || remark || note))
     totalAdjustment += x.adjustment
     if (x.hasOverride) overriddenCount++
+    // "change the status as cancel / amount adjusted" team remarks → exclude invoice entirely
+    x.cancelled = /cancel/i.test(String(remark || '') + ' ' + String(note || ''))
+    if (x.cancelled) {
+      x.cls = 'CANCELLED'
+      cancelledCount++
+      cancelledTotal += x.total
+      sheetTotals.cancelled += x.total
+      continue
+    }
     if (x.cls === 'PAID') sheetTotals.paid += x.total
     else if (x.cls === 'OVERDUE') sheetTotals.overdue += x.total
     else if (x.cls === 'NOT_DUE') sheetTotals.notdue += x.total
@@ -373,14 +384,19 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
   }
 
   const entities = {}
-  const totals = { billed: 0, paid: 0, pending: 0, overdue: 0, notdue: 0 }
-  const counts = { billed: 0, paid: 0, pending: 0, overdue: 0, notdue: 0 }
+  const totals = { billed: 0, paid: 0, pending: 0, overdue: 0, notdue: 0, cancelled: 0 }
+  const counts = { billed: 0, paid: 0, pending: 0, overdue: 0, notdue: 0, cancelled: 0 }
   const overdueAge = {}
   const notdueWin = {}
   const bucketKey = (d) => (d <= 15 ? '0-15' : d <= 30 ? '16-30' : d <= 60 ? '31-60' : '60+')
   const winKey = (d) => (d <= 7 ? '0-7' : d <= 15 ? '8-15' : d <= 30 ? '16-30' : '30+')
 
   for (const x of master) {
+    if (x.cancelled) {
+      totals.cancelled += x.total
+      counts.cancelled++
+      continue
+    }
     const e = entities[x.entity] || (entities[x.entity] = {
       entity: x.entity, billed: 0, paid: 0, pending: 0, overdue: 0, notdue: 0,
       count: 0, paidC: 0, odC: 0, ndC: 0, inSw: 0,
@@ -430,9 +446,12 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
   const overdueList = master.filter(x => x.cls === 'OVERDUE').sort((a, b) => b.net - a.net)
   const notDueList = master.filter(x => x.cls === 'NOT_DUE').sort((a, b) => (a.due || 0) - (b.due || 0))
 
+  const cancelledNums = new Set(master.filter(x => x.cancelled).map(x => x.num))
+
   // paid-late (swiggy report paid after due date)
   const paidLate = []
   for (const [num, s] of Object.entries(swReport)) {
+    if (cancelledNums.has(num)) continue
     if (['paid', 'no due'].includes(s.payStatus.toLowerCase()) && s.payAmt > 0 && s.due && s.due < TODAY) {
       paidLate.push({ inv: num, entity: s.entity, amt: s.netPay, due: s.due })
     }
@@ -442,7 +461,8 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
 
   // swiggy-report paid per entity
   const swPaidSum = {}
-  for (const s of Object.values(swReport)) {
+  for (const [num, s] of Object.entries(swReport)) {
+    if (cancelledNums.has(num)) continue
     if (['paid', 'no due'].includes(s.payStatus.toLowerCase()) && s.payAmt > 0) {
       swPaidSum[s.entity] = (swPaidSum[s.entity] || 0) + s.netPay
     }
@@ -463,7 +483,7 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     .sort((a, b) => b.billed - a.billed)
 
   return {
-    overrides: { totalAdjustment, overriddenCount, sheetTotals },
+    overrides: { totalAdjustment, overriddenCount, sheetTotals, cancelledCount, cancelledTotal },
     invoices: master,
     bank: {
       total: bankTotal,

@@ -57,6 +57,7 @@ export default function FinanceTab({ data, onOpenPO }) {
     if (!fin) return []
     const map = {}
     for (const x of fin.invoices) {
+      if (x.cancelled) continue
       const e = map[x.entity] || (map[x.entity] = { entity: x.entity, count: 0, billed: 0, paid: 0, pending: 0, overdue: 0, credited: 0, notCredited: 0, unmatched: 0, grnValue: 0 })
       e.count++
       e.billed += x.total
@@ -135,6 +136,7 @@ export default function FinanceTab({ data, onOpenPO }) {
       'Purchase Return', 'Other Debit',
       'Bank Status', 'Bank UTR',
       'Zoho Status', 'Class',
+      'Final Status',
       'Internal Remark', 'Adjustment', 'Adjustment Note',
       'Mismatch Notes',
     ]
@@ -146,6 +148,7 @@ export default function FinanceTab({ data, onOpenPO }) {
       x.purchaseReturn || 0, x.otherDebit || 0,
       x.bankStatus, x.bankUtr,
       x.status, x.cls,
+      x.cancelled ? 'CANCELLED' : x.status,
       x.remark || '', x.adjustment || 0, x.note || '',
       x.mismatchNote || '',
     ].map(v => csvEscape(v)).join(','))
@@ -367,7 +370,7 @@ export default function FinanceTab({ data, onOpenPO }) {
 
           {overrideCount > 0 && (
             <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
-              KPI cards, charts and the chase list below show amounts <b style={{ color: '#a78bfa' }}>net of your internal adjustments</b>. Original sheet values are shown in the tooltips.
+              KPI cards, charts and the chase list below show amounts <b style={{ color: '#a78bfa' }}>net of your internal adjustments</b>. Original sheet values are shown in the tooltips. Invoices whose team remark says <b style={{ color: '#a5b4fc' }}>"cancel"</b> are excluded from all figures and marked <b style={{ color: '#a5b4fc' }}>CANCELLED</b> (Final Status).
             </div>
           )}
 
@@ -455,6 +458,11 @@ export default function FinanceTab({ data, onOpenPO }) {
 
           {fin.overdueList.length > 0 && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+              {fin.counts.cancelled > 0 && (
+                <span style={{ display: 'inline-block', padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: '#6366f11a', color: '#a5b4fc', border: '1px solid #6366f140' }} title="Team remark said to cancel/adjust this invoice — excluded from all figures above">
+                  🚫 {fin.counts.cancelled} invoice{fin.counts.cancelled > 1 ? 's' : ''} ({inr(fin.totals.cancelled)}) cancelled per team remarks
+                </span>
+              )}
               <span style={{ display: 'inline-block', padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: '#ef44441a', color: '#ef4444', border: '1px solid #ef444440' }}>
                 🔴 {fin.counts.overdue} overdue invoices — {inr(fin.totals.overdue)} to chase
               </span>
