@@ -81,7 +81,7 @@ function daysBetween(a, b) {
   return Math.round((a - b) / 86400000)
 }
 
-export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows, bankRows, grnRows, today }) {
+export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows, bankRows, grnRows, today, overrides = {} }) {
   const TODAY = today || new Date()
 
   // ---- ZOHO MASTER ----
@@ -220,6 +220,33 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     })
   }
 
+  // ---- OVERRIDES (internal remarks & adjustments from uploaded file) ----
+  const sheetTotals = { paid: 0, pending: 0, overdue: 0, notdue: 0 }
+  let totalAdjustment = 0
+  let overriddenCount = 0
+  for (const x of master) {
+    const ov = overrides[x.num]
+    let adj = 0
+    let remark = null
+    let note = null
+    if (ov) {
+      adj = Math.max(0, parseNum(ov.adjustment))
+      remark = ov.remark || null
+      note = ov.note || null
+    }
+    x.adjustment = adj
+    x.remark = remark
+    x.note = note
+    x.net = Math.max(0, x.total - adj)
+    x.hasOverride = !!(ov && (adj > 0 || remark || note))
+    totalAdjustment += x.adjustment
+    if (x.hasOverride) overriddenCount++
+    if (x.cls === 'PAID') sheetTotals.paid += x.total
+    else if (x.cls === 'OVERDUE') sheetTotals.overdue += x.total
+    else if (x.cls === 'NOT_DUE') sheetTotals.notdue += x.total
+    else sheetTotals.pending += x.total
+  }
+
   const entities = {}
   const totals = { billed: 0, paid: 0, pending: 0, overdue: 0, notdue: 0 }
   const counts = { billed: 0, paid: 0, pending: 0, overdue: 0, notdue: 0 }
@@ -239,29 +266,29 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     counts.billed++
     if (x.inSw) e.inSw++
     if (x.cls === 'PAID') {
-      e.paid += x.total
+      e.paid += x.net
       e.paidC++
-      totals.paid += x.total
+      totals.paid += x.net
       counts.paid++
     } else {
-      e.pending += x.total
+      e.pending += x.net
       e.pendC = (e.pendC || 0) + 1
-      totals.pending += x.total
+      totals.pending += x.net
       counts.pending++
       if (x.cls === 'OVERDUE') {
-        e.overdue += x.total
+        e.overdue += x.net
         e.odC++
-        totals.overdue += x.total
+        totals.overdue += x.net
         counts.overdue++
         const d = daysBetween(TODAY, x.due)
-        overdueAge[bucketKey(d)] = (overdueAge[bucketKey(d)] || 0) + x.total
+        overdueAge[bucketKey(d)] = (overdueAge[bucketKey(d)] || 0) + x.net
       } else if (x.cls === 'NOT_DUE') {
-        e.notdue += x.total
+        e.notdue += x.net
         e.ndC++
-        totals.notdue += x.total
+        totals.notdue += x.net
         counts.notdue++
         const d = daysBetween(x.due, TODAY)
-        notdueWin[winKey(d)] = (notdueWin[winKey(d)] || 0) + x.total
+        notdueWin[winKey(d)] = (notdueWin[winKey(d)] || 0) + x.net
       }
     }
   }
@@ -275,7 +302,7 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
 
   const paymentTotal = Object.values(payments).reduce((s, p) => s + p.amount, 0)
 
-  const overdueList = master.filter(x => x.cls === 'OVERDUE').sort((a, b) => b.total - a.total)
+  const overdueList = master.filter(x => x.cls === 'OVERDUE').sort((a, b) => b.net - a.net)
   const notDueList = master.filter(x => x.cls === 'NOT_DUE').sort((a, b) => (a.due || 0) - (b.due || 0))
 
   // paid-late (swiggy report paid after due date)
@@ -311,6 +338,8 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     .sort((a, b) => b.billed - a.billed)
 
   return {
+    overrides: { totalAdjustment, overriddenCount, sheetTotals },
+    invoices: master,
     bank: {
       total: bankTotal,
       rows: bank.length,
@@ -346,7 +375,7 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
   }
 }
 
-export async function fetchFinanceSheets() {
+export async function fetchFinanceRows() {
   const fetchCsv = async (url, label) => {
     const res = await fetch(url)
     if (!res.ok) throw new Error(`${label}: HTTP ${res.status} ${res.statusText}`)
@@ -359,7 +388,12 @@ export async function fetchFinanceSheets() {
     fetchCsv(SHEET_URLS.grn, 'GRN details'),
     fetchCsv(SHEET_URLS.bank, 'Bank statement'),
   ])
-  return computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows, grnRows, bankRows })
+  return { zohoRows, swiggyInvoiceRows, swiggyPaymentRows, grnRows, bankRows }
+}
+
+export async function fetchFinanceSheets(overrides) {
+  const rows = await fetchFinanceRows()
+  return computeFinance({ ...rows, overrides })
 }
 
 export const inr = (v) => '₹' + Math.round(v || 0).toLocaleString('en-IN')

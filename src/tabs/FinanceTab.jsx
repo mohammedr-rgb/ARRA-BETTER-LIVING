@@ -1,13 +1,15 @@
-import { useState, useMemo, useEffect } from 'react'
-import { num, uniqueByPO, parseDate, formatDate, csvEscape } from '../lib/utils'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { num, uniqueByPO, parseDate, formatDate, csvEscape, loadCSVFromFile } from '../lib/utils'
 import { TooltipRow, StatCard, DateRangePicker, RangePresets, ProfileSection, CSVButton } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
-import { fetchFinanceSheets, inr } from '../lib/invoiceFin'
+import { fetchFinanceRows, computeFinance, normInv, parseNum, inr } from '../lib/invoiceFin'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts'
+
+const OVERRIDE_KEY = 'arra_finance_overrides_v1'
 
 const PAID_KEYWORDS = ['paid', 'received', 'done', 'complete', 'credited', 'success', 'cleared', 'settled', 'yes']
 
@@ -35,20 +37,78 @@ export default function FinanceTab({ data, onOpenPO }) {
   const [dateTo, setDateTo] = useState(formatDate(today))
 
   // ---------------- INVOICE RECEIVABLES (live from sheets) ----------------
-  const [fin, setFin] = useState(null)
+  const [rowsData, setRowsData] = useState(null)
+  const [overrides, setOverrides] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(OVERRIDE_KEY) || '{}') } catch { return {} }
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [uploadMsg, setUploadMsg] = useState(null)
+  const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    try { localStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides)) } catch { /* ignore */ }
+  }, [overrides])
+
+  const fin = useMemo(() => rowsData ? computeFinance({ ...rowsData, overrides }) : null, [rowsData, overrides])
 
   const loadFin = () => {
     setIsRefreshing(true)
     setError(null)
-    fetchFinanceSheets()
-      .then(f => { setFin(f); setLoading(false); setIsRefreshing(false) })
+    fetchFinanceRows()
+      .then(r => { setRowsData(r); setLoading(false); setIsRefreshing(false) })
       .catch(e => { setLoading(false); setIsRefreshing(false); setError(e.message || 'Failed to load finance sheets') })
   }
 
   useEffect(() => { loadFin() }, [])
+
+  const handleUpload = async (file) => {
+    if (!file || !fin) return
+    try {
+      const parsed = await loadCSVFromFile(file)
+      const known = new Set(fin.invoices.map(x => x.num))
+      const next = { ...overrides }
+      let ok = 0, unknown = 0, cleared = 0
+      for (const r of parsed) {
+        const invNum = normInv(r['Invoice Number'] || r['Invoice No'] || '')
+        if (!invNum || !known.has(invNum)) { unknown++; continue }
+        const remark = String(r['Internal Remark'] || '').trim()
+        const note = String(r['Adjustment Note'] || '').trim()
+        const adj = parseNum(r['Adjustment'])
+        if (!remark && !note && adj <= 0) {
+          if (next[invNum]) cleared++
+          delete next[invNum]
+          continue
+        }
+        next[invNum] = { remark, note, adjustment: adj }
+        ok++
+      }
+      setOverrides(next)
+      const parts = [`Loaded ${ok} overrides`]
+      if (unknown) parts.push(`${unknown} unknown invoices skipped`)
+      if (cleared) parts.push(`${cleared} cleared (empty rows)`)
+      setUploadMsg(parts.join(' · '))
+      setTimeout(() => setUploadMsg(null), 5000)
+    } catch {
+      setUploadMsg('Failed to parse uploaded file')
+      setTimeout(() => setUploadMsg(null), 5000)
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const downloadInvoiceRows = () => {
+    if (!fin) return []
+    const head = ['Invoice Number', 'Entity', 'Customer', 'Amount', 'Balance', 'Due Date', 'Status', 'Class', 'Internal Remark', 'Adjustment', 'Adjustment Note']
+    const lines = fin.invoices.map(x => [
+      x.num, x.entity, x.cust, x.total, x.balance, iso(x.due), x.status, x.cls,
+      x.remark || '', x.adjustment || 0, x.note || '',
+    ].map(v => csvEscape(v)).join(','))
+    return [head.join(','), ...lines]
+  }
+
+  const overrideCount = fin ? fin.overrides.overriddenCount : 0
+  const overrideTotal = fin ? fin.overrides.totalAdjustment : 0
 
   const filteredData = useMemo(() => {
     const from = parseDate(dateFrom)
@@ -142,15 +202,18 @@ export default function FinanceTab({ data, onOpenPO }) {
 
   const overdueCsvRows = () => {
     if (!fin) return []
-    const head = ['Invoice Number', 'Entity', 'Amount', 'Due Date', 'Days Overdue', 'Aging Bucket', 'Zoho Status', 'In Swiggy Report', 'Swiggy Outstanding']
-    const lines = fin.overdueList.map(x => [x.num, x.entity, x.total, iso(x.due), daysLate(x.due, new Date(fin.date)), '', x.status, x.inSw ? 'Yes' : 'No', x.swOutstd ?? ''].map(v => csvEscape(v)).join(','))
+    const head = ['Invoice Number', 'Entity', 'Amount', 'Adjustment', 'Net Amount', 'Due Date', 'Days Overdue', 'Aging Bucket', 'Zoho Status', 'In Swiggy Report', 'Swiggy Outstanding', 'Internal Remark']
+    const lines = fin.overdueList.map(x => [x.num, x.entity, x.total, x.adjustment || 0, x.net, iso(x.due), daysLate(x.due, new Date(fin.date)), '', x.status, x.inSw ? 'Yes' : 'No', x.swOutstd ?? '', x.remark || ''].map(v => csvEscape(v)).join(','))
     return [head.join(','), ...lines]
   }
 
   const chaseColumns = [
     { key: 'inv', label: 'Invoice', accessor: r => r.num, render: r => <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{r.num}</span> },
     { key: 'entity', label: 'Entity', accessor: r => r.entity },
-    { key: 'amt', label: 'Amount', accessor: r => r.total, align: 'right', render: r => inr(r.total) },
+    { key: 'amt', label: 'Amount', accessor: r => r.net, align: 'right', render: r => r.adjustment > 0
+      ? <span style={{ color: '#a78bfa' }}>{inr(r.net)} <span style={{ color: '#64748b', fontSize: 10 }}>(was {inr(r.total)})</span></span>
+      : inr(r.total) },
+    { key: 'adj', label: 'Adj.', accessor: r => r.adjustment || 0, align: 'right', render: r => r.adjustment > 0 ? <span style={{ color: '#a78bfa', fontWeight: 600 }}>{inr(r.adjustment)}</span> : '—' },
     { key: 'due', label: 'Due Date', accessor: r => r.due, render: r => iso(r.due) },
     { key: 'days', label: 'Days Overdue', accessor: r => daysLate(r.due, new Date(fin.date)), align: 'right', render: r => {
       const d = daysLate(r.due, new Date(fin.date))
@@ -158,6 +221,7 @@ export default function FinanceTab({ data, onOpenPO }) {
       return <span style={{ color: BUCKET_COLORS[b], fontWeight: 600 }}>{d}</span>
     } },
     { key: 'inSw', label: 'In Swiggy Report', accessor: r => r.inSw ? 'Yes' : 'No', render: r => <span style={{ color: r.inSw ? '#22c55e' : '#eab308', fontSize: 12 }}>{r.inSw ? 'Yes' : 'No'}</span> },
+    { key: 'remark', label: 'Internal Remark', accessor: r => r.remark || '', render: r => <span style={{ fontSize: 12, color: r.remark ? '#a78bfa' : '#475569' }}>{r.remark || '—'}</span> },
     { key: 'status', label: 'Zoho Status', accessor: r => r.status, render: r => <span style={{ fontSize: 12, color: '#94a3b8' }}>{r.status}</span> },
   ]
 
@@ -188,13 +252,42 @@ export default function FinanceTab({ data, onOpenPO }) {
             <div className="orders-title" style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>
               📒 Invoice Receivables — Swiggy Entities
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <div className="chart-period">as of {fin.date} • {fin.masterCount} invoices • {fin.swCount} in Swiggy report</div>
+              {overrideCount > 0 && (
+                <span title="Internal remarks/adjustments loaded from your uploaded file" style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: 'rgba(139,92,246,0.15)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.3)', whiteSpace: 'nowrap' }}>
+                  ✏️ {overrideCount} invoice{overrideCount > 1 ? 's' : ''} adjusted · {inr(overrideTotal)}
+                </span>
+              )}
+              <CSVButton makeRows={downloadInvoiceRows} filename="invoice_editable.csv" style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e' }}>
+                ⬇ Download Invoices
+              </CSVButton>
+              <button onClick={() => fileInputRef.current?.click()} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                📂 Upload Edited File
+              </button>
+              <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f) }} />
+              {overrideCount > 0 && (
+                <button onClick={() => { setOverrides({}); setUploadMsg('All internal overrides cleared'); setTimeout(() => setUploadMsg(null), 3000) }} style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 8, color: '#ef4444', padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  🗑 Clear Overrides
+                </button>
+              )}
               <button onClick={loadFin} disabled={isRefreshing} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: isRefreshing ? 0.6 : 1 }}>
                 ↻ {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </button>
             </div>
           </div>
+
+          {uploadMsg && (
+            <div style={{ marginBottom: 10, padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}>
+              {uploadMsg}
+            </div>
+          )}
+
+          {overrideCount > 0 && (
+            <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
+              KPI cards, charts and the chase list below show amounts <b style={{ color: '#a78bfa' }}>net of your internal adjustments</b>. Original sheet values are shown in the tooltips.
+            </div>
+          )}
 
           <div className="stats-grid">
             <StatCard
@@ -210,6 +303,12 @@ export default function FinanceTab({ data, onOpenPO }) {
                   <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Collected</div>
                   <TooltipRow label="Invoices paid" value={fin.counts.paid + ' of ' + fin.counts.billed} valueColor="#22c55e" />
                   <TooltipRow label="Collection rate" value={fin.collectionPct.toFixed(1) + '%'} valueColor="#22c55e" />
+                  {fin.overrides.totalAdjustment > 0 && (
+                    <>
+                      <TooltipRow label="Sheet (gross)" value={inr(fin.overrides.sheetTotals.paid)} valueColor="#94a3b8" />
+                      <TooltipRow label="Net after adjustments" value={inr(fin.totals.paid)} valueColor="#22c55e" />
+                    </>
+                  )}
                 </>
               }
             />
@@ -227,6 +326,12 @@ export default function FinanceTab({ data, onOpenPO }) {
                   {AGE_ORDER.filter(k => fin.overdueAge[k]).map(k => (
                     <TooltipRow key={k} label={k + ' days'} value={inr(fin.overdueAge[k])} valueColor={BUCKET_COLORS[k]} />
                   ))}
+                  {fin.overrides.totalAdjustment > 0 && (
+                    <>
+                      <TooltipRow label="Sheet (gross)" value={inr(fin.overrides.sheetTotals.overdue)} valueColor="#94a3b8" />
+                      <TooltipRow label="Net after adjustments" value={inr(fin.totals.overdue)} valueColor="#ef4444" />
+                    </>
+                  )}
                 </>
               }
             />
@@ -239,6 +344,12 @@ export default function FinanceTab({ data, onOpenPO }) {
                   {WIN_ORDER.filter(k => fin.notdueWin[k]).map(k => (
                     <TooltipRow key={k} label={k + ' days'} value={inr(fin.notdueWin[k])} valueColor="#06b6d4" />
                   ))}
+                  {fin.overrides.totalAdjustment > 0 && (
+                    <>
+                      <TooltipRow label="Sheet (gross)" value={inr(fin.overrides.sheetTotals.notdue)} valueColor="#94a3b8" />
+                      <TooltipRow label="Net after adjustments" value={inr(fin.totals.notdue)} valueColor="#06b6d4" />
+                    </>
+                  )}
                 </>
               }
             />
