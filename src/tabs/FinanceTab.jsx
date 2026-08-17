@@ -58,7 +58,7 @@ export default function FinanceTab({ data, onOpenPO }) {
     const map = {}
     for (const x of fin.invoices) {
       if (x.cancelled) continue
-      const e = map[x.entity] || (map[x.entity] = { entity: x.entity, count: 0, billed: 0, paid: 0, pending: 0, overdue: 0, credited: 0, notCredited: 0, unmatched: 0, grnValue: 0 })
+      const e = map[x.entity] || (map[x.entity] = { entity: x.entity, count: 0, billed: 0, paid: 0, pending: 0, overdue: 0, credited: 0, notCredited: 0, unmatched: 0, grnValue: 0, dnValue: 0 })
       e.count++
       e.billed += x.total
       const net = x.net ?? x.total
@@ -71,13 +71,14 @@ export default function FinanceTab({ data, onOpenPO }) {
       else if (x.bankStatus === 'NOT CREDITED') e.notCredited += x.total
       else if (x.bankStatus === 'PARTIAL' || x.bankStatus === 'NO PAYMENT REPORT ROW') e.unmatched++
       e.grnValue += x.grnValue || 0
+      e.dnValue += x.dnValue || 0
     }
     const rows = Object.values(map).sort((a, b) => b.billed - a.billed)
-    const tot = { entity: 'TOTAL', count: 0, billed: 0, paid: 0, pending: 0, overdue: 0, credited: 0, notCredited: 0, unmatched: 0, grnValue: 0 }
+    const tot = { entity: 'TOTAL', count: 0, billed: 0, paid: 0, pending: 0, overdue: 0, credited: 0, notCredited: 0, unmatched: 0, grnValue: 0, dnValue: 0 }
     for (const r of rows) {
       tot.count += r.count; tot.billed += r.billed; tot.paid += r.paid; tot.pending += r.pending
       tot.overdue += r.overdue; tot.credited += r.credited; tot.notCredited += r.notCredited
-      tot.unmatched += r.unmatched; tot.grnValue += r.grnValue
+      tot.unmatched += r.unmatched; tot.grnValue += r.grnValue; tot.dnValue += r.dnValue
     }
     return [...rows, tot]
   }, [fin])
@@ -334,7 +335,7 @@ export default function FinanceTab({ data, onOpenPO }) {
                 <thead>
                   <tr>
                     <th style={{ padding: '6px 8px', borderBottom: '1px solid rgba(148,163,184,0.2)', color: '#94a3b8', fontSize: 11, fontWeight: 600, textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>Entity</th>
-                    {['# Inv', 'Billed', 'Paid', 'Pending', 'Overdue', 'Bank Credited', 'Not Credited', 'Unmatched Ref', 'GRN Value'].map(h => (
+                    {['# Inv', 'Billed', 'Paid', 'Pending', 'Overdue', 'Bank Credited', 'Not Credited', 'Unmatched Ref', 'GRN Value', 'DN Value'].map(h => (
                       <th key={h} style={{ padding: '6px 8px', borderBottom: '1px solid rgba(148,163,184,0.2)', color: '#94a3b8', fontSize: 11, fontWeight: 600, textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
@@ -354,6 +355,7 @@ export default function FinanceTab({ data, onOpenPO }) {
                         <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: r.notCredited ? '#fb923c' : '#94a3b8' }}>{inr(r.notCredited)}</td>
                         <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: r.unmatched ? '#f59e0b' : '#94a3b8' }}>{r.unmatched || '—'}</td>
                         <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: '#94a3b8' }}>{r.grnValue ? inr(r.grnValue) : '—'}</td>
+                        <td style={{ padding: '6px 8px', borderBottom: isTot ? 'none' : '1px solid rgba(148,163,184,0.1)', textAlign: 'right', color: '#f97316' }}>{r.dnValue ? inr(r.dnValue) : '—'}</td>
                       </tr>
                     )
                   })}
