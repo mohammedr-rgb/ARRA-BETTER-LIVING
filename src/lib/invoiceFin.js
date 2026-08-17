@@ -6,6 +6,7 @@ export const SHEET_URLS = {
   swiggyInvoice: `https://docs.google.com/spreadsheets/d/${FINANCE_SHEET_ID}/export?format=csv&gid=549163658`,
   swiggyPayment: `https://docs.google.com/spreadsheets/d/${FINANCE_SHEET_ID}/export?format=csv&gid=1209620263`,
   grn: `https://docs.google.com/spreadsheets/d/${FINANCE_SHEET_ID}/export?format=csv&gid=408069390`,
+  bank: `https://docs.google.com/spreadsheets/d/${FINANCE_SHEET_ID}/export?format=csv&gid=1407678970`,
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -23,7 +24,7 @@ export function parseNum(v) {
   return isFinite(n) ? n : 0
 }
 
-export function parseDate(v) {
+export function parseDate(v, dmyFirst = false) {
   if (!v) return null
   let s = String(v).replace(/##/g, '').trim()
   if (!s) return null
@@ -34,6 +35,9 @@ export function parseDate(v) {
   }
 
   let m = null
+  if (dmyFirst) {
+    if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return mk(+m[3], +m[2], +m[1])
+  }
   // %d-%m-%Y
   if ((m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/))) return mk(+m[3], +m[2], +m[1])
   // %m/%d/%Y
@@ -77,7 +81,7 @@ function daysBetween(a, b) {
   return Math.round((a - b) / 86400000)
 }
 
-export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows, grnRows, today }) {
+export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows, bankRows, grnRows, today }) {
   const TODAY = today || new Date()
 
   // ---- ZOHO MASTER ----
@@ -122,6 +126,7 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
 
   // ---- PAYMENT REPORT ----
   const payments = {}
+  const payRows = []
   for (const r of swiggyPaymentRows) {
     const ent = normEntity(r['Organization Name'])
     if (!ent) continue
@@ -129,7 +134,56 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     payments[ent] = payments[ent] || { count: 0, amount: 0 }
     payments[ent].count++
     payments[ent].amount += amt
+    payRows.push({
+      d: parseDate(r['Payment Date'], true),
+      amt,
+      ref: String(r['Payment reference no.'] || '').trim(),
+      num: String(r['Payment Number'] || '').trim(),
+      entity: ent,
+    })
   }
+
+  // ---- BANK STATEMENT (actual received) ----
+  const bank = []
+  for (const r of bankRows || []) {
+    const amt = parseNum(r['Amount'])
+    const ref = String(r['Ref'] || '').trim()
+    if (amt <= 0 || ref.toUpperCase().includes('TOTAL')) continue
+    const name = String(r['Enity wise Payment details'] || '').trim()
+    bank.push({ d: parseDate(r['Date']), amt, name, ref, entity: normEntity(name) })
+  }
+
+  const bankUsed = new Set()
+  const payUsed = new Set()
+  for (let pi = 0; pi < payRows.length; pi++) {
+    const p = payRows[pi]
+    if (!p.d) continue
+    for (let bi = 0; bi < bank.length; bi++) {
+      const b = bank[bi]
+      if (bankUsed.has(bi) || !b.d) continue
+      if (Math.abs(p.amt - b.amt) < 0.005 && Math.abs((p.d - b.d) / 86400000) <= 3) {
+        bankUsed.add(bi)
+        payUsed.add(pi)
+        break
+      }
+    }
+  }
+
+  const bankByEntity = {}
+  let bankTotal = 0
+  const bankFlags = []
+  bank.forEach((b, bi) => {
+    bankTotal += b.amt
+    if (b.entity) bankByEntity[b.entity] = (bankByEntity[b.entity] || 0) + b.amt
+    if (!bankUsed.has(bi)) {
+      bankFlags.push({ kind: 'not_in_report', date: toISODate(b.d), amount: b.amt, entity: b.entity, ref: b.ref, note: 'Bank credit not present in Swiggy payment report' })
+    }
+  })
+  payRows.forEach((p, pi) => {
+    if (!payUsed.has(pi)) {
+      bankFlags.push({ kind: 'not_in_bank', date: toISODate(p.d), amount: p.amt, entity: p.entity, ref: p.ref, num: p.num, note: 'In Swiggy payment report but not credited in bank statement' })
+    }
+  })
 
   // ---- GRN ----
   const grnFac = {}
@@ -257,6 +311,14 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     .sort((a, b) => b.billed - a.billed)
 
   return {
+    bank: {
+      total: bankTotal,
+      rows: bank.length,
+      byEntity: bankByEntity,
+      matchedPayments: payUsed.size,
+      flags: bankFlags,
+    },
+    zohoPaidNotInBank: totals.paid - bankTotal,
     date: toISODate(TODAY),
     zohoCount: Object.keys(zoho).length,
     voidCount,
@@ -290,13 +352,14 @@ export async function fetchFinanceSheets() {
     if (!res.ok) throw new Error(`${label}: HTTP ${res.status} ${res.statusText}`)
     return parseCSV(await res.text())
   }
-  const [zohoRows, swiggyInvoiceRows, swiggyPaymentRows, grnRows] = await Promise.all([
+  const [zohoRows, swiggyInvoiceRows, swiggyPaymentRows, grnRows, bankRows] = await Promise.all([
     fetchCsv(SHEET_URLS.zoho, 'Zoho invoices'),
     fetchCsv(SHEET_URLS.swiggyInvoice, 'Swiggy invoice report'),
     fetchCsv(SHEET_URLS.swiggyPayment, 'Swiggy payment report'),
     fetchCsv(SHEET_URLS.grn, 'GRN details'),
+    fetchCsv(SHEET_URLS.bank, 'Bank statement'),
   ])
-  return computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows, grnRows })
+  return computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows, grnRows, bankRows })
 }
 
 export const inr = (v) => '₹' + Math.round(v || 0).toLocaleString('en-IN')

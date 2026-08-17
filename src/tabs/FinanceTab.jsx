@@ -243,15 +243,18 @@ export default function FinanceTab({ data, onOpenPO }) {
               }
             />
             <StatCard
-              label="Payments Received" icon="💸" color="#f97316"
-              value={inr(fin.paymentTotal)} change={fin.paymentsByEntity.reduce((s, p) => s + p.count, 0) + ' bank credits'}
+              label="Actual Received (Bank)" icon="💸" color="#f97316"
+              value={inr(fin.bank.total)} change={fin.bank.rows + ' bank credits (NEFT/RTGS)'}
+              valueColor={fin.bank.total > 0 ? '#22c55e' : '#94a3b8'}
               tooltip={
                 <>
-                  <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Swiggy payment report</div>
-                  {fin.paymentsByEntity.map(p => (
-                    <TooltipRow key={p.entity} label={p.entity} value={inr(p.amount) + ' (' + p.count + ')'} valueColor="#f97316" />
+                  <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Bank statement (Payment statement tab)</div>
+                  {fin.bank.byEntity && Object.entries(fin.bank.byEntity).sort((a, b) => b[1] - a[1]).map(([e, v]) => (
+                    <TooltipRow key={e} label={e} value={inr(v)} valueColor="#f97316" />
                   ))}
-                  <TooltipRow label="Unconfirmed in Zoho" value={inr(fin.totals.paid - Object.values(fin.swPaidSum).reduce((s, v) => s + v, 0))} valueColor="#eab308" />
+                  <TooltipRow label="Swiggy payment report" value={inr(fin.paymentTotal)} valueColor="#3b82f6" />
+                  <TooltipRow label="Zoho marks paid" value={inr(fin.totals.paid)} valueColor="#eab308" />
+                  <TooltipRow label="Zoho paid not in bank" value={inr(fin.zohoPaidNotInBank)} valueColor="#ef4444" />
                 </>
               }
             />
@@ -268,6 +271,19 @@ export default function FinanceTab({ data, onOpenPO }) {
               <span style={{ display: 'inline-block', padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: '#3b82f61a', color: '#3b82f6', border: '1px solid #3b82f640' }}>
                 ⚠️ {fin.unconfirmedPaid.length} invoices ({inr(fin.unconfirmedPaid.reduce((s, x) => s + x.total, 0))}) paid in Zoho but not in Swiggy report
               </span>
+            </div>
+          )}
+
+          {fin.bank.flags.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+              <div style={{ width: '100%', fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>
+                Bank reconciliation flags ({fin.bank.matchedPayments}/{fin.bank.rows + fin.bank.flags.filter(f => f.kind === 'not_in_bank').length} credits matched vs payment report)
+              </div>
+              {fin.bank.flags.map((f, i) => (
+                <span key={i} title={f.ref} style={{ display: 'inline-block', padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: f.kind === 'not_in_bank' ? '#ef44441a' : '#eab3081a', color: f.kind === 'not_in_bank' ? '#ef4444' : '#eab308', border: '1px solid ' + (f.kind === 'not_in_bank' ? '#ef444440' : '#eab30840') }}>
+                  {f.kind === 'not_in_bank' ? '🔴' : '⚠️'} {f.entity} {inr(f.amount)} on {f.date} — {f.kind === 'not_in_bank' ? 'in Swiggy report, no bank credit' : 'bank credit not in Swiggy report'}
+                </span>
+              ))}
             </div>
           )}
 
