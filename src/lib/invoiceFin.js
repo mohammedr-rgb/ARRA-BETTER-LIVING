@@ -121,6 +121,13 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
       payStatus: String(r['Payment Status'] || '').trim(),
       due: parseDate(r['Due Date']),
       payAmt: parseNum(r['Payment amount']),
+      payRef: String(r['Payment Reference No'] || '').trim(),
+      lastPay: parseDate(r['Last Payment Date']),
+      creditPeriod: String(r['Credit Period'] || '').trim(),
+      poNo: String(r['PO No.'] || '').trim(),
+      swGrnNo: String(r['GRN No.'] || '').trim(),
+      purchaseReturn: parseNum(r['Purchase Return Amount']),
+      otherDebit: parseNum(r['Other Debit Amount']),
     }
   }
 
@@ -169,6 +176,26 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     }
   }
 
+  const normRef = (r) => String(r || '').replace(/\s+/g, '')
+  const bankMatchMap = {}
+  for (let pi = 0; pi < payRows.length; pi++) {
+    const p = payRows[pi]
+    if (!payUsed.has(pi) || !p.ref) continue
+    for (let bi = 0; bi < bank.length; bi++) {
+      if (!bankUsed.has(bi)) continue
+      const b = bank[bi]
+      if (Math.abs(p.amt - b.amt) < 0.005 && Math.abs((p.d - b.d) / 86400000) <= 3) {
+        const key = normRef(p.ref)
+        if (key && !bankMatchMap[key]) bankMatchMap[key] = b.ref
+        break
+      }
+    }
+  }
+  const notInBankRefs = new Set()
+  payRows.forEach((p, pi) => {
+    if (!payUsed.has(pi) && p.ref) notInBankRefs.add(normRef(p.ref))
+  })
+
   const bankByEntity = {}
   let bankTotal = 0
   const bankFlags = []
@@ -187,6 +214,7 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
 
   // ---- GRN ----
   const grnFac = {}
+  const grnByInv = {}
   let grnTotal = 0, grnDn = 0
   for (const r of grnRows) {
     const grn = String(r['GrnNumber'] || '').trim()
@@ -197,6 +225,13 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     grnTotal += amt
     grnDn += dn
     grnFac[fac] = (grnFac[fac] || 0) + amt
+    const invKey = normInv(r['InvoiceNumber'])
+    const g = grnByInv[invKey] || (grnByInv[invKey] = { grnNums: new Set(), dnNums: new Set(), dnValue: 0, grnValue: 0 })
+    g.grnNums.add(grn)
+    const dnNum = String(r['DnNumber'] || '').trim()
+    if (dnNum) g.dnNums.add(dnNum)
+    g.dnValue += dn
+    g.grnValue += amt
   }
 
   // ---- CLASSIFY (ZOHO MASTER + SWIGGY OVERLAY) ----
@@ -218,6 +253,79 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
       invDate: z.invDate, lastPay: z.lastPay, terms: z.terms, cls,
       inSw: !!sw, swStatus: sw ? sw.payStatus : null, swOutstd: sw ? sw.outstd : null,
     })
+  }
+
+  // ---- ENRICH (swiggy details, GRN/DN, bank credit status) ----
+  for (const x of master) {
+    const s = swReport[x.num]
+    const g = grnByInv[x.num]
+    if (s) {
+      x.payRef = s.payRef
+      x.lastPay = s.lastPay
+      x.payStatus = s.payStatus
+      x.outstd = s.outstd
+      x.creditPeriod = s.creditPeriod
+      x.poNo = s.poNo
+      x.swGrnNo = s.swGrnNo
+      x.purchaseReturn = s.purchaseReturn
+      x.otherDebit = s.otherDebit
+    }
+    if (g) {
+      x.grnNums = Array.from(g.grnNums).join('; ')
+      x.dnNums = Array.from(g.dnNums).join('; ')
+      x.dnValue = g.dnValue
+      x.grnValue = g.grnValue
+    }
+    x.bankStatus = '—'
+    x.bankUtr = ''
+    x.mismatchNote = ''
+    if (s && s.payRef) {
+      const seen = new Set()
+      const results = []
+      for (const raw of s.payRef.split(/[,;]/).map(x => x.trim()).filter(Boolean)) {
+        const key = normRef(raw)
+        if (!key || seen.has(key)) continue
+        seen.add(key)
+        if (Object.prototype.hasOwnProperty.call(bankMatchMap, key)) results.push({ raw, st: 'CREDITED', utr: bankMatchMap[key] })
+        else if (notInBankRefs.has(key)) results.push({ raw, st: 'NOT CREDITED' })
+        else results.push({ raw, st: 'NO PAYMENT REPORT ROW' })
+      }
+      if (results.length) {
+        const sts = Array.from(new Set(results.map(x => x.st)))
+        x.bankStatus = sts.length === 1 ? sts[0] : 'PARTIAL'
+        x.bankUtr = Array.from(new Set(results.filter(x => x.utr).map(x => x.utr))).join('; ')
+        const bad = results.filter(x => x.st !== 'CREDITED').map(x =>
+          x.st === 'NOT CREDITED'
+            ? `Pay ref ${x.raw} not credited in bank statement`
+            : `Pay ref ${x.raw} not found in Swiggy payment report`)
+        results.filter(x => x.st === 'CREDITED' && !x.utr).forEach(x => {
+          bad.push(`Pay ref ${x.raw} credited but bank statement has no UTR`)
+        })
+        if (bad.length) x.mismatchNote = bad.join('; ')
+      }
+    } else if (s && /unpaid/i.test(s.payStatus) && x.cls === 'PAID') {
+      x.mismatchNote = 'Swiggy invoice report shows Unpaid but Zoho shows paid; no bank credit found'
+    } else if (x.cls === 'PAID' && !x.inSw) {
+      x.mismatchNote = 'Paid in Zoho but no Swiggy invoice record (unconfirmed)'
+    }
+  }
+
+  // ---- ORPHAN BANK CREDITS vs UNPAID-IN-SWIGGY PAID INVOICES ----
+  const referencedRefs = new Set()
+  for (const x of master) {
+    const r2 = swReport[x.num]
+    if (r2 && r2.payRef) r2.payRef.split(/[,;]/).forEach(r => referencedRefs.add(normRef(r)))
+  }
+  for (const ref of notInBankRefs) {
+    if (referencedRefs.has(ref)) continue
+    const p = payRows.find(pp => normRef(pp.ref) === ref)
+    if (!p) continue
+    const cands = master.filter(x => x.cls === 'PAID' && swReport[x.num] && /unpaid/i.test(swReport[x.num].payStatus) && Math.abs(x.total - p.amt) < 1)
+    if (cands.length === 1) {
+      const x = cands[0]
+      x.bankStatus = 'NOT CREDITED'
+      x.mismatchNote = `Swiggy invoice report shows Unpaid but payment report ref ${p.ref} (${p.amt.toFixed(2)}) not credited in bank statement`
+    }
   }
 
   // ---- OVERRIDES (internal remarks & adjustments from uploaded file) ----

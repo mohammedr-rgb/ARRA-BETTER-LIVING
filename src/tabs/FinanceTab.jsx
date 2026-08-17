@@ -99,10 +99,27 @@ export default function FinanceTab({ data, onOpenPO }) {
 
   const downloadInvoiceRows = () => {
     if (!fin) return []
-    const head = ['Invoice Number', 'Entity', 'Customer', 'Amount', 'Balance', 'Due Date', 'Status', 'Class', 'Internal Remark', 'Adjustment', 'Adjustment Note']
+    const head = [
+      'Invoice Number', 'Entity', 'Customer', 'Amount', 'Balance',
+      'Invoice Date', 'Due Date', 'Credit Period', 'PO No.',
+      'Swiggy GRN No.', 'GRN No(s)', 'GRN Value', 'DN No(s)', 'DN Value',
+      'Swiggy Pay Ref', 'Last Payment Date', 'Swiggy Outstanding', 'Swiggy Payment Status',
+      'Purchase Return', 'Other Debit',
+      'Bank Status', 'Bank UTR',
+      'Zoho Status', 'Class',
+      'Internal Remark', 'Adjustment', 'Adjustment Note',
+      'Mismatch Notes',
+    ]
     const lines = fin.invoices.map(x => [
-      x.num, x.entity, x.cust, x.total, x.balance, iso(x.due), x.status, x.cls,
+      x.num, x.entity, x.cust, x.total, x.balance,
+      iso(x.invDate), iso(x.due), x.creditPeriod || '', x.poNo || '',
+      x.swGrnNo || '', x.grnNums || '', x.grnValue || '', x.dnNums || '', x.dnValue || '',
+      x.payRef || '', iso(x.lastPay) === '—' ? '' : iso(x.lastPay), x.outstd ?? '', x.payStatus || '',
+      x.purchaseReturn || 0, x.otherDebit || 0,
+      x.bankStatus, x.bankUtr,
+      x.status, x.cls,
       x.remark || '', x.adjustment || 0, x.note || '',
+      x.mismatchNote || '',
     ].map(v => csvEscape(v)).join(','))
     return [head.join(','), ...lines]
   }
