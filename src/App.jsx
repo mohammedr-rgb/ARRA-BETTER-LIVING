@@ -2,6 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { num, parseCSV, parseMMDDDate, uniqueByPO, sumPOField, sumField, loadCSVFromFile } from './lib/utils'
 import { UserContext } from './lib/userContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { DashboardSkeleton, IconButton } from './components/ui'
+import { getAuthToken, forceReauth } from './lib/auth'
+import { toast } from './lib/toast'
 import DashboardTab from './tabs/DashboardTab'
 import OrdersTab from './tabs/OrdersTab'
 import InventoryTab from './tabs/InventoryTab'
@@ -14,7 +17,8 @@ import FinanceTab from './tabs/FinanceTab'
 import PerformanceTab from './tabs/PerformanceTab'
 import SettingsTab from './tabs/SettingsTab'
 import { PODetailsPage } from './components/PODetailsPage'
-import { AuthGate, UserBadge, getAuthToken, forceReauth } from './components/AuthGate'
+import { AuthGate, UserBadge } from './components/AuthGate'
+import { CommandPalette } from './components/CommandPalette'
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyTPATdTTq6ZOUHDyG37foHyVZgTfIfCBxjTSxs3vbbECkeAHUTTUrrOttSpKKCOVqMjA/exec'
 const FALLBACK_SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
@@ -26,6 +30,7 @@ function Dashboard({ authUser, onLogout }) {
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [dataSource, setDataSource] = useState(null)
   const [tab, setTab] = useState(() => {
     const params = new URLSearchParams(window.location.search)
     return params.get('tab') || 'dashboard'
@@ -41,6 +46,8 @@ function Dashboard({ authUser, onLogout }) {
     return params.get('po') || null
   })
   const [autoRefresh, setAutoRefresh] = useState(0) // 0 = off, 5/15/30 = minutes
+  const [cmdOpen, setCmdOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
 
   // URL deep linking
   const updateURL = useCallback((newTab, newPlatform) => {
@@ -84,38 +91,73 @@ function Dashboard({ authUser, onLogout }) {
     setIsRefreshing(true)
     setError(null)
 
-    const useBackend = !!API_URL
-    const url = useBackend ? `${API_URL}?token=${encodeURIComponent(getAuthToken() || '')}` : FALLBACK_SHEET_URL
+    const fallback = () => fetch(FALLBACK_SHEET_URL)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`)
+        return r.text()
+      })
+      .then(fbText => {
+        const fbParsed = parseCSV(fbText)
+        if (fbParsed.length === 0) throw new Error('Source sheet returned no rows')
+        setRawCSV(fbText)
+        setData(fbParsed)
+        setLastUpdated(new Date())
+        setDataSource('fallback')
+        setLoading(false)
+        setIsRefreshing(false)
+        if (data.length) toast(`Refreshed from direct sheet (${fbParsed.length} rows)`, 'warn')
+      })
 
-    fetch(url)
+    if (!API_URL) {
+      fallback().catch(e => { setLoading(false); setIsRefreshing(false); setError(e.message || 'Failed to load data') })
+      return
+    }
+
+    fetch(`${API_URL}?token=${encodeURIComponent(getAuthToken() || '')}`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`)
         return r.text()
       })
       .then(text => {
-        if (useBackend && /^__ERROR_(401|403)__/.test(text)) {
+        if (/^__ERROR_(401|403)__/.test(text)) {
           forceReauth()
           throw new Error('Session expired — signing you in again.')
         }
-        if (useBackend && text.startsWith('__ERROR_')) {
+        if (text.startsWith('__ERROR_')) {
           throw new Error(text.split('\n').slice(1).join('\n') || 'Backend error')
         }
-        if (useBackend && text.trim().startsWith('<!DOCTYPE')) {
+        if (text.trim().toLowerCase().startsWith('<!doctype')) {
           throw new Error('Backend returned a Google sign-in page. Check the Apps Script deployment access (must allow the app to call it with a token).')
         }
+        if (text.trim().startsWith('{')) {
+          throw new Error('Backend returned an unexpected response: ' + text.trim().slice(0, 120))
+        }
         const parsed = parseCSV(text)
+        if (parsed.length === 0) throw new Error('__BACKEND_EMPTY__')
         setRawCSV(text)
         setData(parsed)
         setLastUpdated(new Date())
+        setDataSource('backend')
         setLoading(false)
         setIsRefreshing(false)
+        if (data.length) toast(`Data refreshed (${parsed.length} rows)`, 'success')
       })
-      .catch(e => {
-        setLoading(false)
-        setIsRefreshing(false)
-        setError(e.message || 'Failed to load data')
+      .catch(err => {
+        // Backend failed (HTTP error, auth page, or empty) — fall back to the direct sheet export.
+        if (err.message === 'Source sheet returned no rows') {
+          setLoading(false)
+          setIsRefreshing(false)
+          setError(err.message)
+          return
+        }
+        fallback().catch(fbErr => {
+          setLoading(false)
+          setIsRefreshing(false)
+          setError(fbErr.message || 'Failed to load data')
+          toast('Failed to load data', 'error')
+        })
       })
-  }, [])
+  }, [data.length])
 
   useEffect(() => {
     loadData()
@@ -129,6 +171,51 @@ function Dashboard({ authUser, onLogout }) {
     }, autoRefresh * 60 * 1000)
     return () => clearInterval(interval)
   }, [autoRefresh, loadData])
+
+  // Command palette shortcut (Cmd/Ctrl + K)
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setCmdOpen(v => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Notifications: upcoming appointments (next 3 days) + stale open POs
+  const notifications = useMemo(() => {
+    if (!data.length) return []
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const horizon = new Date(today); horizon.setDate(horizon.getDate() + 3)
+    const list = []
+    const poSeen = new Set()
+    for (const r of data) {
+      const po = r['PO Number']; if (!po || poSeen.has(po)) continue
+      const d = parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])
+      if (!d) continue
+      poSeen.add(po)
+      if (d >= today && d <= horizon) {
+        const days = Math.round((d.getTime() - today.getTime()) / 86400000)
+        list.push({
+          id: 'appt-' + po,
+          icon: '📅',
+          text: `${days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days}d`} — appointment for ${po}`,
+          po,
+        })
+      }
+    }
+    let stale = 0
+    const poRows = uniqueByPO(data)
+    for (const r of poRows) {
+      if (['Delivered', 'RTO'].includes(r['Status'] || '')) continue
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      if (d && (today - d) / 86400000 > 30) stale++
+    }
+    if (stale > 0) list.push({ id: 'stale', icon: '⏳', text: `${stale} open POs older than 30 days`, po: null })
+    return list.slice(0, 8)
+  }, [data])
 
   const platforms = useMemo(() => {
     const set = new Set()
@@ -188,16 +275,6 @@ function Dashboard({ authUser, onLogout }) {
     }
   }, [filteredData])
 
-  const statusData = useMemo(() => {
-    const poData = uniqueByPO(filteredData)
-    const map = {}
-    poData.forEach(r => {
-      const s = r['Status'] || 'Unknown'
-      map[s] = (map[s] || 0) + 1
-    })
-    return Object.entries(map).map(([name, value]) => ({ name, value }))
-  }, [filteredData])
-
   const recentOrders = useMemo(() => {
     const seen = new Set()
     return filteredData
@@ -210,9 +287,8 @@ function Dashboard({ authUser, onLogout }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: '#0f172a', color: '#94a3b8', fontSize: 18, gap: 12 }}>
-        <div style={{ fontSize: 22 }}>⏳</div>
-        Loading dashboard data...
+      <div className="main-content">
+        <DashboardSkeleton />
       </div>
     )
   }
@@ -257,8 +333,39 @@ function Dashboard({ authUser, onLogout }) {
       <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
         <button className="menu-close" onClick={closeNav}>✕</button>
         <div className="logo"><span className="brand-icon">✦</span> <span className="brand-gradient">ARRA BETTER LIVING</span></div>
-        <div style={{ padding: '8px 16px 0' }}>
-          <UserBadge user={authUser} logout={onLogout} />
+        <div style={{ padding: '8px 16px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <UserBadge user={authUser} logout={onLogout} />
+          </div>
+          <div style={{ position: 'relative' }}>
+            <IconButton title="Notifications (upcoming appointments)" onClick={() => setNotifOpen(v => !v)} aria-expanded={notifOpen}>
+              🔔
+              {notifications.length > 0 && <span className="bell-dot" />}
+            </IconButton>
+            {notifOpen && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setNotifOpen(false)} />
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 300, background: '#1e293b', border: '1px solid #334155', borderRadius: 12, boxShadow: '0 16px 40px rgba(0,0,0,0.45)', zIndex: 50, maxHeight: 380, overflowY: 'auto' }} role="menu">
+                  <div style={{ padding: '12px 14px', borderBottom: '1px solid #334155', fontSize: 12, fontWeight: 700, color: '#f1f5f9' }}>Notifications {notifications.length > 0 && <span style={{ color: '#64748b', fontWeight: 500 }}>• {notifications.length}</span>}</div>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: 20, textAlign: 'center', color: '#64748b', fontSize: 13 }}>You're all caught up 🎉</div>
+                  ) : notifications.map(n => (
+                    <div
+                      key={n.id}
+                      role="menuitem"
+                      onClick={() => { if (n.po) { openPOInNewTab(n.po); setNotifOpen(false) } }}
+                      style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 14px', borderBottom: '1px solid #283548', cursor: n.po ? 'pointer' : 'default', fontSize: 12, color: '#cbd5e1' }}
+                      onMouseEnter={e => { if (n.po) e.currentTarget.style.background = 'rgba(59,130,246,0.1)' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <span style={{ fontSize: 14 }}>{n.icon}</span>
+                      <span>{n.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
         <div style={{ padding: '8px 16px 4px' }}>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Platform Filter</div>
@@ -266,6 +373,14 @@ function Dashboard({ authUser, onLogout }) {
             {platforms.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
+        <button
+          onClick={() => setCmdOpen(true)}
+          style={{ width: 'calc(100% - 32px)', margin: '0 16px 8px', background: '#0f172a', border: '1px solid #334155', borderRadius: 10, color: '#64748b', padding: '10px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
+          aria-label="Open command palette"
+        >
+          <span>🔍 Search…</span>
+          <span className="kbd">⌘K</span>
+        </button>
         <nav>
           {navItem('dashboard', '📈', 'Dashboard')}
           {navItem('orders', '📦', 'Orders')}
@@ -308,6 +423,7 @@ function Dashboard({ authUser, onLogout }) {
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a'); a.href = url; a.download = 'full_dataset.csv'; a.click()
             URL.revokeObjectURL(url)
+            toast('Downloaded full dataset CSV', 'success')
           }} style={{ width: '100%', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#22c55e', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
             ⬇ Download Full Data
           </button>
@@ -324,8 +440,10 @@ function Dashboard({ authUser, onLogout }) {
                 setData(parsed);
                 setLastUpdated(new Date());
                 setLoading(false);
+                toast(`Loaded ${parsed.length} rows from ${file.name}`, 'success');
               } catch (err) {
                 setError('Failed to parse CSV file');
+                toast(`Failed to parse CSV: ${err?.message || 'invalid format'}`, 'error');
               }
             };
             input.click();
@@ -337,6 +455,8 @@ function Dashboard({ authUser, onLogout }) {
           </button>
           <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, textAlign: 'center', lineHeight: 1.5 }}>
             {lastUpdated ? <>Last updated<br />{lastUpdated.toLocaleString()}</> : 'Last updated: —'}
+            {dataSource === 'fallback' && <div style={{ marginTop: 6, color: '#f59e0b' }}>⚠ loaded from direct sheet (backend empty)</div>}
+            <div style={{ marginTop: 6, color: '#475569' }}>build v2sheet-2</div>
           </div>
         </div>
       </aside>
@@ -348,9 +468,9 @@ function Dashboard({ authUser, onLogout }) {
               <PODetailsPage po={viewPO} data={data} onBack={closePO} />
             </ErrorBoundary>
           ) : (
-            <>
+            <div key={tab} className="tab-pane">
               <ErrorBoundary key="dashboard">
-                {tab === 'dashboard' && <DashboardTab data={filteredData} allData={data} metrics={metrics} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} onSearchOpen={openPOInNewTab} />}
+                {tab === 'dashboard' && <DashboardTab data={filteredData} allData={data} metrics={metrics} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} onSearchOpen={openPOInNewTab} />}
               </ErrorBoundary>
               <ErrorBoundary key="orders">
                 {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} onOpenPO={openPO} />}
@@ -382,10 +502,18 @@ function Dashboard({ authUser, onLogout }) {
               <ErrorBoundary key="settings">
                 {tab === 'settings' && <SettingsTab />}
               </ErrorBoundary>
-            </>
+            </div>
           )}
         </div>
       </UserContext.Provider>
+
+      <CommandPalette
+        open={cmdOpen}
+        onClose={() => setCmdOpen(false)}
+        onSelectTab={handleTabChange}
+        data={data}
+        onOpenPO={openPOInNewTab}
+      />
     </>
   )
 }

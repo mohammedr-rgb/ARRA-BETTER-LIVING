@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { num, parseDate, parseMMDDDate, formatDate, uniqueByPO, sumPOField, sumField, csvEscape, statusFilters } from '../lib/utils'
+import { num, parseDate, parseMMDDDate, formatDate, uniqueByPO, sumPOField, sumField, csvEscape, statusFilters, toNumKG } from '../lib/utils'
 import { useSort, applySort } from '../lib/useSort'
 import { Tooltip, StatusPill, EmptyState, DateRangePicker, RangePresets, CSVButton, ProfileSection, SortTh } from '../components/ui'
 import { PONumberLink } from '../components/PONumberLink'
@@ -7,8 +7,8 @@ import { PONumberLink } from '../components/PONumberLink'
 export default function OrdersTab({ data, platformFilter, onOpenPO }) {
   const poData = useMemo(() => uniqueByPO(data), [data])
   const today = useMemo(() => new Date(), [])
-  const releasedFrom = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
-  const monthFrom = new Date(today.getFullYear(), today.getMonth(), 1)
+  const releasedFrom = useMemo(() => new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1), [today])
+  const monthFrom = useMemo(() => new Date(today.getFullYear(), today.getMonth(), 1), [today])
   const thirtyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)
   const [dateFrom, setDateFrom] = useState(formatDate(thirtyDaysAgo))
   const [dateTo, setDateTo] = useState(formatDate(today))
@@ -391,7 +391,25 @@ function AppointmentView({ data, onOpenPO }) {
     tracking: r => r['Tracking No'],
     status: r => r['Status'],
     remarks: r => r['Remarks'],
+    rtoCount: r => rtoByCityFac.get((r['City'] || '') + '||' + (r['FacilityName'] || ''))?.lines || 0,
+    rtoTonnage: r => rtoByCityFac.get((r['City'] || '') + '||' + (r['FacilityName'] || ''))?.tonnage || 0,
+    rtoValue: r => rtoByCityFac.get((r['City'] || '') + '||' + (r['FacilityName'] || ''))?.value || 0,
   }
+
+  const rtoByCityFac = useMemo(() => {
+    const map = new Map()
+    data.forEach(r => {
+      if ((r['Status'] || '') !== 'RTO') return
+      if ((r['RTO Received Date(MM-DD-YYYY)'] || '').trim()) return
+      const key = (r['City'] || '') + '||' + (r['FacilityName'] || '')
+      if (!map.has(key)) map.set(key, { lines: 0, tonnage: 0, value: 0 })
+      const agg = map.get(key)
+      agg.lines++
+      agg.tonnage += toNumKG(r['RTO Tonnage (MT)'])
+      agg.value += num(r['RTO Value at Risk'])
+    })
+    return map
+  }, [data])
 
   const byAppt = useMemo(() => {
     const tMap = new Map(); const tmMap = new Map(); const wMap = new Map()
@@ -446,6 +464,9 @@ function AppointmentView({ data, onOpenPO }) {
             <SortTh label="Transporter" k="transporter" sort={sort} />
             <SortTh label="Tonnage (KG)" k="tonnage" sort={sort} className="num" />
             <SortTh label="Boxes" k="boxcount" sort={sort} className="num" />
+            <SortTh label="RTO #" k="rtoCount" sort={sort} className="num" />
+            <SortTh label="RTO Tonnage" k="rtoTonnage" sort={sort} className="num" />
+            <SortTh label="RTO Value" k="rtoValue" sort={sort} className="num" />
             <SortTh label="Appt Date" k="apptdate" sort={sort} />
             <SortTh label="Appt ID" k="apptid" sort={sort} className="num" />
             <SortTh label="Invoice #" k="invoice" sort={sort} className="num" />
@@ -468,6 +489,9 @@ function AppointmentView({ data, onOpenPO }) {
               <td>{r['Transporter'] || '—'}</td>
               <td className="num" style={{ fontWeight: 600 }}>{Math.round(r._tonnage).toLocaleString()}</td>
               <td className="num" style={{ fontWeight: 600 }}>{Math.round(r._boxes).toLocaleString()}</td>
+              <td className="num" style={{ fontWeight: 600, color: apptAccessors.rtoCount(r) > 0 ? '#ef4444' : undefined }}>{apptAccessors.rtoCount(r) || '—'}</td>
+              <td className="num" style={{ color: apptAccessors.rtoTonnage(r) > 0 ? '#ef4444' : '#94a3b8' }}>{apptAccessors.rtoTonnage(r) > 0 ? Math.round(apptAccessors.rtoTonnage(r)).toLocaleString() : '—'}</td>
+              <td className="num" style={{ color: apptAccessors.rtoValue(r) > 0 ? '#ef4444' : '#94a3b8' }}>{apptAccessors.rtoValue(r) > 0 ? '₹' + Math.round(apptAccessors.rtoValue(r)).toLocaleString() : '—'}</td>
               <td style={{ fontSize: 12, color: '#94a3b8' }}>{r['Appointment Date(MM-DD-YYYY)']}</td>
               <td className="num" style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Appointment ID'] || '—'}</td>
               <td className="num" style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{r['Invoice No'] || '—'}</td>
@@ -484,9 +508,9 @@ function AppointmentView({ data, onOpenPO }) {
 
   const makeCSVRows = (rows, title) => {
     const lines = [title]
-    lines.push('PO Number,City,Platform,Facility,Transporter,Tonnage (KG),Box Count,Appointment Date,Appointment ID,Invoice No,Tracking No,Status,Remarks')
+    lines.push('PO Number,City,Platform,Facility,Transporter,Tonnage (KG),Box Count,RTO #,RTO Tonnage (KG),RTO Value,Appointment Date,Appointment ID,Invoice No,Tracking No,Status,Remarks')
     rows.forEach(r => {
-      lines.push([r['PO Number'], r['City'], r['Platform'], r['FacilityName'], r['Transporter'], num(r._tonnage), Math.round(num(r._boxes)), r['Appointment Date(MM-DD-YYYY)'], r['Appointment ID'], r['Invoice No'], r['Tracking No'], r['Status'], r['Remarks']].map(x => csvEscape(String(x ?? ''))).join(','))
+      lines.push([r['PO Number'], r['City'], r['Platform'], r['FacilityName'], r['Transporter'], num(r._tonnage), Math.round(num(r._boxes)), apptAccessors.rtoCount(r), Math.round(apptAccessors.rtoTonnage(r)), Math.round(apptAccessors.rtoValue(r)), r['Appointment Date(MM-DD-YYYY)'], r['Appointment ID'], r['Invoice No'], r['Tracking No'], r['Status'], r['Remarks']].map(x => csvEscape(String(x ?? ''))).join(','))
     })
     return lines
   }
@@ -496,7 +520,7 @@ function AppointmentView({ data, onOpenPO }) {
       <div className="recent-orders" style={{ marginTop: 20 }}>
         <div className="orders-header">
           <div className="orders-title">📅 Today's Appointments ({byAppt.today.length})</div>
-          <div className="chart-period">{todayStr} — Total: {byAppt.today.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusT['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusT['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusT['RTO'] || 0} RTO</span></div>
+          <div className="chart-period">{todayStr} — Total: {byAppt.today.length} · <span style={{ color: '#22c55e' }}>{byAppt.statusT['Delivered'] || 0} Delivered</span> · <span style={{ color: '#eab308' }}>{byAppt.statusT['In-Transit'] || 0} In-Transit</span> · <span style={{ color: '#ef4444' }}>{byAppt.statusT['RTO'] || 0} RTO</span> · <span style={{ color: '#64748b', fontSize: 11 }}>RTO # = open returns (Status RTO, not yet received) for this City + Facility</span></div>
           <CSVButton makeRows={() => makeCSVRows(byAppt.today, 'Today\'s Appointments')} filename="appointments_today.csv" style={{ padding: '8px 20px', fontSize: 13 }} />
         </div>
         {renderTable(byAppt.today, todaySort)}

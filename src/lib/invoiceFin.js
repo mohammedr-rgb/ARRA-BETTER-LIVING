@@ -2,11 +2,9 @@ import { parseCSV } from './utils'
 
 export const FINANCE_SHEET_ID = '14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI'
 export const SHEET_URLS = {
-  zoho: `https://docs.google.com/spreadsheets/d/${FINANCE_SHEET_ID}/export?format=csv&gid=361334241`,
+  zohoMaster: `https://docs.google.com/spreadsheets/d/${FINANCE_SHEET_ID}/export?format=csv&gid=361334241`,
   swiggyInvoice: `https://docs.google.com/spreadsheets/d/${FINANCE_SHEET_ID}/export?format=csv&gid=549163658`,
   swiggyPayment: `https://docs.google.com/spreadsheets/d/${FINANCE_SHEET_ID}/export?format=csv&gid=1209620263`,
-  grn: `https://docs.google.com/spreadsheets/d/${FINANCE_SHEET_ID}/export?format=csv&gid=408069390`,
-  bank: `https://docs.google.com/spreadsheets/d/${FINANCE_SHEET_ID}/export?format=csv&gid=1407678970`,
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -82,63 +80,54 @@ function daysBetween(a, b) {
   return Math.round((a - b) / 86400000)
 }
 
-export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows, bankRows, grnRows, today, overrides = {} }) {
+export function computeFinance({ swiggyInvoiceRows, swiggyPaymentRows, today, overrides = {} }) {
   const TODAY = today || new Date()
 
-  // ---- ZOHO MASTER ----
-  const zoho = {}
-  let voidCount = 0
-  for (const r of zohoRows) {
-    const num = String(r['Invoice Number'] || '').trim()
-    if (!num) continue
-    const status = String(r['Invoice Status'] || '').trim()
-    if (status === 'Void') { voidCount++; continue }
-    if (zoho[num]) continue
-    zoho[num] = {
-      cust: String(r['Customer Name'] || '').trim(),
-      entity: normEntity(r['Customer Name']),
-      status,
-      total: parseNum(r['Total']),
-      balance: parseNum(r['Balance']),
-      due: parseDate(r['Due Date']),
-      invDate: parseDate(r['Invoice Date']),
-      lastPay: parseDate(r['Last Payment Date']),
-      terms: String(r['Payment Terms'] || '').trim(),
-    }
-  }
-
-  // ---- SWIGGY INVOICE REPORT ----
+  // ---- SWIGGY INVOICE REPORT (master) ----
   const swReport = {}
-  for (const r of swiggyInvoiceRows) {
+  for (const r of swiggyInvoiceRows || []) {
     const ent = normEntity(r['Organization Name'])
     const inv = normInv(r['Invoice Number'])
     if (!ent || !inv) continue
     if (String(r['Invoice Number'] || '').toUpperCase().includes('REVERSED')) continue
     if (swReport[inv]) continue
+    const purchaseReturn = parseNum(r['Purchase Return Amount'])
+    const otherDebit = parseNum(r['Other Debit Amount'])
+    const brandDiscount = parseNum(r['Brand discount (Promo Claims)'])
+    const otherAdj = parseNum(r['Other adjustments *'])
+    const tds = parseNum(r['TDS/TCS'])
     swReport[inv] = {
       entity: ent,
+      gross: parseNum(r['Gross GRN Amount']),
       netPay: parseNum(r['Net Payable Amount']),
-      outstd: parseNum(r['Outstanding payment']),
-      payStatus: String(r['Payment Status'] || '').trim(),
-      due: parseDate(r['Due Date']),
+      tds,
+      purchaseReturn,
+      otherDebit,
+      brandDiscount,
+      otherAdj,
+      deductions: tds + purchaseReturn + otherDebit + brandDiscount + otherAdj,
+      payStatus: String(r['Payment Status'] || '').trim() || 'Unpaid',
       payAmt: parseNum(r['Payment amount']),
       payRef: String(r['Payment Reference No'] || '').trim(),
-      lastPay: parseDate(r['Last Payment Date']),
+      outstd: parseNum(r['Outstanding payment']),
+      invDate: parseDate(r['Invoice Accounting Date'], true),
+      due: parseDate(r['Due Date'], true),
+      lastPay: parseDate(r['Last Payment Date'], true),
       creditPeriod: String(r['Credit Period'] || '').trim(),
       poNo: String(r['PO No.'] || '').trim(),
       swGrnNo: String(r['GRN No.'] || '').trim(),
-      purchaseReturn: parseNum(r['Purchase Return Amount']),
-      otherDebit: parseNum(r['Other Debit Amount']),
+      statusOfInvoice: String(r['Status of Invoice'] || '').trim(),
     }
   }
 
-  // ---- PAYMENT REPORT ----
+  // ---- SWIGGY PAYMENT STATEMENT ----
   const payments = {}
   const payRows = []
-  for (const r of swiggyPaymentRows) {
+  for (const r of swiggyPaymentRows || []) {
     const ent = normEntity(r['Organization Name'])
     if (!ent) continue
     const amt = parseNum(r['Amount'])
+    if (amt <= 0) continue
     payments[ent] = payments[ent] || { count: 0, amount: 0 }
     payments[ent].count++
     payments[ent].amount += amt
@@ -151,200 +140,25 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     })
   }
 
-  // ---- BANK STATEMENT (actual received) ----
-  const bank = []
-  for (const r of bankRows || []) {
-    const amt = parseNum(r['Amount'])
-    const ref = String(r['Ref'] || '').trim()
-    if (amt <= 0 || ref.toUpperCase().includes('TOTAL')) continue
-    const name = String(r['Enity wise Payment details'] || '').trim()
-    bank.push({ d: parseDate(r['Date']), amt, name, ref, entity: normEntity(name) })
-  }
-
-  const bankUsed = new Set()
-  const payUsed = new Set()
-  for (let pi = 0; pi < payRows.length; pi++) {
-    const p = payRows[pi]
-    if (!p.d) continue
-    for (let bi = 0; bi < bank.length; bi++) {
-      const b = bank[bi]
-      if (bankUsed.has(bi) || !b.d) continue
-      if (Math.abs(p.amt - b.amt) < 0.005 && Math.abs((p.d - b.d) / 86400000) <= 3) {
-        bankUsed.add(bi)
-        payUsed.add(pi)
-        break
-      }
-    }
-  }
-
-  const normRef = (r) => String(r || '').replace(/\s+/g, '')
-  const bankMatchMap = {}
-  for (let pi = 0; pi < payRows.length; pi++) {
-    const p = payRows[pi]
-    if (!payUsed.has(pi) || !p.ref) continue
-    for (let bi = 0; bi < bank.length; bi++) {
-      if (!bankUsed.has(bi)) continue
-      const b = bank[bi]
-      if (Math.abs(p.amt - b.amt) < 0.005 && Math.abs((p.d - b.d) / 86400000) <= 3) {
-        const key = normRef(p.ref)
-        if (key && !bankMatchMap[key]) bankMatchMap[key] = b.ref
-        break
-      }
-    }
-  }
-  const notInBankRefs = new Set()
-  payRows.forEach((p, pi) => {
-    if (!payUsed.has(pi) && p.ref) notInBankRefs.add(normRef(p.ref))
-  })
-
-  const bankByEntity = {}
-  let bankTotal = 0
-  const bankFlags = []
-  bank.forEach((b, bi) => {
-    bankTotal += b.amt
-    if (b.entity) bankByEntity[b.entity] = (bankByEntity[b.entity] || 0) + b.amt
-    if (!bankUsed.has(bi) && b.entity && b.entity !== 'BLINK COMMERCE') {
-      bankFlags.push({ kind: 'not_in_report', date: toISODate(b.d), amount: b.amt, entity: b.entity, ref: b.ref, note: 'Bank credit not present in Swiggy payment report' })
-    }
-  })
-  payRows.forEach((p, pi) => {
-    if (!payUsed.has(pi)) {
-      bankFlags.push({ kind: 'not_in_bank', date: toISODate(p.d), amount: p.amt, entity: p.entity, ref: p.ref, num: p.num, note: 'In Swiggy payment report but not credited in bank statement' })
-    }
-  })
-
-  // ---- GRN ----
-  const grnFac = {}
-  const grnByInv = {}
-  let grnTotal = 0, grnDn = 0
-  for (const r of grnRows) {
-    const grn = String(r['GrnNumber'] || '').trim()
-    if (!grn) continue
-    const amt = parseNum(r['TotalAmount'])
-    const dn = parseNum(r['DNValue'])
-    const fac = String(r['FacilityName'] || '').trim()
-    grnTotal += amt
-    grnDn += dn
-    grnFac[fac] = (grnFac[fac] || 0) + amt
-    const invKey = normInv(r['InvoiceNumber'])
-    const g = grnByInv[invKey] || (grnByInv[invKey] = { grnNums: new Set(), dnNums: new Set(), dnValue: 0, grnValue: 0 })
-    g.grnNums.add(grn)
-    const dnNum = String(r['DnNumber'] || '').trim()
-    if (dnNum) g.dnNums.add(dnNum)
-    g.dnValue += dn
-    g.grnValue += amt
-  }
-
-  // ---- CLASSIFY (ZOHO MASTER + SWIGGY OVERLAY) ----
+  // ---- MASTER ----
   const master = []
-  for (const [num, z] of Object.entries(zoho)) {
-    if (!z.entity) continue
-    const sw = swReport[num]
-    let paid = z.status === 'Closed' || z.status === 'Paid' || z.balance <= 0 || z.lastPay !== null
-    if (sw && ['paid', 'no due'].includes(sw.payStatus.toLowerCase()) && sw.payAmt > 0) paid = true
-    const sheetDue = z.due || (sw ? sw.due : null)
-    let due = sheetDue
-    if (z.invDate && !isNaN(z.invDate)) {
-      const calc = new Date(z.invDate.getTime() + 30 * 86400000)
-      calc.setHours(0, 0, 0, 0)
-      due = calc
-    }
+  for (const [num, s] of Object.entries(swReport)) {
     let cls
-    if (paid) cls = 'PAID'
-    else if (!due) cls = 'PENDING_NO_DUE'
-    else if (due < TODAY) cls = 'OVERDUE'
+    if (s.outstd <= 0) cls = 'PAID'
+    else if (!s.due) cls = 'PENDING_NO_DUE'
+    else if (s.due < TODAY) cls = 'OVERDUE'
     else cls = 'NOT_DUE'
-    const partialPaid = !!(sw && /partially/i.test(sw.payStatus) && sw.payAmt > 0)
+    const partialPaid = /partially/i.test(s.payStatus) && s.payAmt > 0
     master.push({
-      num, entity: z.entity, cust: z.cust, status: z.status,
-      total: z.total, balance: z.balance, due, dueSheet: sheetDue,
-      invDate: z.invDate, lastPay: z.lastPay, terms: z.terms, cls,
-      inSw: !!sw, swStatus: sw ? sw.payStatus : null, swOutstd: sw ? sw.outstd : null,
-      partialPaid, swPayAmt: sw ? sw.payAmt : null,
+      num, entity: s.entity, total: s.netPay, gross: s.gross,
+      tds: s.tds, purchaseReturn: s.purchaseReturn, otherDebit: s.otherDebit,
+      brandDiscount: s.brandDiscount, otherAdj: s.otherAdj,
+      deductions: s.deductions,
+      payStatus: s.payStatus, payAmt: s.payAmt, payRef: s.payRef, outstd: s.outstd,
+      invDate: s.invDate, due: s.due, lastPay: s.lastPay, creditPeriod: s.creditPeriod,
+      poNo: s.poNo, swGrnNo: s.swGrnNo, statusOfInvoice: s.statusOfInvoice,
+      cls, partialPaid, inSw: true, swOutstd: s.outstd, dueSheet: s.due, status: s.payStatus,
     })
-  }
-
-  // ---- ENRICH (swiggy details, GRN/DN, bank credit status) ----
-  for (const x of master) {
-    const s = swReport[x.num]
-    const g = grnByInv[x.num]
-    if (s) {
-      x.payRef = s.payRef
-      x.lastPay = s.lastPay
-      x.payStatus = s.payStatus
-      x.outstd = s.outstd
-      x.creditPeriod = s.creditPeriod
-      x.poNo = s.poNo
-      x.swGrnNo = s.swGrnNo
-      x.purchaseReturn = s.purchaseReturn
-      x.otherDebit = s.otherDebit
-    }
-    if (g) {
-      x.grnNums = Array.from(g.grnNums).join('; ')
-      x.dnNums = Array.from(g.dnNums).join('; ')
-      x.dnValue = g.dnValue
-      x.grnValue = g.grnValue
-    }
-    x.bankStatus = '—'
-    x.bankUtr = ''
-    x.mismatchNote = ''
-    if (s && s.payRef) {
-      const seen = new Set()
-      const results = []
-      for (const raw of s.payRef.split(/[,;]/).map(x => x.trim()).filter(Boolean)) {
-        const key = normRef(raw)
-        if (!key || seen.has(key)) continue
-        seen.add(key)
-        if (Object.prototype.hasOwnProperty.call(bankMatchMap, key)) results.push({ raw, st: 'CREDITED', utr: bankMatchMap[key] })
-        else if (notInBankRefs.has(key)) results.push({ raw, st: 'NOT CREDITED' })
-        else results.push({ raw, st: 'NO PAYMENT REPORT ROW' })
-      }
-      if (results.length) {
-        const sts = Array.from(new Set(results.map(x => x.st)))
-        x.bankStatus = sts.length === 1 ? sts[0] : 'PARTIAL'
-        x.bankUtr = Array.from(new Set(results.filter(x => x.utr).map(x => x.utr))).join('; ')
-        const bad = results.filter(x => x.st !== 'CREDITED').map(x =>
-          x.st === 'NOT CREDITED'
-            ? `Pay ref ${x.raw} not credited in bank statement`
-            : `Pay ref ${x.raw} not found in Swiggy payment report`)
-        results.filter(x => x.st === 'CREDITED' && !x.utr).forEach(x => {
-          bad.push(`Pay ref ${x.raw} credited but bank statement has no UTR`)
-        })
-        if (bad.length) x.mismatchNote = bad.join('; ')
-      }
-    } else if (s && /unpaid/i.test(s.payStatus) && x.cls === 'PAID') {
-      x.mismatchNote = 'Swiggy invoice report shows Unpaid but Zoho shows paid; no bank credit found'
-    } else if (x.cls === 'PAID' && !x.inSw) {
-      if (x.lastPay) {
-        const hit = bank.find(b => b.d && Math.abs(b.amt - x.total) < 0.005 && Math.abs((b.d - x.lastPay) / 86400000) <= 3)
-        if (hit) {
-          x.bankStatus = 'CREDITED'
-          x.bankUtr = hit.ref
-        } else {
-          x.mismatchNote = 'Paid in Zoho (not in Swiggy report) but no matching credit in bank statement'
-        }
-      } else {
-        x.mismatchNote = 'Paid in Zoho but no Swiggy invoice record (unconfirmed)'
-      }
-    }
-  }
-
-  // ---- ORPHAN BANK CREDITS vs UNPAID-IN-SWIGGY PAID INVOICES ----
-  const referencedRefs = new Set()
-  for (const x of master) {
-    const r2 = swReport[x.num]
-    if (r2 && r2.payRef) r2.payRef.split(/[,;]/).forEach(r => referencedRefs.add(normRef(r)))
-  }
-  for (const ref of notInBankRefs) {
-    if (referencedRefs.has(ref)) continue
-    const p = payRows.find(pp => normRef(pp.ref) === ref)
-    if (!p) continue
-    const cands = master.filter(x => x.cls === 'PAID' && swReport[x.num] && /unpaid/i.test(swReport[x.num].payStatus) && Math.abs(x.total - p.amt) < 1)
-    if (cands.length === 1) {
-      const x = cands[0]
-      x.bankStatus = 'NOT CREDITED'
-      x.mismatchNote = `Swiggy invoice report shows Unpaid but payment report ref ${p.ref} (${p.amt.toFixed(2)}) not credited in bank statement`
-    }
   }
 
   // ---- OVERRIDES (team working remarks & adjustments from uploaded file) ----
@@ -367,19 +181,10 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     x.remark = remark
     x.note = note
     x.net = Math.max(0, x.total - adj)
-    // partially paid per Swiggy report → chase only the actual outstanding
-    if (x.partialPaid) {
-      const outstd = typeof x.outstd === 'number' && isFinite(x.outstd) && x.outstd >= 0
-        ? x.outstd
-        : Math.max(0, x.total - x.swPayAmt)
-      x.chaseAmt = Math.max(0, Math.min(x.net, outstd))
-    } else {
-      x.chaseAmt = x.net
-    }
+    x.chaseAmt = x.cls === 'PAID' ? 0 : Math.max(0, Math.min(x.net, x.outstd))
     x.hasOverride = !!(ov && (adj > 0 || remark || note))
     totalAdjustment += x.adjustment
     if (x.hasOverride) overriddenCount++
-    // "change the status as cancel / amount adjusted" team remarks → exclude invoice entirely
     x.cancelled = /cancel/i.test(String(remark || '') + ' ' + String(note || ''))
     if (x.cancelled) {
       x.cls = 'CANCELLED'
@@ -399,6 +204,10 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
   const counts = { billed: 0, paid: 0, pending: 0, overdue: 0, notdue: 0, cancelled: 0 }
   const overdueAge = {}
   const notdueWin = {}
+  const overdueAgeCount = {}
+  const notdueWinCount = {}
+  let pendingNoDue = 0
+  let pendingNoDueCount = 0
   const bucketKey = (d) => (d <= 15 ? '0-15' : d <= 30 ? '16-30' : d <= 60 ? '31-60' : '60+')
   const winKey = (d) => (d <= 7 ? '0-7' : d <= 15 ? '8-15' : d <= 30 ? '16-30' : '30+')
 
@@ -416,13 +225,17 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
     e.count++
     totals.billed += x.total
     counts.billed++
-    if (x.inSw) e.inSw++
+    e.inSw++
     if (x.cls === 'PAID') {
-      e.paid += x.net
+      e.paid += x.payAmt
       e.paidC++
-      totals.paid += x.net
+      totals.paid += x.payAmt
       counts.paid++
     } else {
+      if (x.payAmt > 0) {
+        e.paid += x.payAmt
+        totals.paid += x.payAmt
+      }
       e.pending += x.chaseAmt
       e.pendC = (e.pendC || 0) + 1
       totals.pending += x.chaseAmt
@@ -434,6 +247,7 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
         counts.overdue++
         const d = daysBetween(TODAY, x.due)
         overdueAge[bucketKey(d)] = (overdueAge[bucketKey(d)] || 0) + x.chaseAmt
+        overdueAgeCount[bucketKey(d)] = (overdueAgeCount[bucketKey(d)] || 0) + 1
       } else if (x.cls === 'NOT_DUE') {
         e.notdue += x.chaseAmt
         e.ndC++
@@ -441,53 +255,40 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
         counts.notdue++
         const d = daysBetween(x.due, TODAY)
         notdueWin[winKey(d)] = (notdueWin[winKey(d)] || 0) + x.chaseAmt
+        notdueWinCount[winKey(d)] = (notdueWinCount[winKey(d)] || 0) + 1
+      } else if (x.cls === 'PENDING_NO_DUE') {
+        pendingNoDue += x.chaseAmt
+        pendingNoDueCount++
       }
     }
   }
 
-  // swiggy report confirmed totals
-  let swBilled = 0, swOutstanding = 0
-  for (const s of Object.values(swReport)) {
-    swBilled += s.netPay
-    if (s.outstd > 0) swOutstanding += s.outstd
-  }
-
   const paymentTotal = Object.values(payments).reduce((s, p) => s + p.amount, 0)
+  const confirmedPaid = master.filter(x => !x.cancelled && x.payAmt > 0).reduce((s, x) => s + x.payAmt, 0)
 
   const overdueList = master.filter(x => x.cls === 'OVERDUE').sort((a, b) => b.chaseAmt - a.chaseAmt)
   const notDueList = master.filter(x => x.cls === 'NOT_DUE').sort((a, b) => (a.due || 0) - (b.due || 0))
+  const leftoverPendingList = master.filter(x => x.cls !== 'PAID' && x.cls !== 'CANCELLED').sort((a, b) => b.chaseAmt - a.chaseAmt)
 
   const cancelledNums = new Set(master.filter(x => x.cancelled).map(x => x.num))
 
-  // paid-late (swiggy report paid after due date)
   const paidLate = []
   for (const [num, s] of Object.entries(swReport)) {
     if (cancelledNums.has(num)) continue
-    if (['paid', 'no due'].includes(s.payStatus.toLowerCase()) && s.payAmt > 0 && s.due && s.due < TODAY) {
+    if (/paid/i.test(s.payStatus) && !/partially/i.test(s.payStatus) && s.payAmt > 0 && s.due && s.due < TODAY) {
       paidLate.push({ inv: num, entity: s.entity, amt: s.netPay, due: s.due })
     }
   }
   paidLate.sort((a, b) => b.amt - a.amt)
   const paidLateValue = paidLate.reduce((s, p) => s + p.amt, 0)
 
-  // swiggy-report paid per entity
   const swPaidSum = {}
   for (const [num, s] of Object.entries(swReport)) {
     if (cancelledNums.has(num)) continue
-    if (['paid', 'no due'].includes(s.payStatus.toLowerCase()) && s.payAmt > 0) {
-      swPaidSum[s.entity] = (swPaidSum[s.entity] || 0) + s.netPay
+    if (/paid/i.test(s.payStatus) && s.payAmt > 0) {
+      swPaidSum[s.entity] = (swPaidSum[s.entity] || 0) + s.payAmt
     }
   }
-
-  // Zoho paid but NOT confirmed in swiggy report
-  const unconfirmedPaid = master
-    .filter(x => x.cls === 'PAID' && !x.inSw)
-    .sort((a, b) => b.total - a.total)
-
-  // conflicts: zoho unpaid, swiggy says paid
-  const conflicts = master
-    .filter(x => x.cls === 'PAID' && x.swStatus && !['Paid', 'No due'].includes(x.swStatus) && !x.lastPay && x.balance > 0)
-    .sort((a, b) => b.total - a.total)
 
   const entityList = Object.values(entities)
     .map(e => ({ ...e, coll: e.billed ? (e.paid / e.billed) * 100 : 0 }))
@@ -496,38 +297,259 @@ export function computeFinance({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows,
   return {
     overrides: { totalAdjustment, overriddenCount, sheetTotals, cancelledCount, cancelledTotal },
     invoices: master,
-    bank: {
-      total: bankTotal,
-      rows: bank.length,
-      byEntity: bankByEntity,
-      matchedPayments: payUsed.size,
-      flags: bankFlags,
-    },
-    zohoPaidNotInBank: totals.paid - bankTotal,
     date: toISODate(TODAY),
-    zohoCount: Object.keys(zoho).length,
-    voidCount,
     swCount: Object.keys(swReport).length,
     masterCount: master.length,
     totals, counts,
-    collectionPct: totals.billed ? (totals.paid / totals.billed) * 100 : 0,
-    overdueAge, notdueWin,
+    collectionPct: totals.billed ? (paymentTotal / totals.billed) * 100 : 0,
+    overdueAge, notdueWin, overdueAgeCount, notdueWinCount,
+    pendingNoDue, pendingNoDueCount,
     entities: entityList,
     paymentsByEntity: Object.entries(payments)
       .map(([entity, p]) => ({ entity, count: p.count, amount: p.amount }))
       .sort((a, b) => b.amount - a.amount),
     paymentTotal,
-    swiggyReport: { billed: swBilled, outstanding: swOutstanding },
-    grn: {
-      total: grnTotal, dn: grnDn,
-      facilities: Object.entries(grnFac).map(([facility, amount]) => ({ facility, amount })).sort((a, b) => b.amount - a.amount),
+    paymentCount: payRows.length,
+    payments: payRows,
+    confirmedPaid,
+    reconDiff: Math.abs(paymentTotal - confirmedPaid),
+    swiggyReport: {
+      billed: Object.values(swReport).reduce((s, x) => s + x.netPay, 0),
+      outstanding: Object.values(swReport).reduce((s, x) => s + Math.max(0, x.outstd), 0),
     },
+    deductionsTotal: master.reduce((s, x) => s + (x.deductions || 0), 0),
+    leftoverPendingList,
     overdueList,
     notDueList,
     paidLate, paidLateCount: paidLate.length, paidLateValue,
     swPaidSum,
-    unconfirmedPaid,
-    conflicts,
+  }
+}
+
+export function computeZohoAnalysis({ zohoRows, swiggyInvoiceRows, swiggyPaymentRows, today }) {
+  const TODAY = today || new Date()
+
+  const swReport = new Map()
+  for (const r of swiggyInvoiceRows || []) {
+    const inv = normInv(r['Invoice Number'])
+    if (!inv || String(r['Invoice Number'] || '').toUpperCase().includes('REVERSED')) continue
+    if (swReport.has(inv)) continue
+    swReport.set(inv, {
+      grnNo: String(r['GRN No.'] || '').trim(),
+      grnDate: parseDate(r['GRN Date'], true),
+      netPay: parseNum(r['Net Payable Amount']),
+      payAmt: parseNum(r['Payment amount']),
+      payRef: String(r['Payment Reference No'] || '').trim(),
+      outstd: parseNum(r['Outstanding payment']),
+      due: parseDate(r['Due Date'], true),
+      overdueLabel: String(r['Overdue'] || '').trim(),
+      payStatus: String(r['Payment Status'] || '').trim(),
+      lastPay: parseDate(r['Last Payment Date'], true),
+    })
+  }
+
+  const byInv = new Map()
+  for (const r of zohoRows || []) {
+    const id = String(r['Invoice ID'] || r['Invoice Number'] || '').trim()
+    if (!id) continue
+    const num = normInv(r['Invoice Number'])
+    if (!num) continue
+    const e = byInv.get(id) || {
+      id, num, entity: normEntity(r['Customer Name']),
+      invDate: parseDate(r['Invoice Date'], true), issuedDate: parseDate(r['Issued Date'], true),
+      zohoStatus: String(r['Invoice Status'] || '').trim(),
+      po: String(r['PurchaseOrder'] || '').trim(),
+      total: 0, balance: 0, subTotal: 0,
+      remarks: '', grnNo: '', grnDate: null, purchaseReturn: 0, brandDiscount: 0, otherDebit: 0, otherAdj: 0,
+      netPay: 0, payAmt: 0, payRef: '', outstd: 0, due: null, overdueLabel: '', payStatus: '', lastPay: null, appt: null,
+    }
+    e.total = Math.max(e.total, parseNum(r['Total']))
+    e.balance = Math.max(e.balance, parseNum(r['Balance']))
+    e.subTotal = Math.max(e.subTotal, parseNum(r['SubTotal']))
+    e.remarks = e.remarks || String(r['Remarks'] || '').trim()
+    e.grnNo = e.grnNo || String(r['GRN No.'] || '').trim()
+    e.grnDate = e.grnDate || parseDate(r['GRN Date'], true)
+    e.purchaseReturn = Math.max(e.purchaseReturn, parseNum(r['Purchase Return Amount']))
+    e.brandDiscount = Math.max(e.brandDiscount, parseNum(r['Brand discount (Promo Claims)']))
+    e.otherDebit = Math.max(e.otherDebit, parseNum(r['Other Debit Amount']))
+    e.otherAdj = Math.max(e.otherAdj, parseNum(r['Other adjustments *']))
+    e.netPay = Math.max(e.netPay, parseNum(r['Net Payable Amount']))
+    e.payAmt = Math.max(e.payAmt, parseNum(r['Payment amount']))
+    e.payRef = e.payRef || String(r['Payment Reference No'] || '').trim()
+    e.outstd = Math.max(e.outstd, parseNum(r['Outstanding payment']))
+    e.due = e.due || parseDate(r['Due Date'], true)
+    e.overdueLabel = e.overdueLabel || String(r['Overdue'] || '').trim()
+    e.payStatus = e.payStatus || String(r['Payment Status'] || '').trim()
+    e.lastPay = e.lastPay || parseDate(r['Last Payment Date'], true)
+    e.appt = e.appt || parseDate(r['Appointment Date'], true)
+    byInv.set(id, e)
+  }
+
+  const invoices = [...byInv.values()]
+
+  for (const x of invoices) {
+    const rep = swReport.get(x.num)
+    if (rep) {
+      x.mapped = true
+      x.grnNo = rep.grnNo || x.grnNo
+      x.grnDate = rep.grnDate || x.grnDate
+      x.netPay = rep.netPay
+      x.payAmt = rep.payAmt
+      x.payRef = rep.payRef || x.payRef
+      x.outstd = rep.outstd
+      x.due = rep.due
+      x.overdueLabel = rep.overdueLabel || x.overdueLabel
+      x.payStatus = rep.payStatus || x.payStatus
+      x.lastPay = rep.lastPay || x.lastPay
+    }
+    x.flagged = !!x.remarks
+    x.awaitingGrn = !x.grnNo
+    let cls
+    if (!x.mapped) cls = 'NO_GRN'
+    else if (x.outstd <= 0) cls = 'PAID'
+    else if (!x.due) cls = 'PENDING_NO_DUE'
+    else if (x.due < TODAY) cls = 'OVERDUE'
+    else cls = 'NOT_DUE'
+    x.cls = cls
+    x.daysPastDue = cls === 'OVERDUE' ? Math.round((TODAY - x.due) / 86400000) : 0
+  }
+
+  const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0)
+
+  const nonRemarks = invoices.filter(x => !x.flagged)
+  const flagged = invoices.filter(x => x.flagged)
+  const mapped = invoices.filter(x => x.mapped)
+  const awaitingGrn = invoices.filter(x => x.awaitingGrn)
+  const awaitingGrnNonRemarks = awaitingGrn.filter(x => !x.flagged)
+  const paidList = mapped.filter(x => x.cls === 'PAID')
+  const overdueList = mapped.filter(x => x.cls === 'OVERDUE').sort((a, b) => b.outstd - a.outstd)
+  const notDueList = mapped.filter(x => x.cls === 'NOT_DUE').sort((a, b) => (a.due || 0) - (b.due || 0))
+  const pendingNoDueList = mapped.filter(x => x.cls === 'PENDING_NO_DUE')
+  const flaggedList = flagged.slice().sort((a, b) => b.total - a.total)
+  const awaitingGrnList = awaitingGrn.slice().sort((a, b) => b.total - a.total)
+
+  const bucketKey = (d) => (d <= 15 ? '0-15' : d <= 30 ? '16-30' : d <= 60 ? '31-60' : '60+')
+  const overdueAge = {}
+  const overdueAgeCount = {}
+  for (const x of overdueList) {
+    const k = bucketKey(x.daysPastDue)
+    overdueAge[k] = (overdueAge[k] || 0) + x.outstd
+    overdueAgeCount[k] = (overdueAgeCount[k] || 0) + 1
+  }
+
+  const winKey = (d) => (d <= 7 ? '0-7' : d <= 15 ? '8-15' : d <= 30 ? '16-30' : '30+')
+  const notdueWin = {}
+  const notdueWinCount = {}
+  for (const x of notDueList) {
+    const k = winKey(Math.max(0, Math.round((x.due - TODAY) / 86400000)))
+    notdueWin[k] = (notdueWin[k] || 0) + x.outstd
+    notdueWinCount[k] = (notdueWinCount[k] || 0) + 1
+  }
+
+  let statementTotal = 0
+  let statementCount = 0
+  const stByEntity = {}
+  for (const r of swiggyPaymentRows || []) {
+    const ent = normEntity(r['Organization Name'])
+    if (!ent) continue
+    const amt = parseNum(r['Amount'])
+    if (amt <= 0) continue
+    statementTotal += amt
+    statementCount++
+    stByEntity[ent] = (stByEntity[ent] || 0) + amt
+  }
+
+  const mappedPaid = sum(mapped, x => x.payAmt)
+  const flaggedMappedAmount = sum(mapped.filter(x => x.flagged), x => x.netPay)
+  const netBilled = sum(nonRemarks, x => x.total) - sum(mapped.filter(x => !x.flagged), x => x.purchaseReturn + x.brandDiscount + x.otherDebit + x.otherAdj)
+
+  const entities = {}
+  for (const x of invoices) {
+    const e = entities[x.entity] || (entities[x.entity] = {
+      entity: x.entity, invoices: 0, billed: 0, balance: 0, flagged: 0, flaggedTotal: 0,
+      awaitingGrn: 0, awaitingGrnTotal: 0, mapped: 0, netPay: 0, paid: 0, outstd: 0,
+    })
+    e.invoices++
+    if (!x.flagged) {
+      e.billed += x.total
+      e.balance += x.balance
+    } else {
+      e.flagged++
+      e.flaggedTotal += x.total
+    }
+    if (x.awaitingGrn) {
+      e.awaitingGrn++
+      e.awaitingGrnTotal += x.total
+    }
+    if (x.mapped) {
+      e.mapped++
+      e.netPay += x.netPay
+      e.paid += x.payAmt
+      e.outstd += x.outstd
+    }
+  }
+  const entityList = Object.values(entities)
+    .map(e => ({ ...e, statementPaid: stByEntity[e.entity] || 0 }))
+    .sort((a, b) => b.billed - a.billed)
+
+  const zohoStatus = {}
+  for (const x of invoices) zohoStatus[x.zohoStatus || '(blank)'] = (zohoStatus[x.zohoStatus || '(blank)'] || 0) + 1
+
+  return {
+    date: toISODate(TODAY),
+    invoices,
+    all: { count: invoices.length, total: sum(invoices, x => x.total) },
+    nonRemarks: {
+      count: nonRemarks.length,
+      total: sum(nonRemarks, x => x.total),
+      balance: sum(nonRemarks, x => x.balance),
+    },
+    flagged: {
+      count: flagged.length,
+      total: sum(flagged, x => x.total),
+      byRemark: flagged.reduce((m, x) => { m[x.remarks] = (m[x.remarks] || 0) + 1; return m }, {}),
+    },
+    mapped: {
+      count: mapped.length,
+      netPay: sum(mapped, x => x.netPay),
+      paid: mappedPaid,
+      outstd: sum(mapped, x => x.outstd),
+    },
+    netBilled,
+    bridge: {
+      awaitingGrnAmount: awaitingGrnNonRemarks.reduce((s, x) => s + x.total, 0),
+      flaggedMappedAmount,
+    },
+    awaitingGrn: {
+      count: awaitingGrn.length,
+      total: sum(awaitingGrn, x => x.total),
+      balance: sum(awaitingGrn, x => x.balance),
+      nonRemarksCount: awaitingGrnNonRemarks.length,
+      nonRemarksTotal: sum(awaitingGrnNonRemarks, x => x.total),
+      nonRemarksBalance: sum(awaitingGrnNonRemarks, x => x.balance),
+    },
+    overdue: { count: overdueList.length, amount: sum(overdueList, x => x.outstd) },
+    overdueAge, overdueAgeCount, notdueWin, notdueWinCount,
+    notDue: { count: notDueList.length, amount: sum(notDueList, x => x.outstd) },
+    pendingNoDue: { count: pendingNoDueList.length, amount: sum(pendingNoDueList, x => x.outstd) },
+    paid: { count: paidList.length, amount: sum(paidList, x => x.payAmt) },
+    deductions: {
+      purchaseReturn: sum(mapped, x => x.purchaseReturn),
+      brandDiscount: sum(mapped, x => x.brandDiscount),
+      otherDebit: sum(mapped, x => x.otherDebit),
+      otherAdj: sum(mapped, x => x.otherAdj),
+      total: sum(mapped, x => x.purchaseReturn + x.brandDiscount + x.otherDebit + x.otherAdj),
+    },
+    statement: {
+      total: statementTotal,
+      count: statementCount,
+      byEntity: stByEntity,
+      mappedPaid,
+      diff: Math.abs(statementTotal - mappedPaid),
+    },
+    entities: entityList,
+    zohoStatus,
+    lists: { paidList, overdueList, notDueList, pendingNoDueList, awaitingGrnList, flaggedList },
   }
 }
 
@@ -537,14 +559,12 @@ export async function fetchFinanceRows() {
     if (!res.ok) throw new Error(`${label}: HTTP ${res.status} ${res.statusText}`)
     return parseCSV(await res.text())
   }
-  const [zohoRows, swiggyInvoiceRows, swiggyPaymentRows, grnRows, bankRows] = await Promise.all([
-    fetchCsv(SHEET_URLS.zoho, 'Zoho invoices'),
+  const [zohoMasterRows, swiggyInvoiceRows, swiggyPaymentRows] = await Promise.all([
+    fetchCsv(SHEET_URLS.zohoMaster, 'Zoho invoice details'),
     fetchCsv(SHEET_URLS.swiggyInvoice, 'Swiggy invoice report'),
-    fetchCsv(SHEET_URLS.swiggyPayment, 'Swiggy payment report'),
-    fetchCsv(SHEET_URLS.grn, 'GRN details'),
-    fetchCsv(SHEET_URLS.bank, 'Bank statement'),
+    fetchCsv(SHEET_URLS.swiggyPayment, 'Swiggy payment statement'),
   ])
-  return { zohoRows, swiggyInvoiceRows, swiggyPaymentRows, grnRows, bankRows }
+  return { zohoMasterRows, swiggyInvoiceRows, swiggyPaymentRows }
 }
 
 export async function fetchFinanceSheets(overrides) {
@@ -553,3 +573,117 @@ export async function fetchFinanceSheets(overrides) {
 }
 
 export const inr = (v) => '₹' + Math.round(v || 0).toLocaleString('en-IN')
+
+const MASTER_FIN_COLS = {
+  invoiced: 'Invoices recorded',
+  tds: 'TDS/TCS',
+  purchaseReturn: 'Purchase Return Amount',
+  brandDiscount: 'Brand discount (Promo Claims)',
+  otherDebit: 'Other Debit Amount',
+  otherAdj: 'Other adjustments *',
+  netPayable: 'Net Payable Amount',
+  paid: 'Payment amount',
+  payRef: 'Payment Reference No',
+  outstanding: 'Outstanding payment',
+  dueDate: 'Due Date',
+  payStatus: 'Payment Status',
+  lastPay: 'Last Payment Date',
+}
+
+export function computeMasterFinance({ poData, today = new Date() }) {
+  const t = today instanceof Date ? today : new Date(today)
+  const rows = (poData || []).filter(r => {
+    const b = (r[MASTER_FIN_COLS.invoiced] || '').toString().trim()
+    return b !== '' && parseNum(b) > 0
+  })
+  let billed = 0, netPayable = 0, paid = 0, outstanding = 0
+  let pr = 0, brand = 0, otherDebit = 0, otherAdj = 0, tds = 0
+  const invoices = []
+  const entityMap = {}
+  let overdueCount = 0, overdueAmount = 0, notDueCount = 0, notDueAmount = 0, paidCount = 0
+  const overdueAge = { '0-10': 0, '11-20': 0, '21-30': 0, '30+': 0 }
+  const overdueAgeCount = { '0-10': 0, '11-20': 0, '21-30': 0, '30+': 0 }
+  const notdueWin = { '0-10': 0, '11-20': 0, '21-30': 0, '30+': 0 }
+  const notdueWinCount = { '0-10': 0, '11-20': 0, '21-30': 0, '30+': 0 }
+
+  for (const r of rows) {
+    const ent = normEntity(r['Entity'] || 'Unknown')
+    const b = parseNum(r[MASTER_FIN_COLS.invoiced])
+    const np = parseNum(r[MASTER_FIN_COLS.netPayable])
+    const pa = parseNum(r[MASTER_FIN_COLS.paid])
+    const os = parseNum(r[MASTER_FIN_COLS.outstanding])
+    const dpr = parseNum(r[MASTER_FIN_COLS.purchaseReturn])
+    const bd = parseNum(r[MASTER_FIN_COLS.brandDiscount])
+    const od = parseNum(r[MASTER_FIN_COLS.otherDebit])
+    const oa = parseNum(r[MASTER_FIN_COLS.otherAdj])
+    const tt = parseNum(r[MASTER_FIN_COLS.tds])
+    const due = parseDate(r[MASTER_FIN_COLS.dueDate])
+    const lastPay = parseDate(r[MASTER_FIN_COLS.lastPay])
+    const ps = (r[MASTER_FIN_COLS.payStatus] || '').trim()
+    const lowPs = ps.toLowerCase()
+    const isPaid = pa > 0 || lowPs === 'paid' || lowPs === 'partially paid' || lowPs.startsWith('paid')
+    const daysPastDue = (due && !isNaN(due)) ? Math.round((t - due) / 86400000) : null
+    const daysToDue = (due && !isNaN(due)) ? Math.round((due - t) / 86400000) : null
+
+    billed += b; netPayable += np; paid += pa; outstanding += os
+    pr += dpr; brand += bd; otherDebit += od; otherAdj += oa; tds += tt
+
+    let cls = 'PAID'
+    if (!isPaid && os > 0.01) {
+      cls = (due && !isNaN(due) && due < t) ? 'OVERDUE' : 'NOT_DUE'
+    }
+
+    if (cls === 'OVERDUE') {
+      overdueCount++; overdueAmount += os
+      const age = daysPastDue == null ? '30+' : (daysPastDue <= 10 ? '0-10' : daysPastDue <= 20 ? '11-20' : daysPastDue <= 30 ? '21-30' : '30+')
+      overdueAge[age] += os; overdueAgeCount[age]++
+    } else if (cls === 'NOT_DUE') {
+      notDueCount++; notDueAmount += os
+      const win = daysToDue == null ? '30+' : (daysToDue <= 10 ? '0-10' : daysToDue <= 20 ? '11-20' : daysToDue <= 30 ? '21-30' : '30+')
+      notdueWin[win] += os; notdueWinCount[win]++
+    } else {
+      paidCount++
+    }
+
+    if (!entityMap[ent]) entityMap[ent] = { entity: ent, count: 0, billed: 0, netPay: 0, paid: 0, outstanding: 0, overdue: 0, notdue: 0 }
+    const em = entityMap[ent]
+    em.count++; em.billed += b; em.netPay += np; em.paid += pa; em.outstanding += os
+    if (cls === 'OVERDUE') em.overdue += os
+    else if (cls === 'NOT_DUE') em.notdue += os
+
+    invoices.push({
+      po: r['PO Number'] || '',
+      entity: ent,
+      billed: b, netPay: np, paid: pa, outstd: os,
+      due, payStatus: ps, lastPay, cls,
+      daysPastDue: cls === 'OVERDUE' ? (daysPastDue || 0) : (cls === 'NOT_DUE' && daysToDue != null ? Math.max(0, daysToDue) : 0),
+    })
+  }
+
+  const entities = Object.values(entityMap).sort((a, b) => b.billed - a.billed)
+  const overdueList = invoices.filter(x => x.cls === 'OVERDUE').sort((a, b) => b.daysPastDue - a.daysPastDue)
+  const notDueList = invoices.filter(x => x.cls === 'NOT_DUE')
+  const paidList = invoices.filter(x => x.cls === 'PAID')
+
+  return {
+    date: toISODate(t),
+    count: rows.length,
+    billed: Math.round(billed),
+    netPayable: Math.round(netPayable),
+    paid: Math.round(paid),
+    outstanding: Math.round(outstanding),
+    deductions: {
+      purchaseReturn: Math.round(pr), brandDiscount: Math.round(brand), otherDebit: Math.round(otherDebit),
+      otherAdj: Math.round(otherAdj), tds: Math.round(tds),
+      total: Math.round(pr + brand + otherDebit + otherAdj + tds),
+    },
+    overdue: { count: overdueCount, amount: Math.round(overdueAmount) },
+    overdueAge, overdueAgeCount,
+    notDue: { count: notDueCount, amount: Math.round(notDueAmount) },
+    notdueWin, notdueWinCount,
+    paidCount,
+    entities,
+    invoices,
+    lists: { overdueList, notDueList, paidList },
+  }
+}

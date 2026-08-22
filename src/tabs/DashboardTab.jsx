@@ -4,7 +4,7 @@ import {
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
 import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES } from '../lib/utils'
-import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection } from '../components/ui'
+import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection, ChartEmpty } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
 import { ExecutiveSummary } from '../components/ExecutiveSummary'
@@ -21,7 +21,7 @@ const PIE_COLORS = {
   Unknown: '#64748b',
 }
 
-export default function DashboardTab({ data, allData, metrics, statusData, recentOrders, platformFilter, onOpenPO, onSearchOpen }) {
+export default function DashboardTab({ data, allData, metrics, recentOrders, platformFilter, onOpenPO, onSearchOpen }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
@@ -444,6 +444,38 @@ export default function DashboardTab({ data, allData, metrics, statusData, recen
 
   const trendMonths = useMemo(() => monthData.slice(0, 6), [monthData])
 
+  const upcomingAppointments = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const horizon = new Date(today); horizon.setDate(horizon.getDate() + 14)
+    const poMap = {}
+    for (const r of data) {
+      const po = r['PO Number']; if (!po) continue
+      const d = parseMMDDDate(r['Appointment Date(MM-DD-YYYY)']); if (!d) continue
+      if (!poMap[po]) poMap[po] = { po, date: d, rows: [] }
+      poMap[po].rows.push(r)
+    }
+    return Object.values(poMap)
+      .filter(x => x.date >= today && x.date <= horizon)
+      .sort((a, b) => a.date - b.date)
+      .slice(0, 8)
+      .map(x => {
+        const rows = x.rows
+        const ms = x.date.getTime() - today.getTime()
+        const days = Math.round(ms / 86400000)
+        return {
+          po: x.po,
+          date: x.date,
+          days,
+          city: rows[0]?.['City'] || '—',
+          platform: rows[0]?.['Platform'] || '—',
+          tonnage: Math.round(sumField(rows, 'Tonnage')),
+          value: Math.round(sumPOField(rows, 'PO Value with Tax')),
+          status: rows[0]?.['Status'] || 'Unknown',
+          row: rows[0],
+        }
+      })
+  }, [data])
+
   const monthCSVRows = () => {
     const rows = ['Month-wise Overview']
     rows.push('')
@@ -551,6 +583,37 @@ export default function DashboardTab({ data, allData, metrics, statusData, recen
 
       <FulfillmentMetrics data={data} />
 
+      {upcomingAppointments.length > 0 && (
+        <div style={{ marginBottom: 20, background: 'rgba(15,23,42,0.6)', border: '1px solid #334155', borderRadius: 12, padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>📅 Upcoming Appointments <span style={{ fontSize: 11, color: '#64748b', fontWeight: 500 }}>next 14 days</span></div>
+            <div style={{ fontSize: 11, color: '#64748b' }}>click a row for details</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {upcomingAppointments.map(a => {
+              const urgency = a.days === 0 ? { c: '#ef4444', t: 'Today' } : a.days === 1 ? { c: '#eab308', t: 'Tomorrow' } : a.days <= 3 ? { c: '#3b82f6', t: `${a.days}d` } : { c: '#64748b', t: `${a.days}d` }
+              return (
+                <div
+                  key={a.po}
+                  onClick={() => onOpenPO(a.row)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#1e293b', border: '1px solid #334155', borderRadius: 10, cursor: 'pointer', transition: 'border-color .15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#334155' }}
+                >
+                  <span style={{ flex: '0 0 auto', padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: `${urgency.c}22`, color: urgency.c, border: `1px solid ${urgency.c}44`, whiteSpace: 'nowrap' }}>{urgency.t}</span>
+                  <span style={{ flex: '0 0 auto', fontSize: 12, color: '#94a3b8' }}>{String(a.date.getMonth() + 1).padStart(2, '0')}-{String(a.date.getDate()).padStart(2, '0')}-{a.date.getFullYear()}</span>
+                  <span style={{ flex: '0 0 auto', fontSize: 13, fontWeight: 700, color: '#60a5fa' }}>{a.po}</span>
+                  <span style={{ flex: 1, fontSize: 12, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.city} • {a.platform}</span>
+                  <span style={{ flex: '0 0 auto', fontSize: 12, color: '#a78bfa', fontWeight: 600 }}>{a.tonnage} KG</span>
+                  <span style={{ flex: '0 0 auto', fontSize: 12, color: '#22c55e', fontWeight: 600 }}>₹{a.value.toLocaleString()}</span>
+                  <StatusPill status={a.status} />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="stats-grid">
         <StatCard
           label="Total Orders" icon="📋" color="#3b82f6"
@@ -651,6 +714,9 @@ export default function DashboardTab({ data, allData, metrics, statusData, recen
               ))}
             </div>
           </div>
+          {periodCityData.length === 0 ? (
+            <ChartEmpty icon="🏙️" message="No city data for the selected period" />
+          ) : (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={periodCityData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -677,12 +743,16 @@ export default function DashboardTab({ data, allData, metrics, statusData, recen
               <Bar dataKey={cityMetric} fill={cityMetric === 'value' ? '#22c55e' : cityMetric === 'tonnage' ? '#a855f7' : '#3b82f6'} radius={[6, 6, 0, 0]} name={cityMetric} onClick={(d) => d && d.payload && setDrill({ city: d.payload.city, status: null })} style={{ cursor: 'pointer' }} />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </div>
         <div className="chart-card">
           <div className="chart-header">
             <div className="chart-title">Order Status</div>
             <div className="chart-period">Distribution</div>
           </div>
+          {periodStatusData.length === 0 ? (
+            <ChartEmpty icon="🥧" message="No status data for the selected period" />
+          ) : (
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -705,6 +775,7 @@ export default function DashboardTab({ data, allData, metrics, statusData, recen
               <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8' }} formatter={(value) => <span style={{ color: '#94a3b8' }}>{value}</span>} />
             </PieChart>
           </ResponsiveContainer>
+          )}
         </div>
       </div>
 

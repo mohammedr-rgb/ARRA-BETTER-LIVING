@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSort, applySort } from '../lib/useSort'
-import { csvEscape, csvNum, downloadCSV } from '../lib/utils'
+import { csvEscape, csvNum, downloadCSV, downloadXLSX } from '../lib/utils'
 import { EmptyState } from './ui'
 
 const controlStyle = {
@@ -58,6 +58,19 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
     downloadCSV(lines, filename)
   }
 
+  const doExportXLSX = () => {
+    if (!filename || !sorted.length) return
+    const xlsxName = filename.replace(/\.csv$/i, '.xlsx')
+    const aoa = [columns.map(c => c.label)]
+    sorted.forEach(r => {
+      aoa.push(columns.map(c => {
+        const v = accessors[c.key](r)
+        return c.align === 'right' ? Number(csvNum(v) || 0) : String(v ?? '')
+      }))
+    })
+    downloadXLSX(aoa, xlsxName, 'Data')
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
@@ -67,9 +80,14 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
           {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n} per page</option>)}
         </select>
         {filename && (
-          <button onClick={doExport} style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            ⬇ Download CSV
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={doExport} style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              ⬇ CSV
+            </button>
+            <button onClick={doExportXLSX} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              ⬇ XLSX
+            </button>
+          </div>
         )}
       </div>
 

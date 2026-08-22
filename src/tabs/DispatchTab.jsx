@@ -193,7 +193,7 @@ export default function DispatchTab({ data, onOpenPO }) {
     summaryLines.push('')
     summaryLines.push('Product-wise Summary')
     summaryLines.push(['Product', 'Platform', 'Box Type', 'MRP', 'Total Box Count', 'Total Tonnage'].map(csvEscape).join(','))
-    for (const [k, v] of Object.entries(byProductMRP).sort((a, b) => b[1].tonnage - a[1].tonnage)) {
+    for (const [, v] of Object.entries(byProductMRP).sort((a, b) => b[1].tonnage - a[1].tonnage)) {
       summaryLines.push([v.product, v.platform, v.boxType, csvEscape(v.mrp), Math.round(v.boxes), Math.round(v.tonnage)].map(csvEscape).join(','))
     }
     const prodTotal = Object.values(byProductMRP).reduce((s, v) => ({ boxes: s.boxes + v.boxes, tonnage: s.tonnage + v.tonnage }), { boxes: 0, tonnage: 0 })

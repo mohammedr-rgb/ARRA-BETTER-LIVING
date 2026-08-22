@@ -1,4 +1,4 @@
-import { useMemo, Fragment } from 'react'
+import { useMemo, useState, Fragment } from 'react'
 import { num, parseMMDDDate, csvEscape, MONTH_NAMES, productSummary } from '../lib/utils'
 import { CSVButton, ProfileSection } from '../components/ui'
 import { buildProductionPlan, planCSVRows, groupRowsByBoxType, totalsFor } from '../lib/productionPlan'
@@ -6,7 +6,50 @@ import { buildProductionPlan, planCSVRows, groupRowsByBoxType, totalsFor } from 
 const BOX_CHIP_COLORS = { 'White Box': '#22c55e', 'Standard Box': '#3b82f6' }
 
 export default function InventoryTab({ data }) {
-  const productData = useMemo(() => productSummary(data), [data])
+  const [selectedMonths, setSelectedMonths] = useState(() => {
+    const now = new Date()
+    return new Set([now.getFullYear() * 12 + now.getMonth()])
+  })
+
+  const monthOptions = useMemo(() => {
+    const map = {}
+    data.forEach(r => {
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+      if (!d) return
+      const mk = d.getFullYear() * 12 + d.getMonth()
+      if (!map[mk]) map[mk] = `${MONTH_NAMES[mk % 12]} ${String(Math.floor(mk / 12)).slice(2)}`
+    })
+    return Object.entries(map).sort((a, b) => Number(b[0]) - Number(a[0])).map(([mk, label]) => ({ mk: Number(mk), label }))
+  }, [data])
+
+  const toggleMonth = (mk) => {
+    setSelectedMonths(prev => {
+      const next = new Set(prev)
+      if (next.has(mk)) next.delete(mk)
+      else next.add(mk)
+      return next
+    })
+  }
+
+  const resetMonths = () => setSelectedMonths(new Set())
+
+  const periodData = useMemo(() => {
+    if (!selectedMonths.size) return data
+    return data.filter(r => {
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+      return d && selectedMonths.has(d.getFullYear() * 12 + d.getMonth())
+    })
+  }, [data, selectedMonths])
+
+  const scopeLabel = useMemo(() => {
+    if (!selectedMonths.size) return 'All months'
+    return [...selectedMonths]
+      .sort((a, b) => a - b)
+      .map(mk => MONTH_NAMES[mk % 12] + ' ' + String(Math.floor(mk / 12)).slice(2))
+      .join(', ')
+  }, [selectedMonths])
+
+  const productData = useMemo(() => productSummary(periodData), [periodData])
 
   const productionPlan = useMemo(() => buildProductionPlan(data), [data])
   const planSections = useMemo(() => groupRowsByBoxType(productionPlan.rows), [productionPlan])
@@ -26,7 +69,7 @@ export default function InventoryTab({ data }) {
   const platformMonthData = useMemo(() => {
     const map = {}
     const monthSet = new Set()
-    data.forEach(r => {
+    periodData.forEach(r => {
       const p = r['Platform'] || 'Unknown'
       const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
       if (!d) return
@@ -64,7 +107,41 @@ export default function InventoryTab({ data }) {
       return { tonnage: s.tonnage + (c ? c.tonnage : 0), value: s.value + (c ? c.value : 0) }
     }, { tonnage: 0, value: 0 }))
     return { months, rows, grand, monthTotals }
-  }, [data])
+  }, [periodData])
+
+  const inventoryTotals = useMemo(() => ({
+    qty: productData.reduce((s, r) => s + r.qty, 0),
+    tonnage: productData.reduce((s, r) => s + r.tonnage, 0),
+    boxes: productData.reduce((s, r) => s + r.boxes, 0),
+    value: productData.reduce((s, r) => s + r.value, 0),
+  }), [productData])
+
+  const inventoryStats = [
+    { label: 'Total Qty', icon: '🧴', color: '#3b82f6', value: inventoryTotals.qty.toLocaleString() },
+    { label: 'Total Tonnage', icon: '⚖️', color: '#eab308', value: Math.round(inventoryTotals.tonnage).toLocaleString() + ' KG' },
+    { label: 'Total Boxes', icon: '📦', color: '#a855f7', value: inventoryTotals.boxes.toLocaleString() },
+    { label: 'Total Value', icon: '₹', color: '#22c55e', value: '₹' + Math.round(inventoryTotals.value).toLocaleString() },
+  ]
+
+  const inventoryCSVRows = () => {
+    const rows = ['Inventory Summary']
+    rows.push('')
+    rows.push('Product,Total Qty,Tonnage KG,Boxes,Total Value')
+    productData.forEach(r => {
+      rows.push(csvEscape(r.product) + ',' + r.qty + ',' + Math.round(r.tonnage) + ',' + r.boxes + ',' + Math.round(r.value))
+    })
+    rows.push('TOTAL,' + productData.reduce((s, r) => s + r.qty, 0) + ',' + Math.round(productData.reduce((s, r) => s + r.tonnage, 0)) + ',' + productData.reduce((s, r) => s + r.boxes, 0) + ',' + Math.round(productData.reduce((s, r) => s + r.value, 0)))
+    rows.push('')
+    rows.push('Invoice-wise Details')
+    rows.push('Invoice No,Invoice Date,Product,Platform,PO Number,PO Qty,Tonnage KG,Box Count,Invoice Value')
+    const detail = [...periodData]
+      .filter(r => (r['Invoice No'] || '').trim())
+      .sort((a, b) => String(a['Invoice Date (MM-DD-YYYY)'] || '').localeCompare(String(b['Invoice Date (MM-DD-YYYY)'] || '')))
+    detail.forEach(r => {
+      rows.push([r['Invoice No'], r['Invoice Date (MM-DD-YYYY)'], r['Product'], r['Platform'], r['PO Number'], num(r['PO Qty']), Math.round(num(r['Tonnage'])), Math.round(num(r['Box Count'])), num(r['Invoice Value'])].map(x => csvEscape(String(x ?? ''))).join(','))
+    })
+    return rows
+  }
 
   const platformMonthCSVRows = () => {
     const rows = ['Platform & Month-wise Sales']
@@ -82,22 +159,60 @@ export default function InventoryTab({ data }) {
       <header>
         <div>
           <h1>Inventory</h1>
-          <div className="date">{productData.length} unique products • Platform: All</div>
+          <div className="date">{productData.length} unique products • {scopeLabel}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.5 }}>PERIOD</span>
+            <button
+              onClick={resetMonths}
+              style={{ padding: '4px 10px', borderRadius: 16, border: '1px solid ' + (selectedMonths.size === 0 ? '#3b82f6' : '#334155'), background: selectedMonths.size === 0 ? 'rgba(59,130,246,0.15)' : '#1e293b', color: selectedMonths.size === 0 ? '#3b82f6' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+            >
+              All
+            </button>
+            {monthOptions.map(m => {
+              const on = selectedMonths.has(m.mk)
+              return (
+                <button
+                  key={m.mk}
+                  onClick={() => toggleMonth(m.mk)}
+                  style={{ padding: '4px 10px', borderRadius: 16, border: '1px solid ' + (on ? '#22c55e' : '#334155'), background: on ? 'rgba(34,197,94,0.15)' : '#1e293b', color: on ? '#22c55e' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {m.label}
+                </button>
+              )
+            })}
+          </div>
           <ProfileSection />
         </div>
       </header>
 
-      <div className="recent-orders" style={{ marginTop: 0 }}>
+      <div className="stats-grid" style={{ marginTop: 0 }}>
+        {inventoryStats.map(s => (
+          <div className="stat-card" key={s.label}>
+            <div className="stat-header">
+              <div className="stat-label">{s.label}</div>
+              <div className="stat-icon" style={{ background: `${s.color}26`, color: s.color }}>{s.icon}</div>
+            </div>
+            <div className="stat-value">{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="recent-orders" style={{ marginTop: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">Product-wise Summary</div>
+          <div className="chart-period">By Tonnage (KG) • Total Qty • Boxes • Value</div>
+          <CSVButton makeRows={inventoryCSVRows} filename="inventory_summary.csv" />
+        </div>
         <table>
           <thead>
             <tr>
               <th>Product</th>
-              <th>Total Qty</th>
-              <th>Tonnage (KG)</th>
-              <th>Boxes</th>
-              <th>Total Value</th>
+              <th>Total Qty ({inventoryTotals.qty.toLocaleString()})</th>
+              <th>Tonnage (KG) ({Math.round(inventoryTotals.tonnage).toLocaleString()})</th>
+              <th>Boxes ({inventoryTotals.boxes.toLocaleString()})</th>
+              <th>Total Value (₹{Math.round(inventoryTotals.value).toLocaleString()})</th>
             </tr>
           </thead>
           <tbody>
@@ -110,6 +225,13 @@ export default function InventoryTab({ data }) {
                 <td>₹{Math.round(row.value).toLocaleString()}</td>
               </tr>
             ))}
+            <tr style={{ background: 'rgba(59,130,246,0.08)', fontWeight: 700 }}>
+              <td style={{ borderTop: '2px solid #334155' }}>TOTAL</td>
+              <td style={{ borderTop: '2px solid #334155' }}>{productData.reduce((s, r) => s + r.qty, 0).toLocaleString()}</td>
+              <td style={{ borderTop: '2px solid #334155' }}>{Math.round(productData.reduce((s, r) => s + r.tonnage, 0)).toLocaleString()}</td>
+              <td style={{ borderTop: '2px solid #334155' }}>{productData.reduce((s, r) => s + r.boxes, 0).toLocaleString()}</td>
+              <td style={{ borderTop: '2px solid #334155' }}>₹{Math.round(productData.reduce((s, r) => s + r.value, 0)).toLocaleString()}</td>
+            </tr>
           </tbody>
         </table>
       </div>

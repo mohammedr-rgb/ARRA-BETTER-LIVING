@@ -2,6 +2,8 @@ export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Au
 
 export const statusFilters = ['All', 'Active', 'Delivered', 'RTO']
 
+import * as XLSX from 'xlsx'
+
 export function num(val) {
   const cleaned = String(val).replace(/[^0-9.-]/g, '')
   const n = parseFloat(cleaned)
@@ -65,6 +67,12 @@ export function downloadCSV(rows, filename) {
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+export function downloadXLSX(aoa, filename, sheetName = 'Sheet1') {
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), sheetName)
+  XLSX.writeFile(wb, filename)
 }
 
 export function uniqueByPO(arr) {

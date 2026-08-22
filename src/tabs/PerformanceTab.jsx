@@ -635,7 +635,7 @@ function WoWCityTable({ data, dateFrom, dateTo, platformFilter }) {
     })
     Object.values(map).forEach(x => { x.currOrders = x.currOrders.size; x.prevOrders = x.prevOrders.size })
     return Object.values(map).sort((a, b) => b.currOrders - a.currOrders)
-  }, [data, dateTo, platformFilter])
+  }, [data, dateFrom, dateTo, platformFilter])
 
   if (!wowData.length) return <EmptyState message="No data for week-over-week comparison." />
 

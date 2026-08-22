@@ -8,17 +8,56 @@
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-card: #1e293b;
+  --bg-elevated: #273449;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --accent: #3b82f6;
   --accent-hover: #2563eb;
+  --accent-soft: rgba(59, 130, 246, 0.12);
+  --accent-soft-border: rgba(59, 130, 246, 0.25);
   --success: #22c55e;
   --warning: #eab308;
   --danger: #ef4444;
+  --purple: #a855f7;
   --border: #334155;
+  --border-soft: #283548;
   --sidebar-width: 260px;
   --header-height: 64px;
+
+  /* spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* radius scale */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --r-pill: 999px;
+
+  /* shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
+
+  /* transitions */
+  --t-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --t-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* chart palette */
+  --chart-blue: #3b82f6;
+  --chart-green: #22c55e;
+  --chart-purple: #a855f7;
+  --chart-amber: #eab308;
+  --chart-red: #ef4444;
+  --chart-cyan: #06b6d4;
+  --chart-indigo: #6366f1;
 }
 
 body {
