@@ -132,6 +132,39 @@ export default function InventoryTab({ data }) {
     })
     rows.push('TOTAL,' + productData.reduce((s, r) => s + r.qty, 0) + ',' + Math.round(productData.reduce((s, r) => s + r.tonnage, 0)) + ',' + productData.reduce((s, r) => s + r.boxes, 0) + ',' + Math.round(productData.reduce((s, r) => s + r.value, 0)))
     rows.push('')
+
+    // Product & City-wise breakdown
+    rows.push('Product & City-wise Summary')
+    rows.push('')
+    rows.push('Product,City,Qty,Tonnage KG,Boxes,Value')
+    const poQtyMap = {}
+    const poValueMap = {}
+    for (const r of periodData) {
+      const po = r['PO Number']; if (!po) continue
+      poQtyMap[po] = (poQtyMap[po] || 0) + num(r['PO Qty'])
+      const v = num(r['PO Value with Tax'])
+      if (v > 0 && v > (poValueMap[po] || 0)) poValueMap[po] = v
+    }
+    const pcMap = {}
+    for (const r of periodData) {
+      const p = r['Product']; if (!p) continue
+      const c = r['City'] || 'Unknown'
+      const po = r['PO Number']
+      const key = p + '||' + c
+      if (!pcMap[key]) pcMap[key] = { product: p, city: c, qty: 0, tonnage: 0, boxes: 0, value: 0 }
+      pcMap[key].qty += num(r['PO Qty'])
+      pcMap[key].tonnage += num(r['Tonnage'])
+      pcMap[key].boxes += num(r['Box Count'])
+      const share = po && poQtyMap[po] ? num(r['PO Qty']) / poQtyMap[po] : 0
+      pcMap[key].value += (poValueMap[po] || 0) * share
+    }
+    const pcRows = Object.values(pcMap).sort((a, b) => a.product.localeCompare(b.product) || b.value - a.value)
+    pcRows.forEach(r => {
+      rows.push([csvEscape(r.product), csvEscape(r.city), Math.round(r.qty), Math.round(r.tonnage), Math.round(r.boxes), Math.round(r.value)].join(','))
+    })
+    rows.push('TOTAL,' + Math.round(pcRows.reduce((s, r) => s + r.qty, 0)) + ',' + Math.round(pcRows.reduce((s, r) => s + r.tonnage, 0)) + ',' + Math.round(pcRows.reduce((s, r) => s + r.boxes, 0)) + ',' + Math.round(pcRows.reduce((s, r) => s + r.value, 0)))
+    rows.push('')
+
     rows.push('Invoice-wise Details')
     rows.push('Invoice No,Invoice Date,Product,Platform,PO Number,PO Qty,Tonnage KG,Box Count,Invoice Value')
     const detail = [...periodData]
@@ -202,7 +235,7 @@ export default function InventoryTab({ data }) {
       <div className="recent-orders" style={{ marginTop: 20 }}>
         <div className="orders-header">
           <div className="orders-title">Product-wise Summary</div>
-          <div className="chart-period">By Tonnage (KG) • Total Qty • Boxes • Value</div>
+          <div className="chart-period">By Tonnage (KG) • Total Qty • Boxes • Value • City-wise breakdown in CSV</div>
           <CSVButton makeRows={inventoryCSVRows} filename="inventory_summary.csv" />
         </div>
         <table>

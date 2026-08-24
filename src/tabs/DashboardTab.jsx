@@ -11,6 +11,7 @@ import { ExecutiveSummary } from '../components/ExecutiveSummary'
 import { FulfillmentMetrics } from '../components/FulfillmentMetrics'
 import { BoardReport } from '../components/BoardReport'
 import { UniversalSearch } from '../components/UniversalSearch'
+import { InsightsPanel } from '../components/InsightsPanel'
 
 const PIE_COLORS = {
   Delivered: '#22c55e',
@@ -369,79 +370,6 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
 
   const cardDeltas = selectedMonths.size ? (periodDeltasScoped || {}) : periodDeltas
 
-  const insights = useMemo(() => {
-    const list = []
-    const now = new Date()
-    const poRows = uniqueByPO(periodData)
-
-    if (monthData.length >= 2) {
-      const m0 = monthData[0]
-      const m1 = monthData[1]
-      if (m1.orders > 0 && m0.orders !== m1.orders) {
-        const chg = Math.round((m0.orders - m1.orders) / m1.orders * 100)
-        list.push({ type: chg > 0 ? 'good' : 'warn', text: `Orders in ${m0.label} ${chg > 0 ? 'up' : 'down'} ${Math.abs(chg)}% vs ${m1.label}` })
-      }
-      if (m1.value > 0 && m0.value !== m1.value) {
-        const vchg = Math.round((m0.value - m1.value) / m1.value * 100)
-        list.push({ type: vchg > 0 ? 'good' : 'warn', text: `Value in ${m0.label} ${vchg > 0 ? 'up' : 'down'} ${Math.abs(vchg)}% vs ${m1.label}` })
-      }
-    }
-
-    const cityStats = {}
-    for (const r of poRows) {
-      const c = r['City']; if (!c) continue
-      if (!cityStats[c]) cityStats[c] = { city: c, orders: 0, rto: 0 }
-      cityStats[c].orders++
-      if (r['Status'] === 'RTO') cityStats[c].rto++
-    }
-    const riskyCities = Object.values(cityStats).filter(c => c.orders >= 3 && c.rto / c.orders >= 0.25)
-    if (riskyCities.length) {
-      const top = riskyCities.sort((a, b) => b.rto / b.orders - a.rto / a.orders)[0]
-      list.push({ type: 'danger', text: `High RTO risk in ${top.city}: ${top.rto} of ${top.orders} orders returned (${Math.round(top.rto / top.orders * 100)}%)` })
-    }
-
-    const fillMap = {}
-    for (const r of periodData) {
-      if (r['Status'] !== 'Delivered') continue
-      const p = r['Product']; if (!p) continue
-      if (!fillMap[p]) fillMap[p] = { po: 0, rej: 0, pos: new Set() }
-      fillMap[p].po += num(r['PO Qty'])
-      fillMap[p].rej += num(r['Rejected Qty'])
-      fillMap[p].pos.add(r['PO Number'])
-    }
-    const lowFill = Object.entries(fillMap)
-      .filter(([, v]) => v.pos.size >= 2 && v.po > 0 && (v.po - v.rej) / v.po < 0.7)
-      .sort((a, b) => (a[1].po - a[1].rej) / a[1].po - (b[1].po - b[1].rej) / b[1].po)[0]
-    if (lowFill) {
-      const name = lowFill[0].length > 38 ? lowFill[0].slice(0, 38) + '…' : lowFill[0]
-      list.push({ type: 'danger', text: `Low fill rate: "${name}" at ${Math.round((lowFill[1].po - lowFill[1].rej) / lowFill[1].po * 100)}% (target ≥70%)` })
-    }
-
-    const platStats = {}
-    for (const r of poRows) {
-      const p = r['Platform'] || 'Unknown'
-      if (!platStats[p]) platStats[p] = { delivered: 0, rto: 0 }
-      if (r['Status'] === 'Delivered') platStats[p].delivered++
-      if (r['Status'] === 'RTO') platStats[p].rto++
-    }
-    const weakPlat = Object.entries(platStats)
-      .filter(([, v]) => v.delivered + v.rto >= 3 && v.delivered / (v.delivered + v.rto) < 0.6)
-      .sort((a, b) => a[1].delivered / (a[1].delivered + a[1].rto) - b[1].delivered / (b[1].delivered + b[1].rto))[0]
-    if (weakPlat) {
-      list.push({ type: 'warn', text: `Low delivery rate on ${weakPlat[0]}: ${Math.round(weakPlat[1].delivered / (weakPlat[1].delivered + weakPlat[1].rto) * 100)}% (${weakPlat[1].delivered} delivered of ${weakPlat[1].delivered + weakPlat[1].rto} closed)` })
-    }
-
-    const openPOs = poRows.filter(r => !['Delivered', 'RTO'].includes(r['Status'] || ''))
-    let stale = 0
-    for (const r of openPOs) {
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
-      if (d && (now - d) / 86400000 > 30) stale++
-    }
-    if (stale > 0) list.push({ type: 'warn', text: `${stale} open POs are older than 30 days — prioritize dispatch` })
-
-    return list.slice(0, 6)
-  }, [periodData, monthData])
-
   const trendMonths = useMemo(() => monthData.slice(0, 6), [monthData])
 
   const upcomingAppointments = useMemo(() => {
@@ -562,24 +490,7 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
 
       <ExecutiveSummary data={data} />
 
-       {insights.length > 0 && (
-        <div style={{ marginBottom: 20, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 12, padding: '16px 20px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 12 }}>💡 Insights & Alerts</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {insights.map((s, i) => {
-              const bg = s.type === 'danger' ? 'rgba(239,68,68,0.12)' : s.type === 'warn' ? 'rgba(234,179,8,0.12)' : 'rgba(34,197,94,0.12)'
-              const color = s.type === 'danger' ? '#ef4444' : s.type === 'warn' ? '#eab308' : '#22c55e'
-              const icon = s.type === 'danger' ? '🔴' : s.type === 'warn' ? '🟡' : '🟢'
-              return (
-                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: bg, border: `1px solid ${color}33`, borderRadius: 10, padding: '10px 14px' }}>
-                  <span style={{ fontSize: 14, lineHeight: '20px' }}>{icon}</span>
-                  <span style={{ fontSize: 13, color: '#f1f5f9', lineHeight: '20px' }}>{s.text}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+      <InsightsPanel periodData={periodData} data={data} onOpenPO={onOpenPO} monthData={monthData} />
 
       <FulfillmentMetrics data={data} />
 
