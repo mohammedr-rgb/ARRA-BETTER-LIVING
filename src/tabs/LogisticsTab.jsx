@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { num, parseDate, formatDate, sumPOField } from '../lib/utils'
-import { DateRangePicker, RangePresets, ProfileSection } from '../components/ui'
+import { DateRangePicker, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
@@ -69,7 +69,6 @@ export default function LogisticsTab({ data }) {
       </header>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap' }}>
-        <RangePresets onFrom={setDateFrom} onTo={setDateTo} />
         <DateRangePicker from={dateFrom} to={dateTo} onFrom={setDateFrom} onTo={setDateTo} />
       </div>
 

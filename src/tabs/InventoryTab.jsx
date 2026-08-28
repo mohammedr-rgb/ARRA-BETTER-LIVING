@@ -5,6 +5,41 @@ import { buildProductionPlan, planCSVRows, groupRowsByBoxType, totalsFor } from 
 
 const BOX_CHIP_COLORS = { 'White Box': '#22c55e', 'Standard Box': '#3b82f6' }
 
+const OIL_PRODUCTS = [
+  'Groundnut oil',
+  'Sunflower oil',
+  'Mustard oil',
+  'Sesame Oil',
+  'Nithyam Puja Oil',
+  'Olive Oil',
+  'Coconut Oil',
+]
+
+// Extra keyword aliases (besides the label itself) that should map to a label.
+const OIL_LABEL_ALIASES = {
+  'Groundnut oil': ['dosa spray', 'gems gold', 'gem gold', 'gemsgold'],
+}
+
+const normalizeProductName = (s) =>
+  (s || '')
+    .toLowerCase()
+    .replace(/&/g, ' ')
+    .replace(/\band\b/g, ' ')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const matchOilLabel = (product) => {
+  const s = normalizeProductName(product)
+  for (const label of OIL_PRODUCTS) {
+    const base = normalizeProductName(label)
+    if (s.includes(base) || s.includes(base.replace(/ oil$/, ''))) return label
+    const aliases = OIL_LABEL_ALIASES[label]
+    if (aliases && aliases.some(a => s.includes(normalizeProductName(a)))) return label
+  }
+  return null
+}
+
 export default function InventoryTab({ data }) {
   const [selectedMonths, setSelectedMonths] = useState(() => {
     const now = new Date()
@@ -109,6 +144,32 @@ export default function InventoryTab({ data }) {
     return { months, rows, grand, monthTotals }
   }, [periodData])
 
+  const oilRows = useMemo(() => {
+    const acc = {}
+    OIL_PRODUCTS.forEach(l => { acc[l.toLowerCase()] = { product: l, qty: 0, tonnage: 0 } })
+    for (const r of periodData) {
+      const label = matchOilLabel(r['Product'])
+      if (!label) continue
+      const key = label.toLowerCase()
+      if (!acc[key]) acc[key] = { product: label, qty: 0, tonnage: 0 }
+      acc[key].qty += num(r['PO Qty'])
+      acc[key].tonnage += num(r['Tonnage'])
+    }
+    return OIL_PRODUCTS.map(l => acc[l.toLowerCase()])
+  }, [periodData])
+
+  const otherRows = useMemo(() => {
+    const map = {}
+    for (const r of periodData) {
+      if (matchOilLabel(r['Product'])) continue
+      const p = r['Product'] || 'Unknown'
+      if (!map[p]) map[p] = { product: p, qty: 0, tonnage: 0 }
+      map[p].qty += num(r['PO Qty'])
+      map[p].tonnage += num(r['Tonnage'])
+    }
+    return Object.values(map).sort((a, b) => b.tonnage - a.tonnage)
+  }, [periodData])
+
   const inventoryTotals = useMemo(() => ({
     qty: productData.reduce((s, r) => s + r.qty, 0),
     tonnage: productData.reduce((s, r) => s + r.tonnage, 0),
@@ -176,6 +237,17 @@ export default function InventoryTab({ data }) {
     return rows
   }
 
+  const oilCSVRows = () => {
+    const rows = ['Overall Product wise summary']
+    rows.push('')
+    rows.push('Product,Qty,Tonnage KG')
+    oilRows.forEach(r => {
+      rows.push(csvEscape(r.product) + ',' + r.qty + ',' + Math.round(r.tonnage))
+    })
+    rows.push('TOTAL,' + oilRows.reduce((s, r) => s + r.qty, 0) + ',' + Math.round(oilRows.reduce((s, r) => s + r.tonnage, 0)))
+    return rows
+  }
+
   const platformMonthCSVRows = () => {
     const rows = ['Platform & Month-wise Sales']
     rows.push('')
@@ -230,6 +302,62 @@ export default function InventoryTab({ data }) {
             <div className="stat-value">{s.value}</div>
           </div>
         ))}
+      </div>
+
+      <div className="recent-orders" style={{ marginTop: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">Overall Product wise summary</div>
+          <div className="chart-period">Qty &amp; Tonnage (KG) • {scopeLabel}</div>
+          <CSVButton makeRows={oilCSVRows} filename="oil_products_summary.csv" />
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Tonnage (KG)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {oilRows.map((row, i) => (
+              <tr key={i}>
+                <td>{row.product}</td>
+                <td>{row.qty}</td>
+                <td>{Math.round(row.tonnage)}</td>
+              </tr>
+            ))}
+            <tr style={{ background: 'rgba(59,130,246,0.08)', fontWeight: 700 }}>
+              <td style={{ borderTop: '2px solid #334155' }}>TOTAL</td>
+              <td style={{ borderTop: '2px solid #334155' }}>{oilRows.reduce((s, r) => s + r.qty, 0).toLocaleString()}</td>
+              <td style={{ borderTop: '2px solid #334155' }}>{Math.round(oilRows.reduce((s, r) => s + r.tonnage, 0)).toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+        <details style={{ marginTop: 14 }}>
+          <summary style={{ cursor: 'pointer', fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
+            Other products not in oils list — {Math.round(otherRows.reduce((s, r) => s + r.tonnage, 0)).toLocaleString()} KG ({otherRows.length} products)
+          </summary>
+          <div style={{ marginTop: 10, maxHeight: 240, overflowY: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Qty</th>
+                  <th>Tonnage (KG)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {otherRows.map((row, i) => (
+                  <tr key={i}>
+                    <td>{row.product}</td>
+                    <td>{row.qty}</td>
+                    <td>{Math.round(row.tonnage)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
       </div>
 
       <div className="recent-orders" style={{ marginTop: 20 }}>

@@ -91,26 +91,24 @@ export function InsightsPanel({ periodData, data, onOpenPO, monthData }) {
     const poRows = uniqueByPO(periodData)
     const allPoRows = uniqueByPO(data)
 
-    // ── 1. Near Expiry (3 days + expired) — operational, uses all data ──
-    const expiryBuckets = { expired: [], '0-3d': [] }
+    // ── 1. Near Expiry (within next 2 days) — operational, uses all data ──
+    const expirySoon = []
     for (const r of data) {
       const po = r['PO Number']; if (!po) continue
       const exp = parseMMDDDate(r['Expiry Date(MM-DD-YYYY)']); if (!exp) continue
       const days = Math.floor((exp - now) / 86400000)
-      if (days < 0) expiryBuckets.expired.push({ r, days })
-      else if (days <= 3) expiryBuckets['0-3d'].push({ r, days })
+      if (days >= 0 && days <= 2) expirySoon.push({ r, days })
     }
-    const expiryTotal = expiryBuckets.expired.length + expiryBuckets['0-3d'].length
-    if (expiryTotal > 0) {
+    if (expirySoon.length > 0) {
       const poSeen = new Set()
       const rows = []
-      ;[...expiryBuckets.expired.sort((a, b) => a.days - b.days), ...expiryBuckets['0-3d'].sort((a, b) => a.days - b.days)].forEach(({ r, days }) => {
+      ;[...expirySoon.sort((a, b) => a.days - b.days)].forEach(({ r, days }) => {
         const po = r['PO Number']
         if (poSeen.has(po)) return
         poSeen.add(po)
         const v = num(r['PO Value with Tax'])
         rows.push(rowCells(
-          { text: days < 0 ? 'Expired' : `${days}d left`, color: days < 0 ? '#ef4444' : '#eab308', bold: true, flex: '0 0 80px' },
+          { text: `${days}d left`, color: '#eab308', bold: true, flex: '0 0 80px' },
           { text: po, color: '#60a5fa', bold: true, flex: '0 0 130px' },
           { text: (r['Product'] || '').slice(0, 28), flex: 1 },
           { text: r['Platform'] || '—', color: '#a78bfa', flex: '0 0 80px' },
@@ -119,13 +117,13 @@ export function InsightsPanel({ periodData, data, onOpenPO, monthData }) {
         rows[rows.length - 1].onClick = () => onOpenPO(r)
       })
       list.push({
-        severity: 'danger',
+        severity: 'warn',
         icon: '⏳',
-        title: 'Near Expiry / Expired',
-        summary: `${expiryBuckets.expired.length} expired, ${expiryBuckets['0-3d'].length} expiring within 3 days`,
-        metric: expiryTotal,
+        title: 'Near Expiry (Next 2 Days)',
+        summary: `${expirySoon.length} POs expiring within 2 days`,
+        metric: expirySoon.length,
         rows: rows.slice(0, 8),
-        footer: `Total value at risk: ₹${Math.round([...expiryBuckets.expired, ...expiryBuckets['0-3d']].reduce((s, x) => s + num(x.r['PO Value with Tax']), 0)).toLocaleString()}`,
+        footer: `Total value at risk: ₹${Math.round(expirySoon.reduce((s, x) => s + num(x.r['PO Value with Tax']), 0)).toLocaleString()}`,
       })
     }
 
@@ -335,7 +333,7 @@ export function InsightsPanel({ periodData, data, onOpenPO, monthData }) {
     )
   }
 
-  const order = { danger: 0, warn: 1, info: 2, good: 3 }
+  const order = { good: 0, info: 1, warn: 2, danger: 3 }
   const sorted = [...insights].sort((a, b) => (order[a.severity] || 9) - (order[b.severity] || 9))
 
   return (

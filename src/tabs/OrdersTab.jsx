@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { num, parseDate, parseMMDDDate, formatDate, uniqueByPO, sumPOField, sumField, csvEscape, statusFilters, toNumKG } from '../lib/utils'
 import { useSort, applySort } from '../lib/useSort'
-import { Tooltip, StatusPill, EmptyState, DateRangePicker, RangePresets, CSVButton, ProfileSection, SortTh } from '../components/ui'
+import { Tooltip, StatusPill, EmptyState, DateRangePicker, CSVButton, ProfileSection, SortTh } from '../components/ui'
 import { PONumberLink } from '../components/PONumberLink'
 
 export default function OrdersTab({ data, platformFilter, onOpenPO }) {
@@ -168,7 +168,6 @@ export default function OrdersTab({ data, platformFilter, onOpenPO }) {
           ))}
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <RangePresets onFrom={setDateFrom} onTo={setDateTo} />
           <DateRangePicker from={dateFrom} to={dateTo} onFrom={setDateFrom} onTo={setDateTo} />
         </div>
       </div>

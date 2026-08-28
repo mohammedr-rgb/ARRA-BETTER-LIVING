@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { num, parseDate, formatDate, uniqueByPO } from '../lib/utils'
-import { CSVButton, DateRangePicker, RangePresets, EmptyState, ProfileSection } from '../components/ui'
+import { CSVButton, DateRangePicker, EmptyState, ProfileSection } from '../components/ui'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -586,7 +586,6 @@ export default function PerformanceTab({ data, platformFilter }) {
           <div className="chart-period">Current vs Previous week</div>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-          <RangePresets onFrom={setWowDateFrom} onTo={setWowDateTo} />
           <DateRangePicker from={wowDateFrom} to={wowDateTo} onFrom={setWowDateFrom} onTo={setWowDateTo} />
           <select value={wowPlatformFilter} onChange={e => setWowPlatformFilter(e.target.value)} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', padding: '8px 12px', fontSize: 13, cursor: 'pointer' }}>
             {wowPlatforms.map(p => <option key={p} value={p}>{p}</option>)}

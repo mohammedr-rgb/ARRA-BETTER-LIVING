@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { num, parseCSV, parseMMDDDate, uniqueByPO, sumPOField, sumField, loadCSVFromFile } from './lib/utils'
 import { UserContext } from './lib/userContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { DashboardSkeleton, IconButton } from './components/ui'
+import { DashboardSkeleton } from './components/ui'
 import { getAuthToken, forceReauth } from './lib/auth'
 import { toast } from './lib/toast'
 import DashboardTab from './tabs/DashboardTab'
@@ -12,7 +12,6 @@ import StockTab from './tabs/StockTab'
 import LogisticsTab from './tabs/LogisticsTab'
 import DispatchTab from './tabs/DispatchTab'
 import ReportsTab from './tabs/ReportsTab'
-import RTOTab from './tabs/RTOTab'
 import FinanceTab from './tabs/FinanceTab'
 import PerformanceTab from './tabs/PerformanceTab'
 import SettingsTab from './tabs/SettingsTab'
@@ -47,7 +46,6 @@ function Dashboard({ authUser, onLogout }) {
   })
   const [autoRefresh, setAutoRefresh] = useState(0) // 0 = off, 5/15/30 = minutes
   const [cmdOpen, setCmdOpen] = useState(false)
-  const [notifOpen, setNotifOpen] = useState(false)
 
   // URL deep linking
   const updateURL = useCallback((newTab, newPlatform) => {
@@ -184,39 +182,6 @@ function Dashboard({ authUser, onLogout }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Notifications: upcoming appointments (next 3 days) + stale open POs
-  const notifications = useMemo(() => {
-    if (!data.length) return []
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    const horizon = new Date(today); horizon.setDate(horizon.getDate() + 3)
-    const list = []
-    const poSeen = new Set()
-    for (const r of data) {
-      const po = r['PO Number']; if (!po || poSeen.has(po)) continue
-      const d = parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])
-      if (!d) continue
-      poSeen.add(po)
-      if (d >= today && d <= horizon) {
-        const days = Math.round((d.getTime() - today.getTime()) / 86400000)
-        list.push({
-          id: 'appt-' + po,
-          icon: '📅',
-          text: `${days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days}d`} — appointment for ${po}`,
-          po,
-        })
-      }
-    }
-    let stale = 0
-    const poRows = uniqueByPO(data)
-    for (const r of poRows) {
-      if (['Delivered', 'RTO'].includes(r['Status'] || '')) continue
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
-      if (d && (today - d) / 86400000 > 30) stale++
-    }
-    if (stale > 0) list.push({ id: 'stale', icon: '⏳', text: `${stale} open POs older than 30 days`, po: null })
-    return list.slice(0, 8)
-  }, [data])
-
   const platforms = useMemo(() => {
     const set = new Set()
     data.forEach(r => { if (r['Platform']) set.add(r['Platform']) })
@@ -337,35 +302,7 @@ function Dashboard({ authUser, onLogout }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <UserBadge user={authUser} logout={onLogout} />
           </div>
-          <div style={{ position: 'relative' }}>
-            <IconButton title="Notifications (upcoming appointments)" onClick={() => setNotifOpen(v => !v)} aria-expanded={notifOpen}>
-              🔔
-              {notifications.length > 0 && <span className="bell-dot" />}
-            </IconButton>
-            {notifOpen && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setNotifOpen(false)} />
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 300, background: '#1e293b', border: '1px solid #334155', borderRadius: 12, boxShadow: '0 16px 40px rgba(0,0,0,0.45)', zIndex: 50, maxHeight: 380, overflowY: 'auto' }} role="menu">
-                  <div style={{ padding: '12px 14px', borderBottom: '1px solid #334155', fontSize: 12, fontWeight: 700, color: '#f1f5f9' }}>Notifications {notifications.length > 0 && <span style={{ color: '#64748b', fontWeight: 500 }}>• {notifications.length}</span>}</div>
-                  {notifications.length === 0 ? (
-                    <div style={{ padding: 20, textAlign: 'center', color: '#64748b', fontSize: 13 }}>You're all caught up 🎉</div>
-                  ) : notifications.map(n => (
-                    <div
-                      key={n.id}
-                      role="menuitem"
-                      onClick={() => { if (n.po) { openPOInNewTab(n.po); setNotifOpen(false) } }}
-                      style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 14px', borderBottom: '1px solid #283548', cursor: n.po ? 'pointer' : 'default', fontSize: 12, color: '#cbd5e1' }}
-                      onMouseEnter={e => { if (n.po) e.currentTarget.style.background = 'rgba(59,130,246,0.1)' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-                    >
-                      <span style={{ fontSize: 14 }}>{n.icon}</span>
-                      <span>{n.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+
         </div>
         <div style={{ padding: '8px 16px 4px' }}>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Platform Filter</div>
@@ -373,14 +310,6 @@ function Dashboard({ authUser, onLogout }) {
             {platforms.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
-        <button
-          onClick={() => setCmdOpen(true)}
-          style={{ width: 'calc(100% - 32px)', margin: '0 16px 8px', background: '#0f172a', border: '1px solid #334155', borderRadius: 10, color: '#64748b', padding: '10px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
-          aria-label="Open command palette"
-        >
-          <span>🔍 Search…</span>
-          <span className="kbd">⌘K</span>
-        </button>
         <nav>
           {navItem('dashboard', '📈', 'Dashboard')}
           {navItem('orders', '📦', 'Orders')}
@@ -389,7 +318,6 @@ function Dashboard({ authUser, onLogout }) {
           {navItem('logistics', '🚚', 'Logistics')}
           {navItem('dispatch', '📤', 'Dispatch')}
           {navItem('reports', '📋', 'Reports')}
-          {navItem('rto', '↩️', 'RTO')}
           {navItem('finance', '💰', 'Finance')}
           {navItem('performance', '🔬', 'Performance')}
           {navItem('settings', '⚙️', 'Settings')}
@@ -489,9 +417,6 @@ function Dashboard({ authUser, onLogout }) {
               </ErrorBoundary>
               <ErrorBoundary key="reports">
                 {tab === 'reports' && <ReportsTab data={filteredData} platformFilter={globalPlatform} />}
-              </ErrorBoundary>
-              <ErrorBoundary key="rto">
-                {tab === 'rto' && <RTOTab data={filteredData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="finance">
                 {tab === 'finance' && <FinanceTab data={filteredData} onOpenPO={openPO} />}
