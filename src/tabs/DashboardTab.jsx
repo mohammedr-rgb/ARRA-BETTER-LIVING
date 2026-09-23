@@ -3,9 +3,14 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
-import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, productSummary } from '../lib/utils'
-import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection } from '../components/ui'
+import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES } from '../lib/utils'
+import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection, ChartEmpty } from '../components/ui'
 import { DataTable } from '../components/DataTable'
+import { PONumberLink } from '../components/PONumberLink'
+import { FulfillmentMetrics } from '../components/FulfillmentMetrics'
+import { BoardReport } from '../components/BoardReport'
+import { UniversalSearch } from '../components/UniversalSearch'
+import { InsightsPanel } from '../components/InsightsPanel'
 
 const PIE_COLORS = {
   Delivered: '#22c55e',
@@ -16,58 +21,53 @@ const PIE_COLORS = {
   Unknown: '#64748b',
 }
 
-const PLATFORM_COLORS = ['#3b82f6', '#22c55e', '#a855f7', '#eab308', '#f97316', '#06b6d4', '#ef4444', '#8b5cf6']
-
-export default function DashboardTab({ data, metrics, cityData, statusData, recentOrders, platformFilter, onOpenPO }) {
+export default function DashboardTab({ data, allData, metrics, recentOrders, platformFilter, onOpenPO, onSearchOpen }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
-  const [search, setSearch] = useState('')
+  const [selectedMonths, setSelectedMonths] = useState(() => {
+    const now = new Date()
+    return new Set([now.getFullYear() * 12 + now.getMonth()])
+  })
 
-  const searchActive = search.trim() !== ''
+  const periodData = useMemo(() => {
+    if (!selectedMonths.size) return data
+    return data.filter(r => {
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+      return d && selectedMonths.has(d.getFullYear() * 12 + d.getMonth())
+    })
+  }, [data, selectedMonths])
 
-  const searchResults = useMemo(() => {
-    if (!searchActive) return []
-    const q = search.trim().toLowerCase()
-    return data.filter(r => Object.values(r).some(v => String(v || '').toLowerCase().includes(q)))
-  }, [data, search, searchActive])
-
-  const searchSummary = useMemo(() => {
-    const po = uniqueByPO(searchResults)
-    return {
-      orders: po.length,
-      tonnage: Math.round(sumField(searchResults, 'Tonnage')),
-      value: Math.round(sumPOField(searchResults, 'PO Value with Tax')),
-      delivered: po.filter(r => r['Status'] === 'Delivered').length,
-    }
-  }, [searchResults])
-
-  const matchedOn = (r) => {
-    if (!searchActive) return ''
-    const q = search.trim().toLowerCase()
-    const field = Object.keys(r).find(f => String(r[f] || '').toLowerCase().includes(q))
-    return field || '—'
+  const toggleMonth = (mk) => {
+    setSelectedMonths(prev => {
+      const next = new Set(prev)
+      if (next.has(mk)) next.delete(mk)
+      else next.add(mk)
+      return next
+    })
   }
+
+  const resetMonths = () => setSelectedMonths(new Set())
 
   const drillPOs = useMemo(() => {
     if (!drill) return []
     const poSet = new Set()
-    for (const r of data) {
+    for (const r of periodData) {
       if (drill.city && r['City'] !== drill.city) continue
       if (drill.status && (r['Status'] || '') !== drill.status) continue
       poSet.add(r['PO Number'])
     }
     const seen = new Set()
-    return data.filter(r => {
+    return periodData.filter(r => {
       const po = r['PO Number']
       if (!po || !poSet.has(po) || seen.has(po)) return false
       seen.add(po)
       return true
     })
-  }, [data, drill])
+  }, [periodData, drill])
 
   const drillColumns = [
-    { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
+    { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
     { key: 'city', label: 'City', accessor: r => r['City'] },
     { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
     { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
@@ -81,10 +81,12 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
   const platformPerf = useMemo(() => {
     const now = new Date()
     const currentMk = now.getFullYear() * 12 + now.getMonth()
-    const allRows = data.filter(r => {
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
-      return d && (d.getFullYear() * 12 + d.getMonth()) === currentMk
-    })
+    const allRows = selectedMonths.size
+      ? periodData
+      : data.filter(r => {
+          const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+          return d && (d.getFullYear() * 12 + d.getMonth()) === currentMk
+        })
     const poRows = uniqueByPO(allRows)
     const map = {}
     for (const r of poRows) {
@@ -101,12 +103,12 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       map[p].tonnage += num(r['Tonnage'])
     }
     return Object.values(map).sort((a, b) => b.orders - a.orders)
-  }, [data])
+  }, [data, periodData, selectedMonths])
 
   const monthData = useMemo(() => {
     const map = {}
     data.forEach(r => {
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
       if (!d) return
       const mk = d.getFullYear() * 12 + d.getMonth()
       if (!map[mk]) map[mk] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, delivered: new Set(), rto: new Set(), cities: new Set(), platforms: {}, platformValues: {} }
@@ -152,10 +154,148 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
     })
   }, [data])
 
-  const last3Months = useMemo(() => monthData.slice(0, 3), [monthData])
+  const last3Months = useMemo(() => monthData.slice(-3), [monthData])
+
+  const monthOptions = useMemo(() =>
+    [...monthData].reverse().map(m => ({ mk: Number(m.key), label: m.label }))
+  , [monthData])
+
+  const scopeLabel = useMemo(() => {
+    if (!selectedMonths.size) return null
+    return [...selectedMonths]
+      .sort((a, b) => a - b)
+      .map(mk => MONTH_NAMES[mk % 12] + ' ' + String(Math.floor(mk / 12)).slice(2))
+      .join(', ')
+  }, [selectedMonths])
+
+  const periodMetrics = useMemo(() => {
+    const poData = uniqueByPO(periodData)
+    const fillByPO = {}
+    for (const r of periodData) {
+      if (r['Status'] !== 'Delivered') continue
+      const po = r['PO Number']
+      if (!po) continue
+      if (!fillByPO[po]) fillByPO[po] = { qty: 0, rejected: 0 }
+      fillByPO[po].qty += num(r['PO Qty'])
+      fillByPO[po].rejected += num(r['Rejected Qty'])
+    }
+    const totalPOQty = Object.values(fillByPO).reduce((s, v) => s + v.qty, 0)
+    const totalRejectedQty = Object.values(fillByPO).reduce((s, v) => s + v.rejected, 0)
+    const delivered = periodData.filter(r => r['Status'] === 'Delivered')
+    const cities = [...new Set(poData.map(r => r['City']).filter(Boolean))]
+    return {
+      totalOrders: poData.length,
+      totalValue: Math.round(sumPOField(periodData, 'PO Value with Tax')),
+      totalTonnage: Math.round(sumField(periodData, 'Tonnage')),
+      totalBoxes: Math.round(sumField(periodData, 'Box Count')),
+      deliveredOrders: poData.filter(r => r['Status'] === 'Delivered').length,
+      deliveredTonnage: Math.round(sumField(delivered, 'Tonnage')),
+      cities: cities.length,
+      avgFillRate: totalPOQty ? Math.round((totalPOQty - totalRejectedQty) / totalPOQty * 100) : 0,
+    }
+  }, [periodData])
+
+  const periodInvoiced = useMemo(() => {
+    const seen = new Set()
+    const poValues = {}
+    let tonnage = 0
+    for (const r of periodData) {
+      if (!(r['Invoice No'] || '').trim() && !(r['Invoice Date (MM-DD-YYYY)'] || '').trim()) continue
+      const po = r['PO Number']
+      if (po) {
+        seen.add(po)
+        const iv = num(r['Invoice Value'])
+        if (iv > 0 && iv > (poValues[po] || 0)) poValues[po] = iv
+      }
+      tonnage += num(r['Tonnage'])
+    }
+    const released = uniqueByPO(periodData).length
+    return {
+      orders: seen.size,
+      value: Math.round(Object.values(poValues).reduce((s, v) => s + v, 0)),
+      tonnage: Math.round(tonnage),
+      pct: released ? Math.round(seen.size / released * 100) : null,
+    }
+  }, [periodData])
+
+  const periodCityData = useMemo(() => {
+    const map = {}
+    for (const r of periodData) {
+      const c = r['City']; if (!c) continue
+      if (!map[c]) map[c] = { city: c, orders: new Set(), tonnage: 0, delivered: 0, deliveredTonnage: 0, poValues: {} }
+      map[c].orders.add(r['PO Number'])
+      map[c].tonnage += num(r['Tonnage'])
+      const po = r['PO Number']
+      const v = num(r['PO Value with Tax'])
+      if (po && v > 0 && v > (map[c].poValues[po] || 0)) map[c].poValues[po] = v
+      if (r['Status'] === 'Delivered') {
+        map[c].delivered++
+        map[c].deliveredTonnage += num(r['Tonnage'])
+      }
+    }
+    return Object.values(map)
+      .map(x => ({ ...x, orders: x.orders.size, value: Math.round(Object.values(x.poValues).reduce((s, v) => s + v, 0)) }))
+      .sort((a, b) => b.orders - a.orders)
+  }, [periodData])
+
+  const periodStatusData = useMemo(() => {
+    const map = {}
+    uniqueByPO(periodData).forEach(r => {
+      const s = r['Status'] || 'Unknown'
+      map[s] = (map[s] || 0) + 1
+    })
+    return Object.entries(map).map(([name, value]) => ({ name, value }))
+  }, [periodData])
+
+  const prevWindowData = useMemo(() => {
+    if (!selectedMonths.size) return null
+    const mks = [...selectedMonths].sort((a, b) => a - b)
+    const len = mks.length
+    const target = new Set()
+    for (let i = 0; i < len; i++) target.add(mks[0] - len + i)
+    return data.filter(r => {
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+      return d && target.has(d.getFullYear() * 12 + d.getMonth())
+    })
+  }, [data, selectedMonths])
+
+  const periodDeltasScoped = useMemo(() => {
+    if (!selectedMonths.size || !prevWindowData) return null
+    const stats = (rows) => {
+      const po = uniqueByPO(rows)
+      const fillByPO = {}
+      for (const r of rows) {
+        if (r['Status'] !== 'Delivered') continue
+        const poKey = r['PO Number']
+        if (!poKey) continue
+        if (!fillByPO[poKey]) fillByPO[poKey] = { qty: 0, rejected: 0 }
+        fillByPO[poKey].qty += num(r['PO Qty'])
+        fillByPO[poKey].rejected += num(r['Rejected Qty'])
+      }
+      const tq = Object.values(fillByPO).reduce((s, v) => s + v.qty, 0)
+      const tr = Object.values(fillByPO).reduce((s, v) => s + v.rejected, 0)
+      return {
+        orders: po.length,
+        value: sumPOField(rows, 'PO Value with Tax'),
+        tonnage: sumField(rows, 'Tonnage'),
+        boxes: sumField(rows, 'Box Count'),
+        fillRate: tq ? Math.round((tq - tr) / tq * 100) : null,
+      }
+    }
+    const cur = stats(periodData)
+    const pre = stats(prevWindowData)
+    const delta = (c, p) => (p && p > 0) ? Math.round((c - p) / p * 1000) / 10 : null
+    return {
+      orders: delta(cur.orders, pre.orders),
+      value: delta(cur.value, pre.value),
+      tonnage: delta(cur.tonnage, pre.tonnage),
+      boxes: delta(cur.boxes, pre.boxes),
+      fillRate: cur.fillRate !== null && pre.fillRate !== null ? delta(cur.fillRate, pre.fillRate) : null,
+    }
+  }, [selectedMonths, prevWindowData, periodData])
 
   const openMetrics = useMemo(() => {
-    const active = data.filter(r => !['Delivered', 'RTO'].includes(r['Status'] || ''))
+    const active = periodData.filter(r => !['Delivered', 'RTO'].includes(r['Status'] || ''))
     const poSet = new Set(active.map(r => r['PO Number']).filter(Boolean))
     const byPO = {}
     for (const r of active) {
@@ -178,7 +318,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       boxes: sumField(active, 'Box Count'),
       fillRate: totalQty ? Math.round(totalDel / totalQty * 100) : null,
     }
-  }, [data])
+  }, [periodData])
 
   const periodDeltas = useMemo(() => {
     let maxDate = null
@@ -227,111 +367,9 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
     }
   }, [data])
 
-  const insights = useMemo(() => {
-    const list = []
-    const now = new Date()
-    const poRows = uniqueByPO(data)
-
-    if (monthData.length >= 2) {
-      const m0 = monthData[0]
-      const m1 = monthData[1]
-      if (m1.orders > 0 && m0.orders !== m1.orders) {
-        const chg = Math.round((m0.orders - m1.orders) / m1.orders * 100)
-        list.push({ type: chg > 0 ? 'good' : 'warn', text: `Orders in ${m0.label} ${chg > 0 ? 'up' : 'down'} ${Math.abs(chg)}% vs ${m1.label}` })
-      }
-      if (m1.value > 0 && m0.value !== m1.value) {
-        const vchg = Math.round((m0.value - m1.value) / m1.value * 100)
-        list.push({ type: vchg > 0 ? 'good' : 'warn', text: `Value in ${m0.label} ${vchg > 0 ? 'up' : 'down'} ${Math.abs(vchg)}% vs ${m1.label}` })
-      }
-    }
-
-    const cityStats = {}
-    for (const r of poRows) {
-      const c = r['City']; if (!c) continue
-      if (!cityStats[c]) cityStats[c] = { orders: 0, rto: 0 }
-      cityStats[c].orders++
-      if (r['Status'] === 'RTO') cityStats[c].rto++
-    }
-    const riskyCities = Object.values(cityStats).filter(c => c.orders >= 3 && c.rto / c.orders >= 0.25)
-    if (riskyCities.length) {
-      const top = riskyCities.sort((a, b) => b.rto / b.orders - a.rto / a.orders)[0]
-      list.push({ type: 'danger', text: `High RTO risk in ${top.city}: ${top.rto} of ${top.orders} orders returned (${Math.round(top.rto / top.orders * 100)}%)` })
-    }
-
-    const fillMap = {}
-    for (const r of poRows) {
-      const p = r['Product']; if (!p) continue
-      if (!fillMap[p]) fillMap[p] = { po: 0, del: 0, count: 0 }
-      fillMap[p].po += num(r['PO Qty'])
-      fillMap[p].del += num(r['Delivered QTY'])
-      fillMap[p].count++
-    }
-    const lowFill = Object.entries(fillMap)
-      .filter(([, v]) => v.count >= 2 && v.po > 0 && v.del / v.po < 0.7)
-      .sort((a, b) => a[1].del / a[1].po - b[1].del / b[1].po)[0]
-    if (lowFill) {
-      const name = lowFill[0].length > 38 ? lowFill[0].slice(0, 38) + '…' : lowFill[0]
-      list.push({ type: 'danger', text: `Low fill rate: "${name}" at ${Math.round(lowFill[1].del / lowFill[1].po * 100)}% (target ≥70%)` })
-    }
-
-    const platStats = {}
-    for (const r of poRows) {
-      const p = r['Platform'] || 'Unknown'
-      if (!platStats[p]) platStats[p] = { delivered: 0, rto: 0 }
-      if (r['Status'] === 'Delivered') platStats[p].delivered++
-      if (r['Status'] === 'RTO') platStats[p].rto++
-    }
-    const weakPlat = Object.entries(platStats)
-      .filter(([, v]) => v.delivered + v.rto >= 3 && v.delivered / (v.delivered + v.rto) < 0.6)
-      .sort((a, b) => a[1].delivered / (a[1].delivered + a[1].rto) - b[1].delivered / (b[1].delivered + b[1].rto))[0]
-    if (weakPlat) {
-      list.push({ type: 'warn', text: `Low delivery rate on ${weakPlat[0]}: ${Math.round(weakPlat[1].delivered / (weakPlat[1].delivered + weakPlat[1].rto) * 100)}% (${weakPlat[1].delivered} delivered of ${weakPlat[1].delivered + weakPlat[1].rto} closed)` })
-    }
-
-    const openPOs = poRows.filter(r => !['Delivered', 'RTO'].includes(r['Status'] || ''))
-    let stale = 0
-    for (const r of openPOs) {
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
-      if (d && (now - d) / 86400000 > 30) stale++
-    }
-    if (stale > 0) list.push({ type: 'warn', text: `${stale} open POs are older than 30 days — prioritize dispatch` })
-
-    return list.slice(0, 6)
-  }, [data, monthData])
-
-  const agingBuckets = useMemo(() => {
-    const now = new Date()
-    const bucketDefs = [
-      { name: '0–7d', min: 0, max: 7 },
-      { name: '8–14d', min: 8, max: 14 },
-      { name: '15–30d', min: 15, max: 30 },
-      { name: '31–60d', min: 31, max: 60 },
-      { name: '60d+', min: 61, max: Infinity },
-    ]
-    const counts = bucketDefs.map(b => ({ name: b.name, count: 0 }))
-    const seen = new Set()
-    for (const r of data) {
-      const po = r['PO Number']
-      const s = r['Status'] || ''
-      if (!po || seen.has(po) || s === 'Delivered' || s === 'RTO') continue
-      seen.add(po)
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
-      if (!d) continue
-      const days = Math.floor((now - d) / 86400000)
-      const bucket = counts.find(b => days >= b.min && days <= b.max)
-      if (bucket) bucket.count++
-    }
-    return counts
-  }, [data])
-
-  const topProducts = useMemo(() => productSummary(data).slice(0, 8), [data])
+  const cardDeltas = selectedMonths.size ? (periodDeltasScoped || {}) : periodDeltas
 
   const trendMonths = useMemo(() => monthData.slice(0, 6), [monthData])
-
-  const platformValueNames = useMemo(
-    () => [...new Set(last3Months.flatMap(m => Object.keys(m.platformValues)))],
-    [last3Months]
-  )
 
   const monthCSVRows = () => {
     const rows = ['Month-wise Overview']
@@ -350,7 +388,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       <header>
         <div>
           <h1>Sales Dashboard</h1>
-          <div className="date">{platformFilter !== 'All' ? `Platform: ${platformFilter} • ` : ''}{metrics.totalOrders} orders across {metrics.cities} cities</div>
+          <div className="date">{platformFilter !== 'All' ? `Platform: ${platformFilter} • ` : ''}{scopeLabel ? `${scopeLabel} • ` : ''}{periodMetrics.totalOrders} orders across {periodMetrics.cities} cities{selectedMonths.size > 0 ? ` • ₹${periodInvoiced.value.toLocaleString()} invoiced` : ''}</div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             {platformPerf.map(p => {
               const dr = (p.delivered + p.rto) ? (p.delivered / (p.delivered + p.rto) * 100).toFixed(0) : '—'
@@ -387,96 +425,45 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
               )
             })}
           </div>
-        </div>
-        <ProfileSection />
-      </header>
-
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 15, opacity: 0.7 }}>🔍</span>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Universal search — PO #, product, city, platform, transporter, invoice, appointment ID, status…"
-            style={{ width: '100%', boxSizing: 'border-box', background: '#0f172a', border: '2px solid #3b82f6', borderRadius: 12, color: '#f1f5f9', padding: '14px 42px 14px 42px', fontSize: 15, outline: 'none' }}
-          />
-          {searchActive && (
-            <button onClick={() => setSearch('')} title="Clear search" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: '#334155', border: 'none', borderRadius: '50%', color: '#f1f5f9', width: 26, height: 26, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-          )}
-        </div>
-        {searchActive && (
-          <div className="recent-orders" style={{ marginTop: 16 }}>
-            <div className="orders-header">
-              <div className="orders-title">🔎 Search Results — “{search.trim()}”</div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span className="chart-period">{searchResults.length} matching rows • {searchSummary.orders} unique POs • click a row for full details</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-              {[
-                { label: 'Orders', value: searchSummary.orders, color: '#3b82f6' },
-                { label: 'Tonnage', value: searchSummary.tonnage.toLocaleString() + ' KG', color: '#a855f7' },
-                { label: 'Value', value: '₹' + searchSummary.value.toLocaleString(), color: '#22c55e' },
-                { label: 'Delivered', value: searchSummary.delivered, color: '#22c55e' },
-              ].map(s => (
-                <div key={s.label} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '8px 14px' }}>
-                  <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: s.color }}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-            <DataTable
-              columns={[
-                { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
-                { key: 'matched', label: 'Matched On', accessor: r => matchedOn(r) },
-                { key: 'city', label: 'City', accessor: r => r['City'] },
-                { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
-                { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
-                { key: 'qty', label: 'Qty', accessor: r => num(r['PO Qty']), align: 'right' },
-                { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
-                { key: 'value', label: 'Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
-                { key: 'invoice', label: 'Invoice No', accessor: r => r['Invoice No'] || '—' },
-                { key: 'boxes', label: 'Box Count', accessor: r => num(r['Box Count']), align: 'right' },
-                { key: 'transporter', label: 'Transporter', accessor: r => r['Transporter'] || '—' },
-                { key: 'appt', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
-                { key: 'status', label: 'Status', accessor: r => r['Status'], render: r => <StatusPill status={r['Status']} /> },
-              ]}
-              rows={searchResults}
-              pageSize={10}
-              filename="search_results.csv"
-              onRowClick={onOpenPO}
-              emptyMessage="No matches found — try a different detail"
-            />
-          </div>
-        )}
-      </div>
-
-      {searchActive ? null : (
-      <>
-      {insights.length > 0 && (
-        <div style={{ marginBottom: 20, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 12, padding: '16px 20px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 12 }}>💡 Data Insights</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {insights.map((s, i) => {
-              const bg = s.type === 'danger' ? 'rgba(239,68,68,0.12)' : s.type === 'warn' ? 'rgba(234,179,8,0.12)' : 'rgba(34,197,94,0.12)'
-              const color = s.type === 'danger' ? '#ef4444' : s.type === 'warn' ? '#eab308' : '#22c55e'
-              const icon = s.type === 'danger' ? '🔴' : s.type === 'warn' ? '🟡' : '🟢'
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10, alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.5 }}>PERIOD</span>
+            <button
+              onClick={resetMonths}
+              style={{ padding: '4px 10px', borderRadius: 16, border: '1px solid ' + (selectedMonths.size === 0 ? '#3b82f6' : '#334155'), background: selectedMonths.size === 0 ? 'rgba(59,130,246,0.15)' : '#1e293b', color: selectedMonths.size === 0 ? '#3b82f6' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+            >
+              All
+            </button>
+            {monthOptions.map(m => {
+              const on = selectedMonths.has(m.mk)
               return (
-                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: bg, border: `1px solid ${color}33`, borderRadius: 10, padding: '10px 14px' }}>
-                  <span style={{ fontSize: 14, lineHeight: '20px' }}>{icon}</span>
-                  <span style={{ fontSize: 13, color: '#f1f5f9', lineHeight: '20px' }}>{s.text}</span>
-                </div>
+                <button
+                  key={m.mk}
+                  onClick={() => toggleMonth(m.mk)}
+                  style={{ padding: '4px 10px', borderRadius: 16, border: '1px solid ' + (on ? '#22c55e' : '#334155'), background: on ? 'rgba(34,197,94,0.15)' : '#1e293b', color: on ? '#22c55e' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {m.label}
+                </button>
               )
             })}
           </div>
         </div>
-      )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <BoardReport data={data} metrics={metrics} />
+          <ProfileSection />
+        </div>
+</header>
+
+      <UniversalSearch data={allData || data} onSelect={onSearchOpen} />
+
+      <InsightsPanel periodData={periodData} data={data} onOpenPO={onOpenPO} monthData={monthData} />
+
+      <FulfillmentMetrics data={data} />
 
       <div className="stats-grid">
         <StatCard
           label="Total Orders" icon="📋" color="#3b82f6"
-          value={metrics.totalOrders} change={`▲ ${metrics.deliveredOrders} delivered`} changeColor="#22c55e"
-          delta={periodDeltas.orders}
+          value={periodMetrics.totalOrders} change={`▲ ${periodMetrics.deliveredOrders} delivered`} changeColor="#22c55e"
+          delta={cardDeltas.orders}
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Orders</div>
@@ -489,8 +476,8 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         />
         <StatCard
           label="PO Value (with Tax)" icon="💰" color="#22c55e"
-          value={'₹' + metrics.totalValue.toLocaleString()} change="▲ Total value" changeColor="#22c55e"
-          delta={periodDeltas.value}
+          value={'₹' + periodMetrics.totalValue.toLocaleString()} change="▲ Total value" changeColor="#22c55e"
+          delta={cardDeltas.value}
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open PO Value</div>
@@ -502,8 +489,8 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         />
         <StatCard
           label="Total Tonnage" icon="⚖️" color="#a855f7"
-          value={metrics.totalTonnage + ' KG'} change={`▲ ${metrics.deliveredTonnage} KG delivered`} changeColor="#22c55e"
-          delta={periodDeltas.tonnage}
+          value={periodMetrics.totalTonnage + ' KG'} change={`▲ ${periodMetrics.deliveredTonnage} KG delivered`} changeColor="#22c55e"
+          delta={cardDeltas.tonnage}
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Tonnage</div>
@@ -515,8 +502,8 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         />
         <StatCard
           label="Box Count" icon="📦" color="#eab308"
-          value={metrics.totalBoxes} change="▲ Total boxes shipped" changeColor="#22c55e"
-          delta={periodDeltas.boxes}
+          value={periodMetrics.totalBoxes} change="▲ Total boxes shipped" changeColor="#22c55e"
+          delta={cardDeltas.boxes}
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Box Count</div>
@@ -528,15 +515,28 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         />
         <StatCard
           label="Fill Rate" icon="🎯" color="#6366f1"
-          value={metrics.avgFillRate + '%'} valueColor={metrics.avgFillRate >= 80 ? '#22c55e' : metrics.avgFillRate >= 50 ? '#eab308' : '#ef4444'}
+          value={periodMetrics.avgFillRate + '%'} valueColor={periodMetrics.avgFillRate >= 80 ? '#22c55e' : periodMetrics.avgFillRate >= 50 ? '#eab308' : '#ef4444'}
           change="Average fill rate" changeColor="#94a3b8"
-          delta={periodDeltas.fillRate}
+          delta={cardDeltas.fillRate}
           tooltip={
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open Fill Rate</div>
               <TooltipRow label="Open Fill Rate" value={openMetrics.fillRate !== null ? openMetrics.fillRate + '%' : '—'} valueColor="#6366f1" />
               <TooltipRow label="Open Orders" value={openMetrics.orders} valueColor="#3b82f6" />
               <TooltipRow label="Open Tonnage" value={Math.round(openMetrics.tonnage) + ' KG'} />
+            </>
+          }
+          tooltipStyle={{ zIndex: 100 }}
+        />
+        <StatCard
+          label="Invoice Value" icon="🧾" color="#06b6d4"
+          value={'₹' + periodInvoiced.value.toLocaleString()} change={`${periodInvoiced.orders} POs invoiced this period`} changeColor="#22c55e"
+          tooltip={
+            <>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Invoices raised in the selected period</div>
+              <TooltipRow label="Invoiced POs" value={periodInvoiced.orders} valueColor="#06b6d4" />
+              <TooltipRow label="Invoiced Tonnage" value={periodInvoiced.tonnage + ' KG'} />
+              <TooltipRow label="Avg Invoice / PO" value={periodInvoiced.orders ? '₹' + Math.round(periodInvoiced.value / periodInvoiced.orders).toLocaleString() : '—'} />
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
@@ -559,8 +559,11 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
               ))}
             </div>
           </div>
+          {periodCityData.length === 0 ? (
+            <ChartEmpty icon="🏙️" message="No city data for the selected period" />
+          ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={cityData}>
+            <BarChart data={periodCityData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="city" stroke="#64748b" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={80} interval={0} />
               <YAxis stroke="#64748b" tick={{ fontSize: 12 }} tickFormatter={v => cityMetric === 'value' ? '₹' + (v / 1000 >= 100 ? Math.round(v / 100000) + 'L' : (v / 1000).toFixed(0) + 'k') : v.toLocaleString()} />
@@ -585,16 +588,20 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
               <Bar dataKey={cityMetric} fill={cityMetric === 'value' ? '#22c55e' : cityMetric === 'tonnage' ? '#a855f7' : '#3b82f6'} radius={[6, 6, 0, 0]} name={cityMetric} onClick={(d) => d && d.payload && setDrill({ city: d.payload.city, status: null })} style={{ cursor: 'pointer' }} />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </div>
         <div className="chart-card">
           <div className="chart-header">
             <div className="chart-title">Order Status</div>
             <div className="chart-period">Distribution</div>
           </div>
+          {periodStatusData.length === 0 ? (
+            <ChartEmpty icon="🥧" message="No status data for the selected period" />
+          ) : (
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={statusData}
+                data={periodStatusData}
                 cx="50%"
                 cy="50%"
                 outerRadius={110}
@@ -605,7 +612,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
                 onClick={(d) => d && d.payload && setDrill({ city: null, status: d.payload.name })}
                 style={{ cursor: 'pointer' }}
               >
-                {statusData.map((entry) => (
+                {periodStatusData.map((entry) => (
                   <Cell key={entry.name} fill={PIE_COLORS[entry.name] || '#64748b'} />
                 ))}
               </Pie>
@@ -613,6 +620,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
               <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8' }} formatter={(value) => <span style={{ color: '#94a3b8' }}>{value}</span>} />
             </PieChart>
           </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -674,111 +682,6 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         </div>
       )}
 
-      <div className="charts-row" style={{ marginTop: 20 }}>
-        <div className="chart-card">
-          <div className="chart-header">
-            <div className="chart-title">Open Order Aging</div>
-            <div className="chart-period">Days since release for open POs</div>
-          </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={agingBuckets}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
-              <ReTooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null
-                  const row = payload[0].payload
-                  return (
-                    <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>{row.name}</div>
-                      <div style={{ color: '#94a3b8' }}>Open POs: <span style={{ color: '#f97316', fontWeight: 600 }}>{row.count}</span></div>
-                    </div>
-                  )
-                }}
-              />
-              <Bar dataKey="count" fill="#f97316" radius={[6, 6, 0, 0]} name="Open POs" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="chart-card">
-          <div className="chart-header">
-            <div className="chart-title">Platform Value Split</div>
-            <div className="chart-period">Last 3 months • PO value by platform</div>
-          </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={last3Months}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="label" stroke="#64748b" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
-              <ReTooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null
-                  const row = payload[0].payload
-                  return (
-                    <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>{row.label}</div>
-                      {platformValueNames.map(p => (
-                        <div key={p} style={{ color: '#94a3b8' }}>{p}: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>₹{(row[p] || 0).toLocaleString()}</span></div>
-                      ))}
-                    </div>
-                  )
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8' }} formatter={(value) => <span style={{ color: '#94a3b8' }}>{value}</span>} />
-              {platformValueNames.map((p, i) => (
-                <Bar key={p} dataKey={p} stackId="pv" fill={PLATFORM_COLORS[i % PLATFORM_COLORS.length]} name={p} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {topProducts.length > 0 && (
-        <div className="recent-orders" style={{ marginTop: 20 }}>
-          <div className="orders-header">
-            <div className="orders-title">Top Products by Tonnage</div>
-            <div className="chart-period">Top {topProducts.length} products</div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Tonnage (KG)</th>
-                <th>Value</th>
-                <th>Share</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topProducts.map((r, i) => {
-                const share = topProducts[0].tonnage ? r.tonnage / topProducts[0].tonnage * 100 : 0
-                return (
-                  <tr key={i}>
-                    <td style={{ color: '#64748b', fontWeight: 600 }}>{i + 1}</td>
-                    <td style={{ fontWeight: 600, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.product}</td>
-                    <td>{r.qty}</td>
-                    <td>{Math.round(r.tonnage).toLocaleString()}</td>
-                    <td>₹{Math.round(r.value).toLocaleString()}</td>
-                    <td style={{ minWidth: 180 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 6, background: '#334155', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${share}%`, height: '100%', background: '#a855f7', borderRadius: 3 }} />
-                        </div>
-                        <span style={{ fontSize: 12, color: '#94a3b8' }}>{share.toFixed(0)}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
       <div className="recent-orders" style={{ marginTop: 20, overflowX: 'auto' }}>
         <div className="orders-header">
           <div className="orders-title">Month-wise Overview</div>
@@ -814,92 +717,34 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
             </BarChart>
           </ResponsiveContainer>
         )}
-        <table style={{ marginTop: 16, minWidth: 480 }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: 'left', width: 150 }}>Metric</th>
-              {last3Months.map(m => (
-                <th key={m.label} style={{ textAlign: 'center', fontSize: 14 }}>{m.label}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Orders</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.orders}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Tonnage (KG)</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.tonnage.toLocaleString()}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Boxes</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.boxes}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Value</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>₹{m.value.toLocaleString()}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Delivered</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: '#22c55e' }}>{m.delivered}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>RTO</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: '#ef4444' }}>{m.rto}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Delivery Rate</td>
-              {last3Months.map(m => (
-                <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: m.deliveryRate !== null ? (m.deliveryRate >= 80 ? '#22c55e' : '#eab308') : '#64748b' }}>
-                  {m.deliveryRate !== null ? m.deliveryRate + '%' : '—'}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8', verticalAlign: 'top' }}>Platforms</td>
-              {last3Months.map(m => (
-                <td key={m.label} style={{ textAlign: 'center', fontSize: 12, padding: '8px 6px' }}>
-                  {m.platforms.map(x => (
-                    <span key={x.name} style={{ display: 'block' }}>
-                      <span style={{ color: '#3b82f6', fontWeight: 600 }}>{x.name}</span> ({x.orders})
-                    </span>
-                  ))}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+       </div>
 
-      <div className="recent-orders">
-        <div className="orders-header">
-          <div className="orders-title">Recent PO Releases</div>
-          <div className="chart-period">Latest {recentOrders.length} releases • click a row for details</div>
+       <div className="recent-orders">
+         <div className="orders-header">
+           <div className="orders-title">Recent PO Releases</div>
+           <div className="chart-period">Latest {recentOrders.length} releases • click a row for details</div>
+         </div>
+         <DataTable
+           columns={[
+             { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
+             { key: 'city', label: 'City', accessor: r => r['City'] },
+             { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
+             { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
+             { key: 'qty', label: 'Qty', accessor: r => num(r['PO Qty']), align: 'right' },
+             { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
+             { key: 'value', label: 'Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
+             { key: 'released', label: 'Released', accessor: r => r['PO Released Date(MM-DD-YYYY)'] },
+             { key: 'appt', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
+             { key: 'apptid', label: 'Appt ID', accessor: r => r['Appointment ID'] || '—' },
+             { key: 'status', label: 'Status', accessor: r => r['Status'], render: r => <StatusPill status={r['Status']} /> },
+           ]}
+           rows={recentOrders}
+           pageSize={10}
+           filename="recent_po_releases.csv"
+           onRowClick={onOpenPO}
+           emptyMessage="No recent releases"
+         />
         </div>
-        <DataTable
-          columns={[
-            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{r['PO Number']}</span> },
-            { key: 'city', label: 'City', accessor: r => r['City'] },
-            { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
-            { key: 'product', label: 'Product', accessor: r => r['Product'], render: r => <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r['Product']}</span> },
-            { key: 'qty', label: 'Qty', accessor: r => num(r['PO Qty']), align: 'right' },
-            { key: 'tonnage', label: 'Tonnage', accessor: r => num(r['Tonnage']), align: 'right' },
-            { key: 'value', label: 'Value', accessor: r => num(r['PO Value with Tax']), align: 'right', render: r => '₹' + num(r['PO Value with Tax']).toLocaleString() },
-            { key: 'released', label: 'Released', accessor: r => r['PO Released Date(MM-DD-YYYY)'] },
-            { key: 'appt', label: 'Appt Date', accessor: r => r['Appointment Date(MM-DD-YYYY)'] || '—' },
-            { key: 'apptid', label: 'Appt ID', accessor: r => r['Appointment ID'] || '—' },
-            { key: 'status', label: 'Status', accessor: r => r['Status'], render: r => <StatusPill status={r['Status']} /> },
-          ]}
-          rows={recentOrders}
-          pageSize={10}
-          filename="recent_po_releases.csv"
-          onRowClick={onOpenPO}
-          emptyMessage="No recent releases"
-        />
-      </div>
-      </>
-      )}
-    </>
-  )
-}
+     </>
+   )
+ }

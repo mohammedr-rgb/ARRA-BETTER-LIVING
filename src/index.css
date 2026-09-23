@@ -8,17 +8,56 @@
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-card: #1e293b;
+  --bg-elevated: #273449;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --accent: #3b82f6;
   --accent-hover: #2563eb;
+  --accent-soft: rgba(59, 130, 246, 0.12);
+  --accent-soft-border: rgba(59, 130, 246, 0.25);
   --success: #22c55e;
   --warning: #eab308;
   --danger: #ef4444;
+  --purple: #a855f7;
   --border: #334155;
+  --border-soft: #283548;
   --sidebar-width: 260px;
   --header-height: 64px;
+
+  /* spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* radius scale */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --r-pill: 999px;
+
+  /* shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
+
+  /* transitions */
+  --t-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --t-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* chart palette */
+  --chart-blue: #3b82f6;
+  --chart-green: #22c55e;
+  --chart-purple: #a855f7;
+  --chart-amber: #eab308;
+  --chart-red: #ef4444;
+  --chart-cyan: #06b6d4;
+  --chart-indigo: #6366f1;
 }
 
 body {
@@ -45,9 +84,26 @@ body {
   right: 0;
   bottom: 0;
   z-index: 10;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
 }
 
 .sidebar .logo {
+  flex-shrink: 0;
   font-size: 15px;
   font-weight: 700;
   margin-bottom: 40px;
@@ -72,7 +128,12 @@ body {
   background-clip: text;
 }
 
+.sidebar > * {
+  flex-shrink: 0;
+}
+
 .sidebar nav {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -261,12 +322,16 @@ header .profile .role {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .recent-orders .orders-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   margin-bottom: 20px;
 }
 
@@ -304,6 +369,30 @@ header .profile .role {
   border-bottom: 1px solid var(--border);
 }
 
+.recent-orders th.num,
+.recent-orders td.num {
+  text-align: right;
+}
+
+.recent-orders td.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.table-scroll {
+  overflow: auto;
+  max-height: 520px;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-card);
+  box-shadow: 0 1px 0 var(--border);
+}
+
 .recent-orders tr:last-child td {
   border-bottom: none;
 }
@@ -324,6 +413,7 @@ header .profile .role {
 .status.in-transit { background: rgba(59, 130, 246, 0.15); color: var(--accent); }
 .status.rto { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
 .status.pendingfordispatch, .status.pendingforschedule { background: rgba(234, 179, 8, 0.15); color: var(--warning); }
+.status.reacheddestination { background: rgba(168, 85, 247, 0.15); color: #a78bfa; }
 
 .popover {
   position: absolute;

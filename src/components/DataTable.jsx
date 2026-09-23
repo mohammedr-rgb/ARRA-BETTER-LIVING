@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSort, applySort } from '../lib/useSort'
-import { csvEscape, downloadCSV } from '../lib/utils'
+import { csvEscape, csvNum, downloadCSV, downloadXLSX } from '../lib/utils'
 import { EmptyState } from './ui'
 
 const controlStyle = {
@@ -27,7 +27,6 @@ const pageBtn = (active) => ({
 export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, emptyMessage, initialPageSize }) {
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(initialPageSize || pageSize)
-  const [query, setQuery] = useState('')
   const sort = useSort()
 
   const accessors = useMemo(() => {
@@ -36,17 +35,13 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
     return map
   }, [columns])
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return rows
-    const q = query.trim().toLowerCase()
-    return rows.filter(r => columns.some(c => String(accessors[c.key](r) ?? '').toLowerCase().includes(q)))
-  }, [rows, query, columns, accessors])
+  const filtered = rows;
 
   const sorted = useMemo(() => applySort(filtered, sort, accessors), [filtered, sort, accessors])
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / perPage))
   useEffect(() => { if (page >= totalPages) setPage(0) }, [totalPages, page])
-  useEffect(() => { setPage(0) }, [query, perPage, rows.length])
+  useEffect(() => { setPage(0) }, [perPage, rows.length])
 
   const pageRows = sorted.slice(page * perPage, page * perPage + perPage)
 
@@ -55,34 +50,49 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
     const lines = []
     lines.push(columns.map(c => csvEscape(c.label)).join(','))
     sorted.forEach(r => {
-      lines.push(columns.map(c => csvEscape(String(accessors[c.key](r) ?? ''))).join(','))
+      lines.push(columns.map(c => {
+        const v = accessors[c.key](r)
+        return csvEscape(c.align === 'right' ? csvNum(v) : String(v ?? ''))
+      }).join(','))
     })
     downloadCSV(lines, filename)
+  }
+
+  const doExportXLSX = () => {
+    if (!filename || !sorted.length) return
+    const xlsxName = filename.replace(/\.csv$/i, '.xlsx')
+    const aoa = [columns.map(c => c.label)]
+    sorted.forEach(r => {
+      aoa.push(columns.map(c => {
+        const v = accessors[c.key](r)
+        return c.align === 'right' ? Number(csvNum(v) || 0) : String(v ?? '')
+      }))
+    })
+    downloadXLSX(aoa, xlsxName, 'Data')
   }
 
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="🔍 Search…"
-          style={{ ...controlStyle, width: 220, outline: 'none' }}
-        />
         <span style={{ fontSize: 12, color: '#64748b' }}>{sorted.length} row{sorted.length === 1 ? '' : 's'}</span>
         <span style={{ flex: 1 }} />
         <select value={perPage} onChange={e => setPerPage(Number(e.target.value))} style={{ ...controlStyle, cursor: 'pointer' }}>
           {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n} per page</option>)}
         </select>
         {filename && (
-          <button onClick={doExport} style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            ⬇ Download CSV
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={doExport} style={{ background: '#22c55e', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              ⬇ CSV
+            </button>
+            <button onClick={doExportXLSX} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              ⬇ XLSX
+            </button>
+          </div>
         )}
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+      <div className="table-scroll">
+        <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
           <thead>
             <tr>
               {columns.map(c => {
@@ -107,14 +117,15 @@ export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, 
                 key={i}
                 onClick={() => onRowClick && onRowClick(r)}
                 style={onRowClick ? { cursor: 'pointer' } : undefined}
-                onMouseEnter={onRowClick ? (e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)' } : undefined}
-                onMouseLeave={onRowClick ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}
               >
-                {columns.map(c => (
-                  <td key={c.key} style={{ padding: '12px 10px', fontSize: 13, borderBottom: '1px solid #1e293b', textAlign: c.align || 'left', whiteSpace: 'nowrap' }}>
-                    {c.render ? c.render(r, i) : String(accessors[c.key](r) ?? '—')}
-                  </td>
-                ))}
+                {columns.map(c => {
+                  const numeric = c.align === 'right'
+                  return (
+                    <td key={c.key} style={{ padding: '12px 10px', fontSize: 13, borderBottom: '1px solid #1e293b', textAlign: c.align || 'left', whiteSpace: 'nowrap', fontVariantNumeric: numeric ? 'tabular-nums' : undefined, ...(numeric ? {} : { maxWidth: c.maxWidth || 280, overflow: 'hidden', textOverflow: 'ellipsis' }) }}>
+                      {c.render ? c.render(r, i) : String(accessors[c.key](r) ?? '—')}
+                    </td>
+                  )
+                })}
               </tr>
             ))}
           </tbody>

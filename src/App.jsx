@@ -1,62 +1,186 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { num, parseCSV, parseMMDDDate, uniqueByPO, sumPOField, sumField } from './lib/utils'
+import { num, parseCSV, parseMMDDDate, uniqueByPO, sumPOField, sumField, loadCSVFromFile } from './lib/utils'
 import { UserContext } from './lib/userContext'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { DashboardSkeleton } from './components/ui'
+import { getAuthToken, forceReauth } from './lib/auth'
+import { toast } from './lib/toast'
 import DashboardTab from './tabs/DashboardTab'
 import OrdersTab from './tabs/OrdersTab'
 import InventoryTab from './tabs/InventoryTab'
+import StockTab from './tabs/StockTab'
 import LogisticsTab from './tabs/LogisticsTab'
 import DispatchTab from './tabs/DispatchTab'
 import ReportsTab from './tabs/ReportsTab'
-import RTOTab from './tabs/RTOTab'
 import FinanceTab from './tabs/FinanceTab'
 import PerformanceTab from './tabs/PerformanceTab'
 import SettingsTab from './tabs/SettingsTab'
-import { PODrawer } from './components/PODrawer'
+import { PODetailsPage } from './components/PODetailsPage'
+import { AuthGate, UserBadge } from './components/AuthGate'
+import { CommandPalette } from './components/CommandPalette'
 
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
+const API_URL = 'https://script.google.com/macros/s/AKfycbyTPATdTTq6ZOUHDyG37foHyVZgTfIfCBxjTSxs3vbbECkeAHUTTUrrOttSpKKCOVqMjA/exec'
+const FALLBACK_SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
 
-const SEARCH_FIELDS = ['PO Number', 'Product', 'City', 'Platform', 'Appointment ID', 'FacilityName', 'Transporter', 'Entity', 'Invoice No', 'RTO Reason']
-
-function App() {
+function Dashboard({ authUser, onLogout }) {
   const [data, setData] = useState([])
   const [rawCSV, setRawCSV] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [tab, setTab] = useState('dashboard')
+  const [dataSource, setDataSource] = useState(null)
+  const [tab, setTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('tab') || 'dashboard'
+  })
   const [userEmail, setUserEmail] = useState('mohammed.r@gemedible.com')
   const [mobileMenu, setMobileMenu] = useState(false)
-  const [globalPlatform, setGlobalPlatform] = useState('All')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [drawerPO, setDrawerPO] = useState(null)
+  const [globalPlatform, setGlobalPlatform] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('platform') || 'All'
+  })
+  const [viewPO, setViewPO] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('po') || null
+  })
+  const [autoRefresh, setAutoRefresh] = useState(0) // 0 = off, 5/15/30 = minutes
+  const [cmdOpen, setCmdOpen] = useState(false)
+
+  // URL deep linking
+  const updateURL = useCallback((newTab, newPlatform) => {
+    const params = new URLSearchParams(window.location.search)
+    params.set('tab', newTab)
+    if (newPlatform && newPlatform !== 'All') params.set('platform', newPlatform)
+    else params.delete('platform')
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
+  }, [])
+
+  const handleTabChange = useCallback((newTab) => {
+    setTab(newTab)
+    updateURL(newTab, globalPlatform)
+  }, [globalPlatform, updateURL])
+
+  const handlePlatformChange = useCallback((newPlatform) => {
+    setGlobalPlatform(newPlatform)
+    updateURL(tab, newPlatform)
+  }, [tab, updateURL])
+
+  const openPO = useCallback((row) => {
+    if (row && row['PO Number']) setViewPO(row['PO Number'])
+  }, [])
+
+  const openPOInNewTab = useCallback((po) => {
+    if (!po) return
+    const params = new URLSearchParams(window.location.search)
+    params.set('tab', tab)
+    params.set('po', po)
+    window.open(`${window.location.pathname}?${params.toString()}`, '_blank', 'noopener')
+  }, [tab])
+
+  const closePO = useCallback(() => {
+    setViewPO(null)
+    const params = new URLSearchParams(window.location.search)
+    params.delete('po')
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
+  }, [])
 
   const loadData = useCallback(() => {
     setIsRefreshing(true)
     setError(null)
-    fetch(SHEET_URL)
+
+    const fallback = () => fetch(FALLBACK_SHEET_URL)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`)
+        return r.text()
+      })
+      .then(fbText => {
+        const fbParsed = parseCSV(fbText)
+        if (fbParsed.length === 0) throw new Error('Source sheet returned no rows')
+        setRawCSV(fbText)
+        setData(fbParsed)
+        setLastUpdated(new Date())
+        setDataSource('fallback')
+        setLoading(false)
+        setIsRefreshing(false)
+        if (data.length) toast(`Refreshed from direct sheet (${fbParsed.length} rows)`, 'warn')
+      })
+
+    if (!API_URL) {
+      fallback().catch(e => { setLoading(false); setIsRefreshing(false); setError(e.message || 'Failed to load data') })
+      return
+    }
+
+    fetch(`${API_URL}?token=${encodeURIComponent(getAuthToken() || '')}`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`)
         return r.text()
       })
       .then(text => {
+        if (/^__ERROR_(401|403)__/.test(text)) {
+          forceReauth()
+          throw new Error('Session expired — signing you in again.')
+        }
+        if (text.startsWith('__ERROR_')) {
+          throw new Error(text.split('\n').slice(1).join('\n') || 'Backend error')
+        }
+        if (text.trim().toLowerCase().startsWith('<!doctype')) {
+          throw new Error('Backend returned a Google sign-in page. Check the Apps Script deployment access (must allow the app to call it with a token).')
+        }
+        if (text.trim().startsWith('{')) {
+          throw new Error('Backend returned an unexpected response: ' + text.trim().slice(0, 120))
+        }
         const parsed = parseCSV(text)
+        if (parsed.length === 0) throw new Error('__BACKEND_EMPTY__')
         setRawCSV(text)
         setData(parsed)
         setLastUpdated(new Date())
+        setDataSource('backend')
         setLoading(false)
         setIsRefreshing(false)
+        if (data.length) toast(`Data refreshed (${parsed.length} rows)`, 'success')
       })
-      .catch(e => {
-        setLoading(false)
-        setIsRefreshing(false)
-        setError(e.message || 'Failed to load data')
+      .catch(err => {
+        // Backend failed (HTTP error, auth page, or empty) — fall back to the direct sheet export.
+        if (err.message === 'Source sheet returned no rows') {
+          setLoading(false)
+          setIsRefreshing(false)
+          setError(err.message)
+          return
+        }
+        fallback().catch(fbErr => {
+          setLoading(false)
+          setIsRefreshing(false)
+          setError(fbErr.message || 'Failed to load data')
+          toast('Failed to load data', 'error')
+        })
       })
-  }, [])
+  }, [data.length])
 
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (autoRefresh === 0) return
+    const interval = setInterval(() => {
+      loadData()
+    }, autoRefresh * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [autoRefresh, loadData])
+
+  // Command palette shortcut (Cmd/Ctrl + K)
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setCmdOpen(v => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   const platforms = useMemo(() => {
     const set = new Set()
@@ -68,12 +192,6 @@ function App() {
     if (globalPlatform === 'All') return data
     return data.filter(r => r['Platform'] === globalPlatform)
   }, [data, globalPlatform])
-
-  const searchedData = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return filteredData
-    return filteredData.filter(r => SEARCH_FIELDS.some(f => String(r[f] || '').toLowerCase().includes(q)))
-  }, [filteredData, searchQuery])
 
   const metrics = useMemo(() => {
     const poData = uniqueByPO(filteredData)
@@ -122,36 +240,6 @@ function App() {
     }
   }, [filteredData])
 
-  const cityData = useMemo(() => {
-    const map = {}
-    for (const r of filteredData) {
-      const c = r['City']; if (!c) continue
-      if (!map[c]) map[c] = { city: c, orders: new Set(), tonnage: 0, delivered: 0, deliveredTonnage: 0, poValues: {} }
-      map[c].orders.add(r['PO Number'])
-      map[c].tonnage += num(r['Tonnage'])
-      const po = r['PO Number']
-      const v = num(r['PO Value with Tax'])
-      if (po && v > 0 && v > (map[c].poValues[po] || 0)) map[c].poValues[po] = v
-      if (r['Status'] === 'Delivered') {
-        map[c].delivered++
-        map[c].deliveredTonnage += num(r['Tonnage'])
-      }
-    }
-    return Object.values(map)
-      .map(x => ({ ...x, orders: x.orders.size, value: Math.round(Object.values(x.poValues).reduce((s, v) => s + v, 0)) }))
-      .sort((a, b) => b.orders - a.orders)
-  }, [filteredData])
-
-  const statusData = useMemo(() => {
-    const poData = uniqueByPO(filteredData)
-    const map = {}
-    poData.forEach(r => {
-      const s = r['Status'] || 'Unknown'
-      map[s] = (map[s] || 0) + 1
-    })
-    return Object.entries(map).map(([name, value]) => ({ name, value }))
-  }, [filteredData])
-
   const recentOrders = useMemo(() => {
     const seen = new Set()
     return filteredData
@@ -164,9 +252,8 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: '#0f172a', color: '#94a3b8', fontSize: 18, gap: 12 }}>
-        <div style={{ fontSize: 22 }}>⏳</div>
-        Loading dashboard data...
+      <div className="main-content">
+        <DashboardSkeleton />
       </div>
     )
   }
@@ -199,7 +286,7 @@ function App() {
 
   const closeNav = () => setMobileMenu(false)
   const navItem = (key, icon, label) => (
-    <a href="#" className={tab === key ? 'active' : ''} onClick={e => { e.preventDefault(); setTab(key); closeNav() }}>
+    <a href="#" className={tab === key ? 'active' : ''} onClick={e => { e.preventDefault(); handleTabChange(key); closeNav() }}>
       <span className="icon">{icon}</span> {label}
     </a>
   )
@@ -211,73 +298,156 @@ function App() {
       <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
         <button className="menu-close" onClick={closeNav}>✕</button>
         <div className="logo"><span className="brand-icon">✦</span> <span className="brand-gradient">ARRA BETTER LIVING</span></div>
+        <div style={{ padding: '8px 16px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <UserBadge user={authUser} logout={onLogout} />
+          </div>
+
+        </div>
         <div style={{ padding: '8px 16px 4px' }}>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Platform Filter</div>
-          <select value={globalPlatform} onChange={e => setGlobalPlatform(e.target.value)} style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, cursor: 'pointer', outline: 'none' }}>
+          <select value={globalPlatform} onChange={e => handlePlatformChange(e.target.value)} style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, cursor: 'pointer', outline: 'none' }}>
             {platforms.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
-        </div>
-        <div style={{ padding: '8px 16px 12px' }}>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Global Search</div>
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="🔍 PO #, product, city…"
-            style={{ width: '100%', background: '#1e293b', border: '1px solid #475569', borderRadius: 6, color: '#f1f5f9', padding: '8px 10px', fontSize: 13, outline: 'none' }}
-          />
-          {searchQuery && (
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>
-              {uniqueByPO(searchedData).length} matching orders — <a href="#" onClick={e => { e.preventDefault(); setSearchQuery('') }} style={{ color: '#3b82f6', textDecoration: 'none' }}>clear</a>
-            </div>
-          )}
         </div>
         <nav>
           {navItem('dashboard', '📈', 'Dashboard')}
           {navItem('orders', '📦', 'Orders')}
           {navItem('inventory', '🏭', 'Inventory')}
+          {navItem('stock', '🗃️', 'Stock')}
           {navItem('logistics', '🚚', 'Logistics')}
           {navItem('dispatch', '📤', 'Dispatch')}
           {navItem('reports', '📋', 'Reports')}
-          {navItem('rto', '↩️', 'RTO')}
           {navItem('finance', '💰', 'Finance')}
           {navItem('performance', '🔬', 'Performance')}
           {navItem('settings', '⚙️', 'Settings')}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #334155' }}>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 600 }}>AUTO-REFRESH</div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[0, 5, 15, 30].map(min => (
+                <button
+                  key={min}
+                  onClick={() => setAutoRefresh(min)}
+                  style={{
+                    flex: 1,
+                    padding: '6px 4px',
+                    background: autoRefresh === min ? 'rgba(59,130,246,0.2)' : 'transparent',
+                    border: '1px solid ' + (autoRefresh === min ? '#3b82f6' : '#334155'),
+                    borderRadius: 4,
+                    color: autoRefresh === min ? '#3b82f6' : '#64748b',
+                    fontSize: 10,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {min === 0 ? 'Off' : `${min}m`}
+                </button>
+              ))}
+            </div>
+          </div>
           <button onClick={() => {
             const blob = new Blob([rawCSV], { type: 'text/csv' })
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a'); a.href = url; a.download = 'full_dataset.csv'; a.click()
             URL.revokeObjectURL(url)
+            toast('Downloaded full dataset CSV', 'success')
           }} style={{ width: '100%', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#22c55e', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
             ⬇ Download Full Data
+          </button>
+          <button onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+            input.onchange = async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const parsed = await loadCSVFromFile(file);
+                setRawCSV('');
+                setData(parsed);
+                setLastUpdated(new Date());
+                setLoading(false);
+                toast(`Loaded ${parsed.length} rows from ${file.name}`, 'success');
+              } catch (err) {
+                setError('Failed to parse CSV file');
+                toast(`Failed to parse CSV: ${err?.message || 'invalid format'}`, 'error');
+              }
+            };
+            input.click();
+          }} style={{ width: '100%', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+            📂 Load CSV File
           </button>
           <button onClick={loadData} disabled={isRefreshing} style={{ width: '100%', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: isRefreshing ? 0.6 : 1 }}>
             ↻ {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
           </button>
           <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, textAlign: 'center', lineHeight: 1.5 }}>
             {lastUpdated ? <>Last updated<br />{lastUpdated.toLocaleString()}</> : 'Last updated: —'}
+            {dataSource === 'fallback' && <div style={{ marginTop: 6, color: '#f59e0b' }}>⚠ loaded from direct sheet (backend empty)</div>}
+            <div style={{ marginTop: 6, color: '#475569' }}>build v2sheet-2</div>
           </div>
         </div>
       </aside>
 
       <UserContext.Provider value={{ userEmail, setUserEmail }}>
         <div className="main-content">
-          {tab === 'dashboard' && <DashboardTab data={searchedData} metrics={metrics} cityData={cityData} statusData={statusData} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={setDrawerPO} />}
-          {tab === 'orders' && <OrdersTab data={searchedData} platformFilter={globalPlatform} onOpenPO={setDrawerPO} />}
-          {tab === 'inventory' && <InventoryTab data={searchedData} />}
-          {tab === 'logistics' && <LogisticsTab data={searchedData} onOpenPO={setDrawerPO} />}
-          {tab === 'dispatch' && <DispatchTab data={searchedData} onOpenPO={setDrawerPO} />}
-          {tab === 'reports' && <ReportsTab data={searchedData} platformFilter={globalPlatform} />}
-          {tab === 'rto' && <RTOTab data={searchedData} onOpenPO={setDrawerPO} />}
-          {tab === 'finance' && <FinanceTab data={searchedData} onOpenPO={setDrawerPO} />}
-          {tab === 'performance' && <PerformanceTab data={searchedData} platformFilter={globalPlatform} />}
-          {tab === 'settings' && <SettingsTab />}
+          {viewPO ? (
+            <ErrorBoundary>
+              <PODetailsPage po={viewPO} data={data} onBack={closePO} />
+            </ErrorBoundary>
+          ) : (
+            <div key={tab} className="tab-pane">
+              <ErrorBoundary key="dashboard">
+                {tab === 'dashboard' && <DashboardTab data={filteredData} allData={data} metrics={metrics} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} onSearchOpen={openPOInNewTab} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="orders">
+                {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="inventory">
+                {tab === 'inventory' && <InventoryTab data={filteredData} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="stock">
+                {tab === 'stock' && <StockTab data={filteredData} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="logistics">
+                {tab === 'logistics' && <LogisticsTab data={filteredData} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="dispatch">
+                {tab === 'dispatch' && <DispatchTab data={filteredData} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="reports">
+                {tab === 'reports' && <ReportsTab data={filteredData} platformFilter={globalPlatform} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="finance">
+                {tab === 'finance' && <FinanceTab data={filteredData} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="performance">
+                {tab === 'performance' && <PerformanceTab data={filteredData} platformFilter={globalPlatform} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="settings">
+                {tab === 'settings' && <SettingsTab />}
+              </ErrorBoundary>
+            </div>
+          )}
         </div>
       </UserContext.Provider>
 
-      <PODrawer po={drawerPO} data={data} onClose={() => setDrawerPO(null)} />
+      <CommandPalette
+        open={cmdOpen}
+        onClose={() => setCmdOpen(false)}
+        onSelectTab={handleTabChange}
+        data={data}
+        onOpenPO={openPOInNewTab}
+      />
     </>
+  )
+}
+
+function App() {
+  return (
+    <AuthGate>
+      {({ user, logout }) => <Dashboard authUser={user} onLogout={logout} />}
+    </AuthGate>
   )
 }
 

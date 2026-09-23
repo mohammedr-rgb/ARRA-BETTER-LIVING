@@ -1,20 +1,112 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState, Fragment } from 'react'
 import { num, parseMMDDDate, csvEscape, MONTH_NAMES, productSummary } from '../lib/utils'
 import { CSVButton, ProfileSection } from '../components/ui'
+import { buildProductionPlan, planCSVRows, groupRowsByBoxType, totalsFor } from '../lib/productionPlan'
+
+const BOX_CHIP_COLORS = { 'White Box': '#22c55e', 'Standard Box': '#3b82f6' }
+
+const OIL_PRODUCTS = [
+  'Groundnut oil',
+  'Sunflower oil',
+  'Mustard oil',
+  'Sesame Oil',
+  'Nithyam Puja Oil',
+  'Olive Oil',
+  'Coconut Oil',
+]
+
+// Extra keyword aliases (besides the label itself) that should map to a label.
+const OIL_LABEL_ALIASES = {
+  'Groundnut oil': ['dosa spray', 'gems gold', 'gem gold', 'gemsgold'],
+}
+
+const normalizeProductName = (s) =>
+  (s || '')
+    .toLowerCase()
+    .replace(/&/g, ' ')
+    .replace(/\band\b/g, ' ')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const matchOilLabel = (product) => {
+  const s = normalizeProductName(product)
+  for (const label of OIL_PRODUCTS) {
+    const base = normalizeProductName(label)
+    if (s.includes(base) || s.includes(base.replace(/ oil$/, ''))) return label
+    const aliases = OIL_LABEL_ALIASES[label]
+    if (aliases && aliases.some(a => s.includes(normalizeProductName(a)))) return label
+  }
+  return null
+}
 
 export default function InventoryTab({ data }) {
-  const [hoverSku, setHoverSku] = useState(null)
-  const [planPlatform] = useState('All')
-  const [planCity] = useState('All')
+  const [selectedMonths, setSelectedMonths] = useState(() => {
+    const now = new Date()
+    return new Set([now.getFullYear() * 12 + now.getMonth()])
+  })
 
-  const productData = useMemo(() => productSummary(data), [data])
+  const monthOptions = useMemo(() => {
+    const map = {}
+    data.forEach(r => {
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+      if (!d) return
+      const mk = d.getFullYear() * 12 + d.getMonth()
+      if (!map[mk]) map[mk] = `${MONTH_NAMES[mk % 12]} ${String(Math.floor(mk / 12)).slice(2)}`
+    })
+    return Object.entries(map).sort((a, b) => Number(b[0]) - Number(a[0])).map(([mk, label]) => ({ mk: Number(mk), label }))
+  }, [data])
+
+  const toggleMonth = (mk) => {
+    setSelectedMonths(prev => {
+      const next = new Set(prev)
+      if (next.has(mk)) next.delete(mk)
+      else next.add(mk)
+      return next
+    })
+  }
+
+  const resetMonths = () => setSelectedMonths(new Set())
+
+  const periodData = useMemo(() => {
+    if (!selectedMonths.size) return data
+    return data.filter(r => {
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+      return d && selectedMonths.has(d.getFullYear() * 12 + d.getMonth())
+    })
+  }, [data, selectedMonths])
+
+  const scopeLabel = useMemo(() => {
+    if (!selectedMonths.size) return 'All months'
+    return [...selectedMonths]
+      .sort((a, b) => a - b)
+      .map(mk => MONTH_NAMES[mk % 12] + ' ' + String(Math.floor(mk / 12)).slice(2))
+      .join(', ')
+  }, [selectedMonths])
+
+  const productData = useMemo(() => productSummary(periodData), [periodData])
+
+  const productionPlan = useMemo(() => buildProductionPlan(data), [data])
+  const planSections = useMemo(() => groupRowsByBoxType(productionPlan.rows), [productionPlan])
+  const boxTypeSummary = useMemo(() => Object.entries(productionPlan.boxTypeTotals).map(([name, v]) => ({
+    name: name === '(Unlabelled)' ? 'Unlabelled' : name,
+    boxes: v.planBoxes,
+    qty: v.planQty,
+  })), [productionPlan])
+
+  const planStats = [
+    { label: 'Plan Qty', icon: '🧴', color: '#3b82f6', value: productionPlan.totals.planQty.toLocaleString() },
+    { label: 'Plan Boxes', icon: '📦', color: '#a855f7', value: productionPlan.totals.planBoxes.toLocaleString() },
+    { label: 'Plan Tonnage', icon: '⚖️', color: '#eab308', value: productionPlan.totals.planTonnage.toLocaleString() + ' KG' },
+    { label: 'Avg Monthly Sales Qty', icon: '📈', color: '#22c55e', value: Math.round(productionPlan.totals.salesQty / 3).toLocaleString() },
+  ]
 
   const platformMonthData = useMemo(() => {
     const map = {}
     const monthSet = new Set()
-    data.forEach(r => {
+    periodData.forEach(r => {
       const p = r['Platform'] || 'Unknown'
-      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
       if (!d) return
       const mk = `${d.getFullYear()}-${d.getMonth()}`
       monthSet.add(mk)
@@ -28,7 +120,7 @@ export default function InventoryTab({ data }) {
     const months = [...monthSet].sort().map(mk => {
       const [y, m] = mk.split('-').map(Number)
       return { key: mk, label: `${MONTH_NAMES[m]} ${String(y).slice(2)}` }
-    })
+    }).filter(x => !x.label.startsWith('May'))
     const platforms = Object.keys(map).sort()
     const rows = platforms.map(p => {
       let totalTonnage = 0, totalValue = 0
@@ -50,218 +142,109 @@ export default function InventoryTab({ data }) {
       return { tonnage: s.tonnage + (c ? c.tonnage : 0), value: s.value + (c ? c.value : 0) }
     }, { tonnage: 0, value: 0 }))
     return { months, rows, grand, monthTotals }
-  }, [data])
+  }, [periodData])
 
-  const planData = useMemo(() => {
-    const now = new Date()
-    const thisYear = now.getFullYear()
-    const prev3 = new Date(thisYear, now.getMonth() - 3, 1)
-    const prev2 = new Date(thisYear, now.getMonth() - 2, 1)
-    const prev1 = new Date(thisYear, now.getMonth() - 1, 1)
-
-    const last3MonthOrders = data.filter(r => {
-      const d = parseMMDDDate(r['DATE(MM-DD-YYYY)'])
-      if (!d) return false
-      return (d.getMonth() === prev1.getMonth() && d.getFullYear() === prev1.getFullYear()) || (d.getMonth() === prev2.getMonth() && d.getFullYear() === prev2.getFullYear()) || (d.getMonth() === prev3.getMonth() && d.getFullYear() === prev3.getFullYear())
-    })
-
-    const poQty = {}
-    const poValue = {}
-    last3MonthOrders.forEach(r => {
-      const po = r['PO Number']; if (!po) return
-      poQty[po] = (poQty[po] || 0) + num(r['PO Qty'])
-      const v = num(r['PO Value with Tax'])
-      if (v > 0 && v > (poValue[po] || 0)) poValue[po] = v
-    })
-
-    const skuMap = {}
-    last3MonthOrders.forEach(r => {
-      const p = r['Product']
-      if (!p) return
-      if (!skuMap[p]) skuMap[p] = { product: p, salesQty: 0, salesTonnage: 0, salesBoxes: 0, transportCharge: 0, totalValue: 0, combo: {} }
-      const sku = skuMap[p]
-      sku.salesQty += num(r['PO Qty'])
-      sku.salesTonnage += num(r['Tonnage'])
-      sku.salesBoxes += num(r['Box Count'])
-      sku.transportCharge += num(r['Transport Charge'])
-      const po = r['PO Number']
-      const share = po && poQty[po] ? num(r['PO Qty']) / poQty[po] : 0
-      sku.totalValue += (poValue[po] || 0) * share
-      const c = r['City'] || 'Unknown'
-      const pl = r['Platform'] || 'Unknown'
-      if (!sku.combo[c]) sku.combo[c] = {}
-      if (!sku.combo[c][pl]) sku.combo[c][pl] = { qty: 0, boxes: 0 }
-      sku.combo[c][pl].qty += num(r['PO Qty'])
-      sku.combo[c][pl].boxes += num(r['Box Count'])
-    })
-
-    const nextMonth = (prev1.getMonth() + 1) % 12
-    const nextMonthName = MONTH_NAMES[nextMonth]
-    const periodLabel = `${MONTH_NAMES[prev3.getMonth()]}–${MONTH_NAMES[prev1.getMonth()]}`
-
-    const platformOptions = [...new Set(Object.values(skuMap).flatMap(s => Object.keys(s.combo).flatMap(c => Object.keys(s.combo[c]))))]
-    const cityOptions = [...new Set(Object.values(skuMap).flatMap(s => Object.keys(s.combo)))]
-
-    const baseItems = Object.values(skuMap).map(r => {
-      const perUnitTonnage = r.salesQty ? r.salesTonnage / r.salesQty : 0
-      const perUnitBoxes = r.salesQty ? r.salesBoxes / r.salesQty : 0
-      const perUnitCharge = r.salesQty ? r.transportCharge / r.salesQty : 0
-      return {
-        product: r.product,
-        salesQty: r.salesQty,
-        salesTonnage: Math.round(r.salesTonnage),
-        salesBoxes: r.salesBoxes,
-        transportCharge: Math.round(r.transportCharge),
-        totalValue: Math.round(r.totalValue),
-        perUnitTonnage,
-        perUnitBoxes,
-        perUnitCharge,
-        combo: r.combo,
-      }
-    })
-
-    return { month: periodLabel, nextMonth: nextMonthName, baseItems, platformOptions, cityOptions }
-  }, [data])
-
-  const planItems = useMemo(() => {
-    const filterQty = (sku) => {
-      let qty = 0
-      for (const c in sku.combo) {
-        for (const pl in sku.combo[c]) {
-          if (planPlatform !== 'All' && pl !== planPlatform) continue
-          if (planCity !== 'All' && c !== planCity) continue
-          qty += sku.combo[c][pl].qty
-        }
-      }
-      return qty
+  const oilRows = useMemo(() => {
+    const acc = {}
+    OIL_PRODUCTS.forEach(l => { acc[l.toLowerCase()] = { product: l, qty: 0, tonnage: 0 } })
+    for (const r of periodData) {
+      const label = matchOilLabel(r['Product'])
+      if (!label) continue
+      const key = label.toLowerCase()
+      if (!acc[key]) acc[key] = { product: label, qty: 0, tonnage: 0 }
+      acc[key].qty += num(r['PO Qty'])
+      acc[key].tonnage += num(r['Tonnage'])
     }
-    const platformQty = (sku) => {
-      const map = {}
-      for (const c in sku.combo) {
-        for (const pl in sku.combo[c]) {
-          if (planCity !== 'All' && c !== planCity) continue
-          map[pl] = (map[pl] || 0) + sku.combo[c][pl].qty
-        }
-      }
-      return Object.entries(map).sort((a, b) => b[1] - a[1])
-    }
-    const cityQty = (sku) => {
-      const map = {}
-      for (const c in sku.combo) {
-        if (planPlatform !== 'All') continue
-        for (const pl in sku.combo[c]) {
-          map[c] = (map[c] || 0) + sku.combo[c][pl].qty
-        }
-      }
-      if (planPlatform !== 'All') {
-        for (const c in sku.combo) {
-          if (sku.combo[c][planPlatform]) map[c] = (map[c] || 0) + sku.combo[c][planPlatform].qty
-        }
-      }
-      return Object.entries(map).sort((a, b) => b[1] - a[1])
-    }
-    return planData.baseItems.map(r => {
-      const qty = filterQty(r)
-      const planQty = Math.round(qty * 0.95)
-      const platforms = platformQty(r)
-      const cities = cityQty(r)
-      return {
-        product: r.product,
-        salesQty: qty,
-        salesTonnage: Math.round(r.salesTonnage),
-        salesBoxes: r.salesBoxes,
-        totalValue: Math.round(r.totalValue),
-        planQty,
-        planTonnage: Math.round(planQty * r.perUnitTonnage),
-        planBoxes: Math.round(planQty * r.perUnitBoxes),
-        planTransport: Math.round(planQty * r.perUnitCharge),
-        perUnitCharge: r.perUnitCharge.toFixed(2),
-        platforms,
-        cities,
-      }
-    }).filter(x => x.salesQty > 0).sort((a, b) => b.planQty - a.planQty)
-  }, [planData, planPlatform, planCity])
+    return OIL_PRODUCTS.map(l => acc[l.toLowerCase()])
+  }, [periodData])
 
-  const reportCSVRows = () => {
-    const rows = ['Production Plan Report']
-    rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan')
+  const otherRows = useMemo(() => {
+    const map = {}
+    for (const r of periodData) {
+      if (matchOilLabel(r['Product'])) continue
+      const p = r['Product'] || 'Unknown'
+      if (!map[p]) map[p] = { product: p, qty: 0, tonnage: 0 }
+      map[p].qty += num(r['PO Qty'])
+      map[p].tonnage += num(r['Tonnage'])
+    }
+    return Object.values(map).sort((a, b) => b.tonnage - a.tonnage)
+  }, [periodData])
+
+  const inventoryTotals = useMemo(() => ({
+    qty: productData.reduce((s, r) => s + r.qty, 0),
+    tonnage: productData.reduce((s, r) => s + r.tonnage, 0),
+    boxes: productData.reduce((s, r) => s + r.boxes, 0),
+    value: productData.reduce((s, r) => s + r.value, 0),
+  }), [productData])
+
+  const inventoryStats = [
+    { label: 'Total Qty', icon: '🧴', color: '#3b82f6', value: inventoryTotals.qty.toLocaleString() },
+    { label: 'Total Tonnage', icon: '⚖️', color: '#eab308', value: Math.round(inventoryTotals.tonnage).toLocaleString() + ' KG' },
+    { label: 'Total Boxes', icon: '📦', color: '#a855f7', value: inventoryTotals.boxes.toLocaleString() },
+    { label: 'Total Value', icon: '₹', color: '#22c55e', value: '₹' + Math.round(inventoryTotals.value).toLocaleString() },
+  ]
+
+  const inventoryCSVRows = () => {
+    const rows = ['Inventory Summary']
     rows.push('')
-    if (planData.baseItems && planData.baseItems.length) {
-      rows.push('SKU,Sales Qty,Plan Qty,Plan Tonnage KG,Plan Boxes,Cost/Unit,Total Value,Platforms,Cities')
-      let gQty = 0, gTon = 0, gBox = 0, gVal = 0
-      planData.baseItems.forEach(r => {
-        const planQty = Math.round(r.salesQty * 0.95)
-        rows.push(`${csvEscape(r.product)},${r.salesQty},${planQty},${Math.round(planQty * r.perUnitTonnage)},${Math.round(planQty * r.perUnitBoxes)},${r.perUnitCharge.toFixed(2)},${r.totalValue}`)
-        gQty += planQty; gTon += Math.round(planQty * r.perUnitTonnage); gBox += Math.round(planQty * r.perUnitBoxes); gVal += r.totalValue
-      })
-      rows.push('')
-      rows.push(`GRAND TOTAL,${gQty},${gTon},${gBox},,${gVal}`)
+    rows.push('Product,Total Qty,Tonnage KG,Boxes,Total Value')
+    productData.forEach(r => {
+      rows.push(csvEscape(r.product) + ',' + r.qty + ',' + Math.round(r.tonnage) + ',' + r.boxes + ',' + Math.round(r.value))
+    })
+    rows.push('TOTAL,' + productData.reduce((s, r) => s + r.qty, 0) + ',' + Math.round(productData.reduce((s, r) => s + r.tonnage, 0)) + ',' + productData.reduce((s, r) => s + r.boxes, 0) + ',' + Math.round(productData.reduce((s, r) => s + r.value, 0)))
+    rows.push('')
+
+    // Product & City-wise breakdown
+    rows.push('Product & City-wise Summary')
+    rows.push('')
+    rows.push('Product,City,Qty,Tonnage KG,Boxes,Value')
+    const poQtyMap = {}
+    const poValueMap = {}
+    for (const r of periodData) {
+      const po = r['PO Number']; if (!po) continue
+      poQtyMap[po] = (poQtyMap[po] || 0) + num(r['PO Qty'])
+      const v = num(r['PO Value with Tax'])
+      if (v > 0 && v > (poValueMap[po] || 0)) poValueMap[po] = v
     }
+    const pcMap = {}
+    for (const r of periodData) {
+      const p = r['Product']; if (!p) continue
+      const c = r['City'] || 'Unknown'
+      const po = r['PO Number']
+      const key = p + '||' + c
+      if (!pcMap[key]) pcMap[key] = { product: p, city: c, qty: 0, tonnage: 0, boxes: 0, value: 0 }
+      pcMap[key].qty += num(r['PO Qty'])
+      pcMap[key].tonnage += num(r['Tonnage'])
+      pcMap[key].boxes += num(r['Box Count'])
+      const share = po && poQtyMap[po] ? num(r['PO Qty']) / poQtyMap[po] : 0
+      pcMap[key].value += (poValueMap[po] || 0) * share
+    }
+    const pcRows = Object.values(pcMap).sort((a, b) => a.product.localeCompare(b.product) || b.value - a.value)
+    pcRows.forEach(r => {
+      rows.push([csvEscape(r.product), csvEscape(r.city), Math.round(r.qty), Math.round(r.tonnage), Math.round(r.boxes), Math.round(r.value)].join(','))
+    })
+    rows.push('TOTAL,' + Math.round(pcRows.reduce((s, r) => s + r.qty, 0)) + ',' + Math.round(pcRows.reduce((s, r) => s + r.tonnage, 0)) + ',' + Math.round(pcRows.reduce((s, r) => s + r.boxes, 0)) + ',' + Math.round(pcRows.reduce((s, r) => s + r.value, 0)))
+    rows.push('')
+
+    rows.push('Invoice-wise Details')
+    rows.push('Invoice No,Invoice Date,Product,Platform,PO Number,PO Qty,Tonnage KG,Box Count,Invoice Value')
+    const detail = [...periodData]
+      .filter(r => (r['Invoice No'] || '').trim())
+      .sort((a, b) => String(a['Invoice Date (MM-DD-YYYY)'] || '').localeCompare(String(b['Invoice Date (MM-DD-YYYY)'] || '')))
+    detail.forEach(r => {
+      rows.push([r['Invoice No'], r['Invoice Date (MM-DD-YYYY)'], r['Product'], r['Platform'], r['PO Number'], num(r['PO Qty']), Math.round(num(r['Tonnage'])), Math.round(num(r['Box Count'])), num(r['Invoice Value'])].map(x => csvEscape(String(x ?? ''))).join(','))
+    })
     return rows
   }
 
-  const planCSVRows = () => {
-    const rows = ['Production Plan Report']
-    rows.push('Period,' + planData.month + ' Sales → ' + planData.nextMonth + ' Plan (2-week stock arrangement)')
+  const oilCSVRows = () => {
+    const rows = ['Overall Product wise summary']
     rows.push('')
-    rows.push('CITY WISE × PRODUCT WISE × PLATFORM WISE')
-    const weekKeys = ['Week 1', 'Week 2', 'Week 3', 'Week 4']
-    const splitWeeks = q => {
-      const b = Math.floor(q / 4)
-      const r = q % 4
-      return weekKeys.map((_, i) => b + (i < r ? 1 : 0))
-    }
-    const weekCols = weekKeys.flatMap(w => [w + ' Plan Qty', w + ' Plan Boxes'])
-    rows.push('City,Product,Platform,Sales Qty (3M),Plan Qty (95%),Plan Boxes,' + weekCols.join(','))
-    const detail = []
-    const prodTotals = {}
-    const prodBoxes = {}
-    for (const r of planData.baseItems) {
-      prodBoxes[r.product] = Math.round(r.salesQty * 0.95 * r.perUnitBoxes)
-      for (const c in r.combo) {
-        for (const pl in r.combo[c]) {
-          const cell = r.combo[c][pl]
-          if (cell.qty <= 0) continue
-          const planQty = Math.round(cell.qty * 0.95)
-          const planBoxes = Math.round(planQty * r.perUnitBoxes)
-          const wkQty = splitWeeks(planQty)
-          const wkBoxes = splitWeeks(planBoxes)
-          const cols = []
-          weekKeys.forEach((_, i) => cols.push(wkQty[i], wkBoxes[i]))
-          detail.push([c, r.product, pl, cell.qty, planQty, planBoxes].concat(cols))
-          prodTotals[r.product] = (prodTotals[r.product] || 0) + cell.qty
-        }
-      }
-    }
-    detail.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]) || a[2].localeCompare(b[2]))
-    detail.forEach(d => rows.push(d.map(x => csvEscape(String(x))).join(',')))
-    rows.push('')
-    rows.push('PRODUCT SUMMARY (UNIQUE PRODUCT - OVERALL PLAN COUNT)')
-    rows.push('Product,Total Sales Qty (3M),Total Plan Qty (95%),Total Plan Boxes,' + weekCols.join(','))
-    Object.entries(prodTotals).sort((a, b) => b[1] - a[1]).forEach(([p, q]) => {
-      const pq = Math.round(q * 0.95)
-      const wkQty = splitWeeks(pq)
-      const wkBoxes = splitWeeks(prodBoxes[p] || 0)
-      const cols = []
-      weekKeys.forEach((_, i) => cols.push(wkQty[i], wkBoxes[i]))
-      rows.push(`${csvEscape(p)},${q},${pq},${prodBoxes[p] || 0},${cols.join(',')}`)
+    rows.push('Product,Qty,Tonnage KG')
+    oilRows.forEach(r => {
+      rows.push(csvEscape(r.product) + ',' + r.qty + ',' + Math.round(r.tonnage))
     })
-    rows.push('')
-    rows.push('WEEK WISE PLAN')
-    rows.push('Week,Plan Qty (95%),Plan Boxes')
-    const weekQty = [0, 0, 0, 0]
-    const weekBoxes = [0, 0, 0, 0]
-    for (const r of planData.baseItems) {
-      const pq = Math.round(r.salesQty * 0.95)
-      const pb = Math.round(pq * r.perUnitBoxes)
-      splitWeeks(pq).forEach((v, i) => { weekQty[i] += v })
-      splitWeeks(pb).forEach((v, i) => { weekBoxes[i] += v })
-    }
-    weekKeys.forEach((wk, i) => rows.push(`${wk},${weekQty[i]},${weekBoxes[i]}`))
-    const grand = Object.values(prodTotals).reduce((s, v) => s + v, 0)
-    const grandBoxes = Object.values(prodBoxes).reduce((s, v) => s + v, 0)
-    rows.push('')
-    rows.push(`GRAND TOTAL,${grand},${Math.round(grand * 0.95)},${grandBoxes}`)
+    rows.push('TOTAL,' + oilRows.reduce((s, r) => s + r.qty, 0) + ',' + Math.round(oilRows.reduce((s, r) => s + r.tonnage, 0)))
     return rows
   }
 
@@ -281,23 +264,116 @@ export default function InventoryTab({ data }) {
       <header>
         <div>
           <h1>Inventory</h1>
-          <div className="date">{productData.length} unique products • Platform: All</div>
+          <div className="date">{productData.length} unique products • {scopeLabel}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <CSVButton makeRows={reportCSVRows} filename="production_plan_report.csv" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.5 }}>PERIOD</span>
+            <button
+              onClick={resetMonths}
+              style={{ padding: '4px 10px', borderRadius: 16, border: '1px solid ' + (selectedMonths.size === 0 ? '#3b82f6' : '#334155'), background: selectedMonths.size === 0 ? 'rgba(59,130,246,0.15)' : '#1e293b', color: selectedMonths.size === 0 ? '#3b82f6' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+            >
+              All
+            </button>
+            {monthOptions.map(m => {
+              const on = selectedMonths.has(m.mk)
+              return (
+                <button
+                  key={m.mk}
+                  onClick={() => toggleMonth(m.mk)}
+                  style={{ padding: '4px 10px', borderRadius: 16, border: '1px solid ' + (on ? '#22c55e' : '#334155'), background: on ? 'rgba(34,197,94,0.15)' : '#1e293b', color: on ? '#22c55e' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {m.label}
+                </button>
+              )
+            })}
+          </div>
           <ProfileSection />
         </div>
       </header>
 
-      <div className="recent-orders" style={{ marginTop: 0 }}>
+      <div className="stats-grid" style={{ marginTop: 0 }}>
+        {inventoryStats.map(s => (
+          <div className="stat-card" key={s.label}>
+            <div className="stat-header">
+              <div className="stat-label">{s.label}</div>
+              <div className="stat-icon" style={{ background: `${s.color}26`, color: s.color }}>{s.icon}</div>
+            </div>
+            <div className="stat-value">{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="recent-orders" style={{ marginTop: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">Overall Product wise summary</div>
+          <div className="chart-period">Qty &amp; Tonnage (KG) • {scopeLabel}</div>
+          <CSVButton makeRows={oilCSVRows} filename="oil_products_summary.csv" />
+        </div>
         <table>
           <thead>
             <tr>
               <th>Product</th>
-              <th>Total Qty</th>
+              <th>Qty</th>
               <th>Tonnage (KG)</th>
-              <th>Boxes</th>
-              <th>Total Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {oilRows.map((row, i) => (
+              <tr key={i}>
+                <td>{row.product}</td>
+                <td>{row.qty}</td>
+                <td>{Math.round(row.tonnage)}</td>
+              </tr>
+            ))}
+            <tr style={{ background: 'rgba(59,130,246,0.08)', fontWeight: 700 }}>
+              <td style={{ borderTop: '2px solid #334155' }}>TOTAL</td>
+              <td style={{ borderTop: '2px solid #334155' }}>{oilRows.reduce((s, r) => s + r.qty, 0).toLocaleString()}</td>
+              <td style={{ borderTop: '2px solid #334155' }}>{Math.round(oilRows.reduce((s, r) => s + r.tonnage, 0)).toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+        <details style={{ marginTop: 14 }}>
+          <summary style={{ cursor: 'pointer', fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
+            Other products not in oils list — {Math.round(otherRows.reduce((s, r) => s + r.tonnage, 0)).toLocaleString()} KG ({otherRows.length} products)
+          </summary>
+          <div style={{ marginTop: 10, maxHeight: 240, overflowY: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Qty</th>
+                  <th>Tonnage (KG)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {otherRows.map((row, i) => (
+                  <tr key={i}>
+                    <td>{row.product}</td>
+                    <td>{row.qty}</td>
+                    <td>{Math.round(row.tonnage)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <div className="recent-orders" style={{ marginTop: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">Product-wise Summary</div>
+          <div className="chart-period">By Tonnage (KG) • Total Qty • Boxes • Value • City-wise breakdown in CSV</div>
+          <CSVButton makeRows={inventoryCSVRows} filename="inventory_summary.csv" />
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Total Qty ({inventoryTotals.qty.toLocaleString()})</th>
+              <th>Tonnage (KG) ({Math.round(inventoryTotals.tonnage).toLocaleString()})</th>
+              <th>Boxes ({inventoryTotals.boxes.toLocaleString()})</th>
+              <th>Total Value (₹{Math.round(inventoryTotals.value).toLocaleString()})</th>
             </tr>
           </thead>
           <tbody>
@@ -310,6 +386,13 @@ export default function InventoryTab({ data }) {
                 <td>₹{Math.round(row.value).toLocaleString()}</td>
               </tr>
             ))}
+            <tr style={{ background: 'rgba(59,130,246,0.08)', fontWeight: 700 }}>
+              <td style={{ borderTop: '2px solid #334155' }}>TOTAL</td>
+              <td style={{ borderTop: '2px solid #334155' }}>{productData.reduce((s, r) => s + r.qty, 0).toLocaleString()}</td>
+              <td style={{ borderTop: '2px solid #334155' }}>{Math.round(productData.reduce((s, r) => s + r.tonnage, 0)).toLocaleString()}</td>
+              <td style={{ borderTop: '2px solid #334155' }}>{productData.reduce((s, r) => s + r.boxes, 0).toLocaleString()}</td>
+              <td style={{ borderTop: '2px solid #334155' }}>₹{Math.round(productData.reduce((s, r) => s + r.value, 0)).toLocaleString()}</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -318,7 +401,7 @@ export default function InventoryTab({ data }) {
         <div className="recent-orders" style={{ marginTop: 20 }}>
           <div className="orders-header">
             <div className="orders-title">Platform &amp; Month-wise Sales</div>
-            <div className="chart-period">Tonnage (KG) • Invoice Value</div>
+            <div className="chart-period">By Invoice Date • Tonnage (KG) • Invoice Value</div>
             <CSVButton makeRows={platformMonthCSVRows} filename="platform_month_sales.csv" />
           </div>
           <table>
@@ -366,85 +449,99 @@ export default function InventoryTab({ data }) {
         </div>
       )}
 
-      {planItems.length > 0 && (() => {
-        const t = planItems.reduce((s, r) => ({
-          salesQty: s.salesQty + r.salesQty,
-          planQty: s.planQty + r.planQty,
-          planTonnage: s.planTonnage + r.planTonnage,
-          planBoxes: s.planBoxes + r.planBoxes,
-          totalValue: s.totalValue + r.totalValue,
-        }), { salesQty: 0, planQty: 0, planTonnage: 0, planBoxes: 0, totalValue: 0 })
-        return (
-          <div className="recent-orders" style={{ marginTop: 20 }}>
-            <div className="orders-header">
-              <div className="orders-title">Production Plan — {planData.nextMonth}</div>
-              <div className="chart-period">Based on {planData.month} sales • 5% lower projection</div>
-              <CSVButton makeRows={planCSVRows} filename="production_plan.csv">⬇ Download Plan</CSVButton>
+      <div className="recent-orders" style={{ marginTop: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">Production Plan — {productionPlan.planMonth}</div>
+          <div className="chart-period" style={{ marginLeft: 12, flexWrap: 'wrap' }}>
+            Automated from {productionPlan.period} sales (3-month avg × 0.95) • recalculates on every data refresh
+          </div>
+          <CSVButton makeRows={() => planCSVRows(productionPlan)} filename={'production_plan_' + productionPlan.planMonth.toLowerCase() + '.csv'}>⬇ Download Plan</CSVButton>
+        </div>
+
+        {productionPlan.rows.length > 0 ? (
+          <>
+            <div className="stats-grid" style={{ marginTop: 0 }}>
+              {planStats.map(s => (
+                <div className="stat-card" key={s.label} style={{ position: 'relative' }}>
+                  <div className="stat-header">
+                    <div className="stat-label">{s.label}</div>
+                    <div className="stat-icon" style={{ background: `${s.color}26`, color: s.color }}>{s.icon}</div>
+                  </div>
+                  <div className="stat-value">{s.value}</div>
+                </div>
+              ))}
             </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+              {boxTypeSummary.map(c => {
+                const color = BOX_CHIP_COLORS[c.name] || '#a78bfa'
+                return (
+                  <span key={c.name} style={{ display: 'inline-block', padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: `${color}1a`, color, border: `1px solid ${color}40` }}>
+                    {c.name}: {c.boxes} boxes • {c.qty} qty
+                  </span>
+                )
+              })}
+            </div>
+
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ minWidth: 980 }}>
+              <table style={{ minWidth: 900, width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
-                  <tr>
-                    <th>SKU</th>
-                    <th>{planData.month} Sales</th>
-                    <th>Plan Qty</th>
-                    <th>Plan Tonnage</th>
-                    <th>Plan Boxes</th>
-                    <th>Cost/Unit</th>
-                    <th>Value</th>
-                    <th>Platforms</th>
-                    <th>Cities</th>
+                  <tr style={{ background: '#1e293b' }}>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Box Type</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Product</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Platform</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>MRP</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Sales Qty ({productionPlan.period})</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Plan Qty ({productionPlan.planMonth})</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Plan Boxes</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right', borderBottom: '2px solid #334155', color: '#94a3b8', fontWeight: 600 }}>Plan Tonnage (KG)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {planItems.map((row, i) => {
-                    const pct = planItems.length ? (row.planQty / planItems[0].planQty * 100) : 0
+                  {planSections.map(section => {
+                    const sub = totalsFor(section.rows)
                     return (
-                      <tr key={i}>
-                        <td style={{ position: 'relative', fontWeight: 600, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} onMouseEnter={() => setHoverSku(row.product)} onMouseLeave={() => setHoverSku(null)}>{row.product}
-                          {hoverSku === row.product && (
-                            <div style={{ position: 'absolute', left: 0, top: '100%', marginTop: 4, background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '8px 12px', zIndex: 9999, maxWidth: 420, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-                              <span style={{ fontSize: 12, color: '#f1f5f9', fontWeight: 600, wordBreak: 'break-word', whiteSpace: 'normal' }}>{row.product}</span>
-                            </div>
-                          )}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ width: 50, height: 5, background: '#334155', borderRadius: 3, overflow: 'hidden' }}>
-                              <div style={{ width: `${pct}%`, height: '100%', background: '#3b82f6', borderRadius: 3 }} />
-                            </div>
-                            <span style={{ fontSize: 13 }}>{row.salesQty}</span>
-                          </div>
-                        </td>
-                        <td style={{ fontWeight: 600, color: '#3b82f6' }}>{row.planQty}</td>
-                        <td>{row.planTonnage} KG</td>
-                        <td>{row.planBoxes}</td>
-                        <td style={{ fontSize: 12, color: '#94a3b8' }}>₹{row.perUnitCharge}</td>
-                        <td style={{ fontSize: 12, color: '#94a3b8' }}>₹{row.totalValue.toLocaleString()}</td>
-                        <td style={{ fontSize: 11, color: '#3b82f6', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.platforms.map(([n, q]) => `${n} (${q})`).join(' • ')}</td>
-                        <td style={{ fontSize: 11, color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.cities.map(([n, q]) => `${n} (${q})`).join(' • ')}</td>
-                      </tr>
+                      <Fragment key={section.boxType}>
+                        {section.rows.map((r, i) => (
+                          <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(30,41,59,0.5)' }}>
+                            <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9' }}>{r.boxType || '(Unlabelled)'}</td>
+                            <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.product}</td>
+                            <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#94a3b8' }}>{r.platform}</td>
+                            <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>₹{r.mrp}</td>
+                            <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>{r.salesQty}</td>
+                            <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#3b82f6', textAlign: 'right', fontWeight: 600 }}>{r.planQty}</td>
+                            <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>{r.planBoxes}</td>
+                            <td style={{ padding: '6px 10px', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'right' }}>{r.planTonnage}</td>
+                          </tr>
+                        ))}
+                        <tr style={{ background: 'rgba(139,92,246,0.08)', fontWeight: 700 }}>
+                          <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#a78bfa' }}>SUBTOTAL {section.boxType}</td>
+                          <td colSpan={2} style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#94a3b8' }}></td>
+                          <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{sub.salesQty}</td>
+                          <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#3b82f6', textAlign: 'right' }}>{sub.planQty}</td>
+                          <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{sub.planBoxes}</td>
+                          <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{sub.planTonnage}</td>
+                        </tr>
+                      </Fragment>
                     )
                   })}
-                </tbody>
-                <tfoot>
-                  <tr style={{ background: 'rgba(59,130,246,0.12)' }}>
-                    <td style={{ fontWeight: 700 }}>Total</td>
-                    <td style={{ fontWeight: 700 }}>{t.salesQty}</td>
-                    <td style={{ fontWeight: 700, color: '#3b82f6' }}>{t.planQty}</td>
-                    <td style={{ fontWeight: 700 }}>{t.planTonnage} KG</td>
-                    <td style={{ fontWeight: 700 }}>{t.planBoxes}</td>
-                    <td>—</td>
-                    <td style={{ fontWeight: 700 }}>₹{t.totalValue.toLocaleString()}</td>
-                    <td>—</td>
-                    <td>—</td>
+                  <tr style={{ background: 'rgba(59,130,246,0.08)', fontWeight: 700 }}>
+                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9' }}>TOTAL</td>
+                    <td colSpan={3} style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#94a3b8' }}></td>
+                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{productionPlan.totals.salesQty}</td>
+                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#3b82f6', textAlign: 'right' }}>{productionPlan.totals.planQty}</td>
+                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{productionPlan.totals.planBoxes}</td>
+                    <td style={{ padding: '8px 10px', borderTop: '2px solid #334155', color: '#f1f5f9', textAlign: 'right' }}>{productionPlan.totals.planTonnage}</td>
                   </tr>
-                </tfoot>
+                </tbody>
               </table>
             </div>
-          </div>
-        )
-      })()}
+          </>
+        ) : (
+          <div style={{ padding: 16, textAlign: 'center', color: '#64748b', fontSize: 13 }}>No production plan data available</div>
+        )}
+      </div>
+
     </>
   )
 }

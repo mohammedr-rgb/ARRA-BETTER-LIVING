@@ -2,6 +2,8 @@ export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Au
 
 export const statusFilters = ['All', 'Active', 'Delivered', 'RTO']
 
+import * as XLSX from 'xlsx'
+
 export function num(val) {
   const cleaned = String(val).replace(/[^0-9.-]/g, '')
   const n = parseFloat(cleaned)
@@ -11,26 +13,38 @@ export function num(val) {
 export const toNumKG = num
 
 export function parseCSV(text) {
-  const lines = text.trim().split('\n')
-  if (lines.length < 2) return []
-  const headers = lines[0].split(',').map(h => h.trim())
-  const rows = []
-  for (let i = 1; i < lines.length; i++) {
-    const vals = []
-    let current = ''
-    let inQuotes = false
-    for (const ch of lines[i]) {
-      if (ch === '"') { inQuotes = !inQuotes; continue }
-      if (ch === ',' && !inQuotes) { vals.push(current.trim()); current = ''; continue }
-      current += ch
+  const s = text.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const records = []
+  let row = []
+  let field = ''
+  let inQuotes = false
+  const pushField = () => { row.push(field.trim()); field = '' }
+  const pushRow = () => { if (row.some(v => v !== '')) records.push(row); row = [] }
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]
+    if (inQuotes) {
+      if (ch === '"') {
+        if (s[i + 1] === '"') { field += '"'; i++ }
+        else inQuotes = false
+      } else field += ch
+    } else {
+      if (ch === '"') inQuotes = true
+      else if (ch === ',') pushField()
+      else if (ch === '\n') { pushField(); pushRow() }
+      else field += ch
     }
-    vals.push(current.trim())
-    if (vals.length < headers.length || vals.every(v => !v)) continue
-    const row = {}
-    headers.forEach((h, idx) => { row[h] = vals[idx] ? vals[idx].replace(/^#REF!$/, '') : '' })
-    rows.push(row)
   }
-  return rows
+  pushField()
+  if (row.length) pushRow()
+  if (records.length < 2) return []
+  const headers = records[0].map(h => h.replace(/\s*\n\s*/g, ' '))
+  return records.slice(1)
+    .filter(vals => vals.length >= headers.length)
+    .map(vals => {
+      const r = {}
+      headers.forEach((h, idx) => { r[h] = vals[idx] ? vals[idx].replace(/^#REF!$/, '') : '' })
+      return r
+    })
 }
 
 export function csvEscape(v) {
@@ -38,14 +52,27 @@ export function csvEscape(v) {
   return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
+export function csvNum(v) {
+  const s = String(v ?? '').trim()
+  if (!s || s === '—' || s === '-') return ''
+  const n = parseFloat(s.replace(/[^0-9.-]/g, ''))
+  return isFinite(n) ? String(n) : ''
+}
+
 export function downloadCSV(rows, filename) {
-  const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+  const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+export function downloadXLSX(aoa, filename, sheetName = 'Sheet1') {
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), sheetName)
+  XLSX.writeFile(wb, filename)
 }
 
 export function uniqueByPO(arr) {
@@ -101,17 +128,9 @@ export function parseDate(str) {
   if (!str) return null
   const parts = str.split('-')
   if (parts.length !== 3) return null
-  const a = parseInt(parts[0], 10)
-  const b = parseInt(parts[1], 10)
+  const month = parseInt(parts[0], 10) - 1
+  const day = parseInt(parts[1], 10)
   const year = parseInt(parts[2], 10)
-  let day, month
-  if (b >= 1 && b <= 12) {
-    day = a
-    month = b - 1
-  } else {
-    day = b
-    month = a - 1
-  }
   return new Date(year, month, day)
 }
 
@@ -139,4 +158,20 @@ export function isoToMdm(iso) {
   const p = String(iso).split('-')
   if (p.length !== 3) return ''
   return `${p[1]}-${p[2]}-${p[0]}`
+}
+
+export function loadCSVFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result
+        resolve(parseCSV(text))
+      } catch (err) {
+        reject(err)
+      }
+    }
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.readAsText(file)
+  })
 }
