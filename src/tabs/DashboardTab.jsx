@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
-import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, purchaseStats, detectPurchaseColumns } from '../lib/utils'
+import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, purchaseStats, detectPurchaseColumns, purchaseDateOf } from '../lib/utils'
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection, ChartEmpty } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
@@ -43,7 +43,7 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
   const purchasePeriodData = useMemo(() => {
     if (!selectedMonths.size) return data
     return data.filter(r => {
-      const d = parseMMDDDate(r['Purchase Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(purchaseDateOf(r))
       return d && selectedMonths.has(d.getFullYear() * 12 + d.getMonth())
     })
   }, [data, selectedMonths])
@@ -348,7 +348,7 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
     // Expected: 97 lines (94 valued + 3 blank AARA Betterliving),
     // base ₹3,931,211.58, +5% GST ₹4,127,772.16.
     const septRows = data.filter(r => {
-      const d = parseMMDDDate(r['Purchase Date(MM-DD-YYYY)'])
+      const d = parseMMDDDate(purchaseDateOf(r))
       return d && d.getMonth() === 8
     })
     return { rows: septRows, stats: purchaseStats(septRows) }
@@ -542,6 +542,7 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Purchased in the selected period (by Purchase Date) = Σ per line + 5% GST</div>
               <TooltipRow label="Cols" value={`${purchaseCols.costKey || '?'} × ${purchaseCols.qtyKey || '?'}${purchaseCols.valueKey ? ` (val: ${purchaseCols.valueKey})` : ''}`} valueColor={purchaseCols.costKey && purchaseCols.qtyKey ? '#22c55e' : '#ef4444'} />
+              <TooltipRow label="Date col" value={purchaseCols.dateKey || 'NOT FOUND'} valueColor={purchaseCols.dateKey ? '#22c55e' : '#ef4444'} />
               <TooltipRow label="Period lines" value={`${periodMetrics.purchaseLines || 0} (${periodMetrics.purchasePopulated || 0} valued, ${periodMetrics.purchaseBlank || 0} blank)`} valueColor="#f1f5f9" />
               <TooltipRow label="Period base" value={'₹' + Number(periodMetrics.purchaseBase || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} valueColor="#84cc16" />
               <TooltipRow label="Period +5% GST" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#22c55e" />

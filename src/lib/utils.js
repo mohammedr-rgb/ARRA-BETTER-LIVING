@@ -157,7 +157,26 @@ export function detectPurchaseColumns(rows) {
     const l = String(k).toLowerCase()
     return l.includes('purchase') && (l.includes('value') || l.includes('amount'))
   }) || null
-  return { costKey, qtyKey, valueKey, allKeys: list }
+  const dateKey = list.find(k => {
+    const l = String(k).toLowerCase()
+    return l.includes('purchase') && l.includes('date')
+  }) || null
+  return { costKey, qtyKey, valueKey, dateKey, allKeys: list }
+}
+
+// Sheet header is literally `Purchase Date(MM-DD-YYYY` (no closing paren),
+// so match fuzzily: any key containing purchase+date.
+export function purchaseDateOf(row) {
+  const exact = getFieldCI(row, ['Purchase Date(MM-DD-YYYY', 'Purchase Date(MM-DD-YYYY)', 'Purchase Date'])
+  if (exact && String(exact).trim() !== '') return exact
+  const keys = Object.keys(row || {})
+  for (const k of keys) {
+    const l = String(k).toLowerCase()
+    if (l.includes('purchase') && l.includes('date')) {
+      if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return row[k]
+    }
+  }
+  return ''
 }
 
 export function purchaseCostOf(row) {
