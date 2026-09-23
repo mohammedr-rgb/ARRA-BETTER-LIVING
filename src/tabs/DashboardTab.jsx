@@ -3,9 +3,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
-import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, productSummary } from '../lib/utils'
+import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, productSummary, purchaseLineValue, purchaseStats, detectPurchaseColumns, PURCHASE_GST_RATE } from '../lib/utils'
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
+import { buildProductionPlan, planCSVRows } from '../lib/productionPlan'
 
 const PIE_COLORS = {
   Delivered: '#22c55e',
@@ -83,7 +84,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
       if (!d) return
       const mk = d.getFullYear() * 12 + d.getMonth()
-      if (!map[mk]) map[mk] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, delivered: new Set(), rto: new Set(), cities: new Set(), platforms: {}, platformValues: {} }
+      if (!map[mk]) map[mk] = { orders: new Set(), poValues: {}, tonnage: 0, boxes: 0, delivered: new Set(), rto: new Set(), cities: new Set(), platforms: {}, platformValues: {}, platformTonnage: {}, purchaseBase: 0, purchaseLines: 0, purchasePopulated: 0 }
       const cell = map[mk]
       cell.orders.add(r['PO Number'])
       cell.tonnage += num(r['Tonnage'])
@@ -91,6 +92,11 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       const po = r['PO Number']
       const pv = num(r['PO Value with Tax'])
       if (po && pv > 0) cell.poValues[po] = pv
+      // Purchase Value: line-item sum, blanks count as 0
+      const plv = purchaseLineValue(r)
+      cell.purchaseBase += plv
+      cell.purchaseLines += 1
+      if (plv > 0) cell.purchasePopulated += 1
       if (r['Status'] === 'Delivered') cell.delivered.add(po)
       if (r['Status'] === 'RTO') cell.rto.add(po)
       if (r['City']) cell.cities.add(r['City'])
@@ -99,6 +105,7 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       cell.platforms[p].add(po)
       if (!cell.platformValues[p]) cell.platformValues[p] = {}
       if (po && pv > 0 && pv > (cell.platformValues[p][po] || 0)) cell.platformValues[p][po] = pv
+      cell.platformTonnage[p] = (cell.platformTonnage[p] || 0) + num(r['Tonnage'])
     })
     return Object.entries(map).sort((a, b) => a[0] - b[0]).map(([mk, c]) => {
       const m = mk % 12
@@ -114,11 +121,17 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
         tonnage: Math.round(c.tonnage),
         boxes: Math.round(c.boxes),
         value: Math.round(Object.values(c.poValues).reduce((s, v) => s + v, 0)),
+        purchaseBase: Math.round(c.purchaseBase * 100) / 100,
+        purchaseValue: Math.round(c.purchaseBase * (1 + PURCHASE_GST_RATE)),
+        purchaseLines: c.purchaseLines,
+        purchasePopulated: c.purchasePopulated,
+        purchaseBlank: c.purchaseLines - c.purchasePopulated,
         delivered: c.delivered.size,
         rto: c.rto.size,
         cities: c.cities.size,
         platforms,
         platformValues,
+        platformTonnage: c.platformTonnage,
         ...platformValues,
         platformLabel: platforms.map(x => `${x.name} (${x.orders})`).join(', '),
         deliveryRate: (c.delivered.size + c.rto.size) ? Math.round(c.delivered.size / (c.delivered.size + c.rto.size) * 100) : null,
@@ -127,6 +140,19 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
   }, [data])
 
   const last3Months = useMemo(() => monthData.slice(0, 3), [monthData])
+
+  // September diagnostics: filter by PO Released Date month = September.
+  // User expects 97 lines (94 valued + 3 blank AARA Betterliving),
+  // base ₹3,931,211.58, with 5% GST ₹4,127,772.16.
+  const septemberPurchase = useMemo(() => {
+    const septRows = data.filter(r => {
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      return d && d.getMonth() === 8
+    })
+    return { rows: septRows, stats: purchaseStats(septRows) }
+  }, [data])
+
+  const purchaseCols = useMemo(() => detectPurchaseColumns(data), [data])
 
   const openMetrics = useMemo(() => {
     const active = data.filter(r => !['Delivered', 'RTO'].includes(r['Status'] || ''))
@@ -145,12 +171,15 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
       totalQty += byPO[k].qty
       totalDel += byPO[k].delQty
     }
+    const purchase = purchaseStats(active)
     return {
       orders: poSet.size,
       value: sumPOField(active, 'PO Value with Tax'),
       tonnage: sumField(active, 'Tonnage'),
       boxes: sumField(active, 'Box Count'),
       fillRate: totalQty ? Math.round(totalDel / totalQty * 100) : null,
+      purchaseBase: purchase.base,
+      purchaseValue: Math.round(purchase.withGST),
     }
   }, [data])
 
@@ -307,12 +336,38 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
     [last3Months]
   )
 
+  const platformMonthRows = useMemo(() => {
+    const map = {}
+    for (const m of last3Months) {
+      for (const p of Object.keys(m.platforms)) {
+        if (!map[p]) map[p] = {}
+        map[p][m.key] = {
+          tonnage: Math.round(m.platformTonnage[p] || 0),
+          value: m.platformValues[p] || 0,
+          orders: m.platforms[p].size,
+        }
+      }
+    }
+    return Object.entries(map).map(([platform, months]) => {
+      const totalTonnage = Object.values(months).reduce((s, v) => s + v.tonnage, 0)
+      const totalValue = Object.values(months).reduce((s, v) => s + v.value, 0)
+      const totalOrders = Object.values(months).reduce((s, v) => s + v.orders, 0)
+      return { platform, months, totalTonnage, totalValue, totalOrders }
+    }).sort((a, b) => b.totalOrders - a.totalOrders)
+  }, [last3Months])
+
+  const planData = useMemo(() => buildProductionPlan(data), [data])
+
   const monthCSVRows = () => {
-    const rows = ['Month-wise Overview']
+    const rows = ['Platform & Month-wise Sales']
     rows.push('')
-    rows.push('Month,Platforms,Orders,Tonnage KG,Boxes,Value,Delivered,RTO,Delivery Rate %')
-    last3Months.forEach(r => {
-      rows.push(`${csvEscape(r.label)},${csvEscape(r.platformLabel)},${r.orders},${r.tonnage},${r.boxes},${r.value},${r.delivered},${r.rto},${r.deliveryRate === null ? '' : r.deliveryRate}`)
+    rows.push(`Platform,${last3Months.map(m => `${m.label} Tonnage KG|${m.label} Invoice Value`).join(',')},Total Tonnage KG,Total Invoice Value,Total Orders`)
+    platformMonthRows.forEach(r => {
+      const cells = last3Months.map(m => {
+        const v = r.months[m.key]
+        return `${v ? v.tonnage : 0}|${v ? v.value : 0}`
+      })
+      rows.push(`${csvEscape(r.platform)},${cells.join(',')},${r.totalTonnage},${r.totalValue},${r.totalOrders}`)
     })
     return rows
   }
@@ -408,6 +463,24 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open PO Value</div>
               <TooltipRow label="Open Value" value={'₹' + Math.round(openMetrics.value).toLocaleString()} valueColor="#22c55e" />
               <TooltipRow label="Open Tonnage" value={Math.round(openMetrics.tonnage) + ' KG'} />
+            </>
+          }
+          tooltipStyle={{ zIndex: 100 }}
+        />
+        <StatCard
+          label="Purchase Value" icon="🛒" color="#f97316"
+          value={'₹' + (metrics.purchaseValue || 0).toLocaleString()} change={`▲ Base ₹${Math.round(metrics.purchaseBase || 0).toLocaleString()} + 5% GST`} changeColor="#f97316"
+          tooltip={
+            <>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Purchase = Σ (Purchase Cost × Purchase QTY) per line + 5% GST</div>
+              <TooltipRow label="Cols" value={`${purchaseCols.costKey || '?'} × ${purchaseCols.qtyKey || '?'}${purchaseCols.valueKey ? ` (val: ${purchaseCols.valueKey})` : ''}`} valueColor={purchaseCols.costKey && purchaseCols.qtyKey ? '#22c55e' : '#ef4444'} />
+              <TooltipRow label="All lines" value={`${metrics.purchaseLines || 0} (${metrics.purchasePopulated || 0} valued, ${metrics.purchaseBlank || 0} blank)`} valueColor="#f1f5f9" />
+              <TooltipRow label="Base (all)" value={'₹' + Number(metrics.purchaseBase || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} valueColor="#f97316" />
+              <TooltipRow label="With 5% GST (all)" value={'₹' + (metrics.purchaseValue || 0).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Sep lines" value={`${septemberPurchase.stats.lines} (${septemberPurchase.stats.populated} valued, ${septemberPurchase.stats.blank} blank)`} valueColor="#f1f5f9" />
+              <TooltipRow label="Sep base" value={'₹' + Number(Math.round(septemberPurchase.stats.base * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} valueColor="#f97316" />
+              <TooltipRow label="Sep +5% GST" value={'₹' + Math.round(septemberPurchase.stats.withGST).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Open Purchase" value={'₹' + Math.round(openMetrics.purchaseValue || 0).toLocaleString()} valueColor="#f97316" />
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
@@ -693,96 +766,108 @@ export default function DashboardTab({ data, metrics, cityData, statusData, rece
 
       <div className="recent-orders" style={{ marginTop: 20, overflowX: 'auto' }}>
         <div className="orders-header">
-          <div className="orders-title">Month-wise Overview</div>
-          <div className="chart-period">Last 3 months • Monthly sales performance</div>
+          <div className="orders-title">Platform & Month-wise Sales</div>
+          <div className="chart-period">Tonnage (KG) • Invoice Value</div>
           <CSVButton makeRows={monthCSVRows} filename="monthly_overview.csv" />
         </div>
-        {last3Months.length > 0 && (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={last3Months}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="label" stroke="#64748b" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#64748b" tick={{ fontSize: 12 }} />
-              <ReTooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null
-                  const row = payload[0].payload
-                  return (
-                    <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '12px 16px', fontSize: 13 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, color: '#f1f5f9' }}>{row.label}</div>
-                      <div style={{ color: '#94a3b8' }}>Platforms: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{row.platformLabel}</span></div>
-                      <div style={{ color: '#94a3b8' }}>Orders: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{row.orders}</span></div>
-                      <div style={{ color: '#94a3b8' }}>Tonnage: <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{row.tonnage} KG</span></div>
-                      <div style={{ color: '#94a3b8' }}>Value: <span style={{ color: '#22c55e', fontWeight: 600 }}>₹{row.value.toLocaleString()}</span></div>
-                      <div style={{ color: '#94a3b8' }}>Delivered: <span style={{ color: '#22c55e', fontWeight: 600 }}>{row.delivered}</span></div>
-                      <div style={{ color: '#94a3b8' }}>RTO: <span style={{ color: '#ef4444', fontWeight: 600 }}>{row.rto}</span></div>
-                      <div style={{ color: '#94a3b8' }}>Delivery Rate: <span style={{ color: row.deliveryRate !== null && row.deliveryRate >= 80 ? '#22c55e' : '#eab308', fontWeight: 600 }}>{row.deliveryRate !== null ? row.deliveryRate + '%' : '—'}</span></div>
-                    </div>
-                  )
-                }}
-              />
-              <Bar dataKey="tonnage" fill="#3b82f6" radius={[6, 6, 0, 0]} name="tonnage" />
-            </BarChart>
-          </ResponsiveContainer>
+        {platformMonthRows.length > 0 && (
+          <table style={{ marginTop: 16, minWidth: 640 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Platform</th>
+                {last3Months.map(m => (
+                  <th key={m.label} style={{ textAlign: 'center', fontSize: 13 }}>{m.label}</th>
+                ))}
+                <th style={{ textAlign: 'center' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {platformMonthRows.map(r => (
+                <tr key={r.platform}>
+                  <td style={{ color: '#3b82f6', fontWeight: 600, whiteSpace: 'nowrap' }}>{r.platform}</td>
+                  {last3Months.map(m => {
+                    const v = r.months[m.key]
+                    return (
+                      <td key={m.key} style={{ textAlign: 'center', padding: '8px 12px', verticalAlign: 'top' }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>{v ? v.tonnage.toLocaleString() : '—'} KG</div>
+                        <div style={{ fontSize: 12, color: '#22c55e' }}>₹{v ? v.value.toLocaleString() : 0}</div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>{v ? v.orders : 0} orders</div>
+                      </td>
+                    )
+                  })}
+                  <td style={{ textAlign: 'center', padding: '8px 12px', verticalAlign: 'top' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>{r.totalTonnage.toLocaleString()} KG</div>
+                    <div style={{ fontSize: 12, color: '#22c55e' }}>₹{r.totalValue.toLocaleString()}</div>
+                    <div style={{ fontSize: 11, color: '#64748b' }}>{r.totalOrders} orders</div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-        <table style={{ marginTop: 16, minWidth: 480 }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: 'left', width: 150 }}>Metric</th>
-              {last3Months.map(m => (
-                <th key={m.label} style={{ textAlign: 'center', fontSize: 14 }}>{m.label}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Orders</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.orders}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Tonnage (KG)</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.tonnage.toLocaleString()}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Boxes</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>{m.boxes}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Value</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600 }}>₹{m.value.toLocaleString()}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Delivered</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: '#22c55e' }}>{m.delivered}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>RTO</td>
-              {last3Months.map(m => <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: '#ef4444' }}>{m.rto}</td>)}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8' }}>Delivery Rate</td>
-              {last3Months.map(m => (
-                <td key={m.label} style={{ textAlign: 'center', fontWeight: 600, color: m.deliveryRate !== null ? (m.deliveryRate >= 80 ? '#22c55e' : '#eab308') : '#64748b' }}>
-                  {m.deliveryRate !== null ? m.deliveryRate + '%' : '—'}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td style={{ color: '#94a3b8', verticalAlign: 'top' }}>Platforms</td>
-              {last3Months.map(m => (
-                <td key={m.label} style={{ textAlign: 'center', fontSize: 12, padding: '8px 6px' }}>
-                  {m.platforms.map(x => (
-                    <span key={x.name} style={{ display: 'block' }}>
-                      <span style={{ color: '#3b82f6', fontWeight: 600 }}>{x.name}</span> ({x.orders})
-                    </span>
-                  ))}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
       </div>
+
+      {planData.rows.length > 0 && (
+        <div className="recent-orders" style={{ marginTop: 20 }}>
+          <div className="orders-header">
+            <div className="orders-title">Production Plan — {planData.planMonths[0].label}</div>
+            <div className="chart-period">Based on {planData.period} sales • 90% production target</div>
+            <CSVButton makeRows={() => planCSVRows(planData)} filename="production_plan.csv">⬇ Download Plan</CSVButton>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ minWidth: 1100 }}>
+              <thead>
+                <tr>
+                  <th rowSpan={2} style={{ verticalAlign: 'middle' }}>City</th>
+                  <th rowSpan={2} style={{ verticalAlign: 'middle' }}>Platform</th>
+                  <th rowSpan={2} style={{ verticalAlign: 'middle' }}>Box Type</th>
+                  <th rowSpan={2} style={{ verticalAlign: 'middle', minWidth: 220 }}>Product</th>
+                  <th rowSpan={2} style={{ verticalAlign: 'middle' }}>MRP</th>
+                  {planData.planMonths.map(m => (
+                    <th key={m.label} colSpan={2} style={{ textAlign: 'center' }}>{m.label}</th>
+                  ))}
+                  <th rowSpan={2} style={{ verticalAlign: 'middle' }}>Total Plan Qty</th>
+                  <th rowSpan={2} style={{ verticalAlign: 'middle' }}>Total Plan Boxes</th>
+                </tr>
+                <tr>
+                  {planData.planMonths.flatMap(m => [
+                    <th key={'q' + m.label}>Plan Qty</th>,
+                    <th key={'b' + m.label}>Boxes</th>,
+                  ])}
+                </tr>
+              </thead>
+              <tbody>
+                {planData.rows.map((row, i) => (
+                  <tr key={i}>
+                    <td>{row.city}</td>
+                    <td>{row.platform}</td>
+                    <td>{row.boxType || '—'}</td>
+                    <td style={{ fontWeight: 600, maxWidth: 220 }}>{row.product}</td>
+                    <td style={{ color: '#94a3b8' }}>₹{row.mrp}</td>
+                    {planData.planMonths.flatMap(m => [
+                      <td key={'q' + m.label} style={{ fontWeight: 600, color: '#3b82f6', textAlign: 'center' }}>{row.planQty}</td>,
+                      <td key={'b' + m.label} style={{ textAlign: 'center' }}>{row.planBoxes}</td>,
+                    ])}
+                    <td style={{ fontWeight: 700, textAlign: 'center' }}>{row.planQty * 3}</td>
+                    <td style={{ fontWeight: 700, textAlign: 'center' }}>{row.planBoxes * 3}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: 'rgba(59,130,246,0.12)' }}>
+                  <td colSpan={5} style={{ fontWeight: 700 }}>Total</td>
+                  {planData.planMonths.flatMap(m => [
+                    <td key={'q' + m.label} style={{ fontWeight: 700, textAlign: 'center', color: '#3b82f6' }}>{planData.totals.planQty}</td>,
+                    <td key={'b' + m.label} style={{ fontWeight: 700, textAlign: 'center' }}>{planData.totals.planBoxes}</td>,
+                  ])}
+                  <td style={{ fontWeight: 700, textAlign: 'center' }}>{planData.totals.planQty * 3}</td>
+                  <td style={{ fontWeight: 700, textAlign: 'center' }}>{planData.totals.planBoxes * 3}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="recent-orders">
         <div className="orders-header">

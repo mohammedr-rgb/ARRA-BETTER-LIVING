@@ -97,6 +97,122 @@ export function sumPOField(arr, field) {
   return Object.values(map).reduce((s, v) => s + v, 0)
 }
 
+// --- Purchase Value (line-item) helpers ---
+// Correct logic: SUM over every line item of (Purchase Cost × Purchase QTY).
+// This must NOT use sumPOField/uniqueByPO (max-per-PO dedup) because each
+// line has its own purchase cost. Blank/missing values count as 0.
+export const PURCHASE_GST_RATE = 0.05
+
+function getFieldCI(row, candidates) {
+  for (const c of candidates) {
+    if (row[c] !== undefined && row[c] !== null && String(row[c]).trim() !== '') return row[c]
+  }
+  // case-insensitive fallback
+  const keys = Object.keys(row || {})
+  const lower = {}
+  keys.forEach(k => { lower[String(k).toLowerCase().trim()] = k })
+  for (const c of candidates) {
+    const k = lower[String(c).toLowerCase().trim()]
+    if (k && row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return row[k]
+  }
+  return ''
+}
+
+// Fuzzy detection: find actual sheet keys for purchase cost/qty/value (handles
+// variants like "Purchase Cost (₹)", trailing spaces, column J, etc.)
+export function detectPurchaseColumns(rows) {
+  const keys = new Set()
+  ;(rows || []).forEach(r => Object.keys(r || {}).forEach(k => keys.add(k)))
+  const list = [...keys]
+  const costKey = list.find(k => {
+    const l = String(k).toLowerCase()
+    return l.includes('purchase') && (l.includes('cost') || l.includes('rate') || l.includes('price')) && !l.includes('value') && !l.includes('amount')
+  }) || null
+  const qtyKey = list.find(k => {
+    const l = String(k).toLowerCase()
+    return l.includes('purchase') && (l.includes('qty') || l.includes('quantity') || l.includes('qnty'))
+  }) || null
+  const valueKey = list.find(k => {
+    const l = String(k).toLowerCase()
+    return l.includes('purchase') && (l.includes('value') || l.includes('amount'))
+  }) || null
+  return { costKey, qtyKey, valueKey, allKeys: list }
+}
+
+export function purchaseCostOf(row) {
+  // exact candidates first, then fuzzy key containing purchase+cost/rate/price
+  const exact = num(getFieldCI(row, ['Purchase Cost', 'Purchase cost', 'Purchase Rate', 'Purchase Price']))
+  if (exact > 0) return exact
+  const keys = Object.keys(row || {})
+  for (const k of keys) {
+    const l = String(k).toLowerCase()
+    if (l.includes('purchase') && (l.includes('cost') || l.includes('rate') || l.includes('price'))) {
+      const v = num(row[k])
+      if (v > 0) return v
+    }
+  }
+  return 0
+}
+
+export function purchaseQtyOf(row) {
+  const exact = num(getFieldCI(row, ['Purchase QTY', 'Purchase Qty', 'Purchase qty', 'Purchase Quantity', 'Purchase quantity', 'Purchase QT']))
+  if (exact > 0) return exact
+  const keys = Object.keys(row || {})
+  for (const k of keys) {
+    const l = String(k).toLowerCase()
+    if (l.includes('purchase') && (l.includes('qty') || l.includes('quantity') || l.includes('qnty'))) {
+      const v = num(row[k])
+      if (v > 0) return v
+    }
+  }
+  return 0
+}
+
+export function purchaseLineValue(row) {
+  const computed = purchaseCostOf(row) * purchaseQtyOf(row)
+  if (computed > 0) return computed
+  // Fallback: precomputed per-line Purchase Value / Amount column (e.g. sheet column J).
+  // Line-item sum only — never dedup by PO.
+  const keys = Object.keys(row || {})
+  for (const k of keys) {
+    const l = String(k).toLowerCase()
+    if (l.includes('purchase') && (l.includes('value') || l.includes('amount'))) {
+      const v = num(row[k])
+      if (v > 0) return v
+    }
+  }
+  return 0
+}
+
+export function sumPurchaseBase(arr) {
+  return (arr || []).reduce((s, r) => s + purchaseLineValue(r), 0)
+}
+
+export function sumPurchaseWithGST(arr, rate = PURCHASE_GST_RATE) {
+  return sumPurchaseBase(arr) * (1 + rate)
+}
+
+export function purchaseStats(arr, rate = PURCHASE_GST_RATE) {
+  const rows = arr || []
+  let populated = 0
+  let blank = 0
+  let base = 0
+  for (const r of rows) {
+    const v = purchaseLineValue(r)
+    base += v
+    if (v > 0) populated++
+    else blank++
+  }
+  return {
+    lines: rows.length,
+    populated,
+    blank,
+    base,
+    withGST: base * (1 + rate),
+    gstRate: rate,
+  }
+}
+
 export function parseDate(str) {
   if (!str) return null
   const parts = str.split('-')

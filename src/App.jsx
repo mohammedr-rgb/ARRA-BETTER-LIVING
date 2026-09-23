@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { num, parseCSV, parseMMDDDate, uniqueByPO, sumPOField, sumField } from './lib/utils'
+import { num, parseCSV, parseMMDDDate, uniqueByPO, sumPOField, sumField, purchaseStats } from './lib/utils'
 import { UserContext } from './lib/userContext'
 import DashboardTab from './tabs/DashboardTab'
 import OrdersTab from './tabs/OrdersTab'
@@ -108,6 +108,10 @@ function App() {
     const totalRejectedQty = Object.values(fillByPO).reduce((s, v) => s + v.rejected, 0)
     const avgFillRate = totalPOQty ? Math.round((totalPOQty - totalRejectedQty) / totalPOQty * 100) : 0
 
+    // Purchase Value: line-item sum of (Purchase Cost × Purchase QTY), NOT max-per-PO.
+    // Displayed with 5% GST.
+    const purchase = purchaseStats(filteredData)
+
     return {
       totalOrders,
       totalTonnage,
@@ -119,6 +123,11 @@ function App() {
       statusCounts,
       cities: cities.length,
       avgFillRate: Math.round(avgFillRate),
+      purchaseLines: purchase.lines,
+      purchasePopulated: purchase.populated,
+      purchaseBlank: purchase.blank,
+      purchaseBase: Math.round(purchase.base * 100) / 100,
+      purchaseValue: Math.round(purchase.withGST),
     }
   }, [filteredData])
 
