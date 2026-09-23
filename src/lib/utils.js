@@ -164,6 +164,37 @@ export function detectPurchaseColumns(rows) {
   return { costKey, qtyKey, valueKey, dateKey, allKeys: list }
 }
 
+// B-column date: spreadsheet column B (2nd column) is the date basis for
+// Purchase Value. Falls back to a date-named column if B rarely parses.
+export function detectBDateColumn(rows) {
+  const keyOrder = []
+  const seen = new Set()
+  ;(rows || []).forEach(r => Object.keys(r || {}).forEach(k => { if (!seen.has(k)) { seen.add(k); keyOrder.push(k) } }))
+  const parseRate = (k) => {
+    let ok = 0, total = 0
+    for (const r of (rows || [])) {
+      const v = r[k]
+      if (v === undefined || v === null || String(v).trim() === '') continue
+      total++
+      if (parseMMDDDate(String(v).trim())) ok++
+    }
+    return total ? ok / total : 0
+  }
+  const bKey = keyOrder.length > 1 ? keyOrder[1] : null
+  if (bKey && parseRate(bKey) >= 0.3) return { bKey }
+  const dateKeys = keyOrder.filter(k => String(k).toLowerCase().includes('date'))
+    .map(k => ({ k, rate: parseRate(k) }))
+    .filter(x => x.rate > 0)
+    .sort((a, b) => b.rate - a.rate)
+  if (dateKeys.length) return { bKey: dateKeys[0].k }
+  return { bKey: null }
+}
+
+export function bDateOf(row, bKey) {
+  if (bKey && row[bKey] !== undefined && row[bKey] !== null && String(row[bKey]).trim() !== '') return row[bKey]
+  return purchaseDateOf(row)
+}
+
 // Sheet header is literally `Purchase Date(MM-DD-YYYY` (no closing paren),
 // so match fuzzily: any key containing purchase+date.
 export function purchaseDateOf(row) {
@@ -177,6 +208,22 @@ export function purchaseDateOf(row) {
     }
   }
   return ''
+}
+
+// Unique sum of J (Purchase Values): max per PO, summed. Falls back to
+// per-PO max of computed (Cost × QTY) when no Values column exists.
+export function sumPurchaseUnique(arr) {
+  const rows = arr || []
+  const { valueKey } = detectPurchaseColumns(rows)
+  if (valueKey) return sumPOField(rows, valueKey)
+  const map = {}
+  for (const r of rows) {
+    const po = r['PO Number']
+    if (!po) continue
+    const v = purchaseLineValue(r)
+    if (v > 0 && v > (map[po] || 0)) map[po] = v
+  }
+  return Object.values(map).reduce((s, v) => s + v, 0)
 }
 
 export function purchaseCostOf(row) {

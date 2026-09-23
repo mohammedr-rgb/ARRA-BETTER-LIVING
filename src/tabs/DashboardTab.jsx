@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
-import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, purchaseStats, detectPurchaseColumns, purchaseDateOf } from '../lib/utils'
+import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, purchaseStats, detectPurchaseColumns, detectBDateColumn, bDateOf, sumPurchaseUnique } from '../lib/utils'
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection, ChartEmpty } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
@@ -38,15 +38,18 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
     })
   }, [data, selectedMonths])
 
-  // Purchase period: same selected months, matched against Purchase Date
-  // (NOT Invoice Date). Line-item sums only — never max-per-PO dedup.
+  // Purchase period: same selected months, matched against spreadsheet
+  // column B date. Purchase Value = UNIQUE sum of J (Purchase Values):
+  // max per PO, summed.
+  const bDateCol = useMemo(() => detectBDateColumn(data), [data])
+
   const purchasePeriodData = useMemo(() => {
     if (!selectedMonths.size) return data
     return data.filter(r => {
-      const d = parseMMDDDate(purchaseDateOf(r))
+      const d = parseMMDDDate(bDateOf(r, bDateCol.bKey))
       return d && selectedMonths.has(d.getFullYear() * 12 + d.getMonth())
     })
-  }, [data, selectedMonths])
+  }, [data, selectedMonths, bDateCol])
 
   const toggleMonth = (mk) => {
     setSelectedMonths(prev => {
@@ -194,6 +197,8 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
     const delivered = periodData.filter(r => r['Status'] === 'Delivered')
     const cities = [...new Set(poData.map(r => r['City']).filter(Boolean))]
     const purchase = purchaseStats(purchasePeriodData)
+    const purchaseUniqueValue = sumPurchaseUnique(purchasePeriodData)
+    const purchaseUniquePOs = new Set(purchasePeriodData.map(r => r['PO Number']).filter(Boolean)).size
     const purchaseTonnage = Math.round(
       purchasePeriodData.reduce((s, r) => s + num(r['Purchase Tonnage']), 0)
     )
@@ -210,7 +215,8 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
       purchasePopulated: purchase.populated,
       purchaseBlank: purchase.blank,
       purchaseBase: Math.round(purchase.base * 100) / 100,
-      purchaseValue: Math.round(purchase.withGST),
+      purchaseValue: Math.round(purchaseUniqueValue),
+      purchaseUniquePOs,
       purchaseTonnage,
     }
   }, [periodData, purchasePeriodData])
@@ -344,15 +350,21 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
   }, [periodData])
 
   const septemberPurchase = useMemo(() => {
-    // September by Purchase Date (same basis as the Purchase cards).
-    // Expected: 97 lines (94 valued + 3 blank AARA Betterliving),
-    // base ₹3,931,211.58, +5% GST ₹4,127,772.16.
+    // September by B-column date (same basis as the Purchase cards):
+    // unique sum of J (Purchase Values), max per PO.
     const septRows = data.filter(r => {
-      const d = parseMMDDDate(purchaseDateOf(r))
+      const d = parseMMDDDate(bDateOf(r, bDateCol.bKey))
       return d && d.getMonth() === 8
     })
-    return { rows: septRows, stats: purchaseStats(septRows) }
-  }, [data])
+    return {
+      rows: septRows,
+      stats: {
+        lines: septRows.length,
+        uniquePOs: new Set(septRows.map(r => r['PO Number']).filter(Boolean)).size,
+        uniqueSum: sumPurchaseUnique(septRows),
+      },
+    }
+  }, [data, bDateCol])
 
   const purchaseCols = useMemo(() => detectPurchaseColumns(data), [data])
 
@@ -537,18 +549,17 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
         />
         <StatCard
           label="Purchase Value" icon="🛒" color="#84cc16"
-          value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} change={`▲ Base ₹${Math.round(periodMetrics.purchaseBase || 0).toLocaleString()} + 5% GST`} changeColor="#22c55e"
+          value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} change="▲ Purchase value" changeColor="#22c55e"
           tooltip={
             <>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Purchased in the selected period (by Purchase Date) = Σ per line + 5% GST</div>
-              <TooltipRow label="Cols" value={`${purchaseCols.costKey || '?'} × ${purchaseCols.qtyKey || '?'}${purchaseCols.valueKey ? ` (val: ${purchaseCols.valueKey})` : ''}`} valueColor={purchaseCols.costKey && purchaseCols.qtyKey ? '#22c55e' : '#ef4444'} />
-              <TooltipRow label="Date col" value={purchaseCols.dateKey || 'NOT FOUND'} valueColor={purchaseCols.dateKey ? '#22c55e' : '#ef4444'} />
-              <TooltipRow label="Period lines" value={`${periodMetrics.purchaseLines || 0} (${periodMetrics.purchasePopulated || 0} valued, ${periodMetrics.purchaseBlank || 0} blank)`} valueColor="#f1f5f9" />
-              <TooltipRow label="Period base" value={'₹' + Number(periodMetrics.purchaseBase || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} valueColor="#84cc16" />
-              <TooltipRow label="Period +5% GST" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#22c55e" />
-              <TooltipRow label="Sep lines" value={`${septemberPurchase.stats.lines} (${septemberPurchase.stats.populated} valued, ${septemberPurchase.stats.blank} blank)`} valueColor="#f1f5f9" />
-              <TooltipRow label="Sep base" value={'₹' + Number(Math.round(septemberPurchase.stats.base * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} valueColor="#84cc16" />
-              <TooltipRow label="Sep +5% GST" value={'₹' + Math.round(septemberPurchase.stats.withGST).toLocaleString()} valueColor="#22c55e" />
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>B-column date basis • unique sum of J (Purchase Values), max per PO</div>
+              <TooltipRow label="B col" value={bDateCol.bKey || 'NOT FOUND'} valueColor={bDateCol.bKey ? '#22c55e' : '#ef4444'} />
+              <TooltipRow label="J col" value={purchaseCols.valueKey || 'NOT FOUND'} valueColor={purchaseCols.valueKey ? '#22c55e' : '#ef4444'} />
+              <TooltipRow label="Period POs" value={periodMetrics.purchaseUniquePOs || 0} valueColor="#f1f5f9" />
+              <TooltipRow label="Period unique sum" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#84cc16" />
+              <TooltipRow label="Sep lines" value={septemberPurchase.stats.lines} valueColor="#f1f5f9" />
+              <TooltipRow label="Sep unique POs" value={septemberPurchase.stats.uniquePOs} valueColor="#f1f5f9" />
+              <TooltipRow label="Sep unique sum" value={'₹' + Math.round(septemberPurchase.stats.uniqueSum).toLocaleString()} valueColor="#22c55e" />
               <TooltipRow label="Purchase Tonnage" value={(periodMetrics.purchaseTonnage || 0) + ' KG'} valueColor="#f97316" />
             </>
           }
