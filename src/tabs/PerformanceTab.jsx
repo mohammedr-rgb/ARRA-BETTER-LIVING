@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { num, parseDate, formatDate, uniqueByPO } from '../lib/utils'
+import { num, parseDate, formatDate, uniqueByPO, parseMMDDDate, MONTH_NAMES } from '../lib/utils'
 import { CSVButton, DateRangePicker, RangePresets, EmptyState, ProfileSection } from '../components/ui'
 
 export default function PerformanceTab({ data, platformFilter }) {
@@ -9,14 +9,46 @@ export default function PerformanceTab({ data, platformFilter }) {
   const [wowDateTo, setWowDateTo] = useState(formatDate(today))
   const [wowPlatformFilter, setWowPlatformFilter] = useState('All')
 
+  const [selectedMonths, setSelectedMonths] = useState(() => {
+    const now = new Date()
+    return new Set([now.getFullYear() * 12 + now.getMonth() - 1])
+  })
+
+  const monthOptions = useMemo(() => {
+    const map = {}
+    data.forEach(r => {
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+      if (!d) return
+      const mk = d.getFullYear() * 12 + d.getMonth()
+      if (!map[mk]) map[mk] = { mk, label: `${MONTH_NAMES[mk % 12]} ${String(Math.floor(mk / 12)).slice(2)}` }
+    })
+    return Object.values(map).sort((a, b) => b.mk - a.mk)
+  }, [data])
+
+  const periodData = useMemo(() => {
+    if (!selectedMonths.size) return data
+    return data.filter(r => {
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+      return d && selectedMonths.has(d.getFullYear() * 12 + d.getMonth())
+    })
+  }, [data, selectedMonths])
+
   const wowPlatforms = useMemo(() => {
     const set = new Set()
     data.forEach(r => { if (r['Platform']) set.add(r['Platform']) })
     return ['All', ...Array.from(set).sort()]
   }, [data])
 
+  const scopeLabel = useMemo(() => {
+    if (!selectedMonths.size) return 'All months'
+    return [...selectedMonths]
+      .sort((a, b) => b - a)
+      .map(mk => MONTH_NAMES[mk % 12] + ' ' + String(Math.floor(mk / 12)).slice(2))
+      .join(', ')
+  }, [selectedMonths])
+
   const analysis = useMemo(() => {
-    const filtered = platformFilter === 'All' ? data : data.filter(r => r['Platform'] === platformFilter)
+    const filtered = platformFilter === 'All' ? periodData : periodData.filter(r => r['Platform'] === platformFilter)
     const poData = uniqueByPO(filtered)
 
     const leadDays = (a, b) => {
@@ -175,9 +207,35 @@ export default function PerformanceTab({ data, platformFilter }) {
       <header>
         <div>
           <h1>Supply Chain Performance</h1>
-          <div className="date">Data-driven analysis & recommendations • Platform: All</div>
+          <div className="date">Data-driven analysis & recommendations • {scopeLabel} • Platform: {platformFilter}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.5 }}>PERIOD</span>
+          <button
+            onClick={() => setSelectedMonths(new Set())}
+            style={{ padding: '4px 10px', borderRadius: 16, border: '1px solid ' + (selectedMonths.size === 0 ? '#3b82f6' : '#334155'), background: selectedMonths.size === 0 ? 'rgba(59,130,246,0.15)' : '#1e293b', color: selectedMonths.size === 0 ? '#3b82f6' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+          >
+            All
+          </button>
+          {monthOptions.map(m => {
+            const on = selectedMonths.has(m.mk)
+            return (
+              <button
+                key={m.mk}
+                onClick={() => setSelectedMonths(prev => {
+                  const next = new Set(prev)
+                  if (next.has(m.mk)) next.delete(m.mk)
+                  else next.add(m.mk)
+                  return next
+                })}
+                style={{ padding: '4px 10px', borderRadius: 16, border: '1px solid ' + (on ? '#22c55e' : '#334155'), background: on ? 'rgba(34,197,94,0.15)' : '#1e293b', color: on ? '#22c55e' : '#94a3b8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+              >
+                {m.label}
+              </button>
+            )
+          })}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
           <CSVButton makeRows={perfCSVRows} filename="performance_report.csv" />
           <ProfileSection />
         </div>
