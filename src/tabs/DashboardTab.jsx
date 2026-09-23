@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
-import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES } from '../lib/utils'
+import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, purchaseStats, detectPurchaseColumns } from '../lib/utils'
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection, ChartEmpty } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
@@ -183,6 +183,7 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
     const totalRejectedQty = Object.values(fillByPO).reduce((s, v) => s + v.rejected, 0)
     const delivered = periodData.filter(r => r['Status'] === 'Delivered')
     const cities = [...new Set(poData.map(r => r['City']).filter(Boolean))]
+    const purchase = purchaseStats(periodData)
     return {
       totalOrders: poData.length,
       totalValue: Math.round(sumPOField(periodData, 'PO Value with Tax')),
@@ -192,6 +193,11 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
       deliveredTonnage: Math.round(sumField(delivered, 'Tonnage')),
       cities: cities.length,
       avgFillRate: totalPOQty ? Math.round((totalPOQty - totalRejectedQty) / totalPOQty * 100) : 0,
+      purchaseLines: purchase.lines,
+      purchasePopulated: purchase.populated,
+      purchaseBlank: purchase.blank,
+      purchaseBase: Math.round(purchase.base * 100) / 100,
+      purchaseValue: Math.round(purchase.withGST),
     }
   }, [periodData])
 
@@ -311,14 +317,27 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
       totalQty += byPO[k].qty
       totalDel += byPO[k].delQty
     }
+    const purchase = purchaseStats(active)
     return {
       orders: poSet.size,
       value: sumPOField(active, 'PO Value with Tax'),
       tonnage: sumField(active, 'Tonnage'),
       boxes: sumField(active, 'Box Count'),
       fillRate: totalQty ? Math.round(totalDel / totalQty * 100) : null,
+      purchaseBase: purchase.base,
+      purchaseValue: Math.round(purchase.withGST),
     }
   }, [periodData])
+
+  const septemberPurchase = useMemo(() => {
+    const septRows = periodData.filter(r => {
+      const d = parseMMDDDate(r['PO Released Date(MM-DD-YYYY)'])
+      return d && d.getMonth() === 8
+    })
+    return { rows: septRows, stats: purchaseStats(septRows) }
+  }, [periodData])
+
+  const purchaseCols = useMemo(() => detectPurchaseColumns(periodData), [periodData])
 
   const periodDeltas = useMemo(() => {
     let maxDate = null
@@ -483,6 +502,24 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Current Open PO Value</div>
               <TooltipRow label="Open Value" value={'₹' + Math.round(openMetrics.value).toLocaleString()} valueColor="#22c55e" />
               <TooltipRow label="Open Tonnage" value={Math.round(openMetrics.tonnage) + ' KG'} />
+            </>
+          }
+          tooltipStyle={{ zIndex: 100 }}
+        />
+        <StatCard
+          label="Purchase Value" icon="🛒" color="#f97316"
+          value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} change={`▲ Base ₹${Math.round(periodMetrics.purchaseBase || 0).toLocaleString()} + 5% GST`} changeColor="#f97316"
+          tooltip={
+            <>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Purchase = Σ (Purchase Cost × Purchase QTY) per line + 5% GST</div>
+              <TooltipRow label="Cols" value={`${purchaseCols.costKey || '?'} × ${purchaseCols.qtyKey || '?'}${purchaseCols.valueKey ? ` (val: ${purchaseCols.valueKey})` : ''}`} valueColor={purchaseCols.costKey && purchaseCols.qtyKey ? '#22c55e' : '#ef4444'} />
+              <TooltipRow label="All lines" value={`${periodMetrics.purchaseLines || 0} (${periodMetrics.purchasePopulated || 0} valued, ${periodMetrics.purchaseBlank || 0} blank)`} valueColor="#f1f5f9" />
+              <TooltipRow label="Base (all)" value={'₹' + Number(periodMetrics.purchaseBase || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} valueColor="#f97316" />
+              <TooltipRow label="With 5% GST (all)" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Sep lines" value={`${septemberPurchase.stats.lines} (${septemberPurchase.stats.populated} valued, ${septemberPurchase.stats.blank} blank)`} valueColor="#f1f5f9" />
+              <TooltipRow label="Sep base" value={'₹' + Number(Math.round(septemberPurchase.stats.base * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} valueColor="#f97316" />
+              <TooltipRow label="Sep +5% GST" value={'₹' + Math.round(septemberPurchase.stats.withGST).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Open Purchase" value={'₹' + Math.round(openMetrics.purchaseValue || 0).toLocaleString()} valueColor="#f97316" />
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
