@@ -15,6 +15,7 @@ import ReportsTab from './tabs/ReportsTab'
 import FinanceTab from './tabs/FinanceTab'
 import PerformanceTab from './tabs/PerformanceTab'
 import SettingsTab from './tabs/SettingsTab'
+import SalesTab from './tabs/SalesTab'
 import { PODetailsPage } from './components/PODetailsPage'
 import { AuthGate, UserBadge } from './components/AuthGate'
 import { CommandPalette } from './components/CommandPalette'
@@ -313,6 +314,7 @@ function Dashboard({ authUser, onLogout }) {
         <nav>
           {navItem('dashboard', '📈', 'Dashboard')}
           {navItem('orders', '📦', 'Orders')}
+          {navItem('sales', '📊', 'Sales')}
           {navItem('inventory', '🏭', 'Inventory')}
           {navItem('stock', '🗃️', 'Stock')}
           {navItem('logistics', '🚚', 'Logistics')}
@@ -402,6 +404,9 @@ function Dashboard({ authUser, onLogout }) {
               </ErrorBoundary>
               <ErrorBoundary key="orders">
                 {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} onOpenPO={openPO} />}
+              </ErrorBoundary>
+              <ErrorBoundary key="sales">
+                {tab === 'sales' && <SalesTab />}
               </ErrorBoundary>
               <ErrorBoundary key="inventory">
                 {tab === 'inventory' && <InventoryTab data={filteredData} />}

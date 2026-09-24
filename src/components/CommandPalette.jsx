@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 const TAB_DEFS = [
   { key: 'dashboard', icon: '📈', label: 'Dashboard' },
   { key: 'orders', icon: '📦', label: 'Orders' },
+  { key: 'sales', icon: '📊', label: 'Sales' },
   { key: 'inventory', icon: '🏭', label: 'Inventory' },
   { key: 'stock', icon: '🗃️', label: 'Stock' },
   { key: 'logistics', icon: '🚚', label: 'Logistics' },

@@ -84,6 +84,7 @@ export default function InventoryTab({ data }) {
       .join(', ')
   }, [selectedMonths])
 
+
   const productData = useMemo(() => productSummary(periodData), [periodData])
 
   const productionPlan = useMemo(() => buildProductionPlan(data), [data])
@@ -184,6 +185,7 @@ export default function InventoryTab({ data }) {
     { label: 'Total Value', icon: '₹', color: '#22c55e', value: '₹' + Math.round(inventoryTotals.value).toLocaleString() },
   ]
 
+
   const inventoryCSVRows = () => {
     const rows = ['Inventory Summary']
     rows.push('')
@@ -258,6 +260,7 @@ export default function InventoryTab({ data }) {
     rows.push('TOTAL,' + platformMonthData.monthTotals.map(m => m.tonnage).join(',') + ',' + platformMonthData.monthTotals.map(m => m.value).join(',') + ',' + platformMonthData.grand.totalTonnage + ',' + platformMonthData.grand.totalValue)
     return rows
   }
+
 
   return (
     <>

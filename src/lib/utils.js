@@ -302,7 +302,7 @@ export function parseDate(str) {
 
 export function parseMMDDDate(str) {
   if (!str) return null
-  const parts = str.split('-')
+  const parts = String(str).trim().replace(/\//g, '-').split('-')
   if (parts.length !== 3) return null
   return new Date(parseInt(parts[2], 10), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10))
 }

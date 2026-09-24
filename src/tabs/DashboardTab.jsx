@@ -202,6 +202,9 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
     const purchaseTonnage = Math.round(
       purchasePeriodData.reduce((s, r) => s + num(r['Purchase Tonnage']), 0)
     )
+    const purchaseAllLinesBase = purchase.base
+    const purchaseAllLinesWithGST = purchase.withGST
+    const purchaseByInvoiceDate = sumPurchaseUnique(periodData)
     return {
       totalOrders: poData.length,
       totalValue: Math.round(sumPOField(periodData, 'PO Value with Tax')),
@@ -218,6 +221,9 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
       purchaseValue: Math.round(purchaseUniqueValue),
       purchaseUniquePOs,
       purchaseTonnage,
+      purchaseAllLinesBase: Math.round(purchaseAllLinesBase),
+      purchaseAllLinesWithGST: Math.round(purchaseAllLinesWithGST),
+      purchaseByInvoiceDate: Math.round(purchaseByInvoiceDate),
     }
   }, [periodData, purchasePeriodData])
 
@@ -542,7 +548,10 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
             <>
               <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Purchased in the selected period (by Purchase Date)</div>
               <TooltipRow label="Purchase Tonnage" value={(periodMetrics.purchaseTonnage || 0) + ' KG'} valueColor="#f97316" />
-              <TooltipRow label="Purchase Value" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Unique sum (B-date)" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#84cc16" />
+              <TooltipRow label="All lines base (B-date)" value={'₹' + (periodMetrics.purchaseAllLinesBase || 0).toLocaleString()} valueColor="#f97316" />
+              <TooltipRow label="All lines +GST (B-date)" value={'₹' + (periodMetrics.purchaseAllLinesWithGST || 0).toLocaleString()} valueColor="#eab308" />
+              <TooltipRow label="Unique sum (Invoice-date)" value={'₹' + (periodMetrics.purchaseByInvoiceDate || 0).toLocaleString()} valueColor="#3b82f6" />
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
@@ -557,6 +566,9 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
               <TooltipRow label="J col" value={purchaseCols.valueKey || 'NOT FOUND'} valueColor={purchaseCols.valueKey ? '#22c55e' : '#ef4444'} />
               <TooltipRow label="Period POs" value={periodMetrics.purchaseUniquePOs || 0} valueColor="#f1f5f9" />
               <TooltipRow label="Period unique sum" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#84cc16" />
+              <TooltipRow label="All lines base (B-date)" value={'₹' + (periodMetrics.purchaseAllLinesBase || 0).toLocaleString()} valueColor="#f97316" />
+              <TooltipRow label="All lines +GST (B-date)" value={'₹' + (periodMetrics.purchaseAllLinesWithGST || 0).toLocaleString()} valueColor="#eab308" />
+              <TooltipRow label="Unique sum (Invoice-date)" value={'₹' + (periodMetrics.purchaseByInvoiceDate || 0).toLocaleString()} valueColor="#3b82f6" />
               <TooltipRow label="Sep lines" value={septemberPurchase.stats.lines} valueColor="#f1f5f9" />
               <TooltipRow label="Sep unique POs" value={septemberPurchase.stats.uniquePOs} valueColor="#f1f5f9" />
               <TooltipRow label="Sep unique sum" value={'₹' + Math.round(septemberPurchase.stats.uniqueSum).toLocaleString()} valueColor="#22c55e" />
