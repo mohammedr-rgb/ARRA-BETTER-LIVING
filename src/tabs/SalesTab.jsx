@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { num, parseCSV, csvEscape, MONTH_NAMES } from '../lib/utils'
-import { ProfileSection, CSVButton } from '../components/ui'
+import { num, parseCSV, MONTH_NAMES } from '../lib/utils'
+import { ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend
@@ -9,27 +9,62 @@ import {
 const SPREADSHEET_ID = '11kG7PuGGRWhABPFS-aErGvkHHf5tQPFf7r_J4WOE_ks'
 
 const SALES_SUBTABS = [
-  { id: 'ads', label: 'Ads - Overall', gid: '1252661981', icon: '📢' },
+  { id: 'ads', label: 'Ads - Overall', icon: '📢' },
   { id: 'amazon', label: 'Raw - Amazon Sales', gid: '0', icon: '🛒' },
   { id: 'insta', label: 'Raw - Insta Sales', gid: '534975184', icon: '⚡' },
   { id: 'blinkit', label: 'Raw - Partner Blinkit Sales', gid: '45158830', icon: '🟡' },
   { id: 'seller', label: 'Raw - Amazon Seller Sales', gid: '134290562', icon: '📦' },
 ]
 
-const DEFAULT_ADS_ROWS = [
-  { Platform: 'Blinkitt', May: '15000', June: '18500', July: '22000', August: '25400', 'September planned': '30000' },
-  { Platform: 'Instamart', May: '28000', June: '32000', July: '38500', August: '44200', 'September planned': '50000' },
-  { Platform: 'Amazon Vendor', May: '45000', June: '51000', July: '58000', August: '62500', 'September planned': '70000' },
-  { Platform: 'Amazon Seller', May: '12000', June: '14500', July: '16800', August: '19200', 'September planned': '22000' },
-  { Platform: 'Total', May: '100000', June: '116000', July: '135300', August: '151300', 'September planned': '172000' },
+const ADS_SHEETS = [
+  { platform: 'Instamart', gid: '2072392090', color: '#f97316', icon: '⚡' },
+  { platform: 'Blinkit', gid: '965711422', color: '#eab308', icon: '🟡' },
+  { platform: 'Amazon Vendor', gid: '2141078441', color: '#3b82f6', icon: '🛒' },
 ]
 
-// Extract month key (year * 12 + 0-indexed month) from any sub-tab raw row
+// Extract month key (year * 12 + 0-indexed month)
+function parseDateMonthKey(dateStr, monthStr) {
+  if (monthStr) {
+    const s = String(monthStr).trim().toLowerCase()
+    const fullMonths = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+    const idx = fullMonths.indexOf(s)
+    if (idx !== -1) return 2026 * 12 + idx
+    const shortIdx = MONTH_NAMES.map(m => m.toLowerCase()).indexOf(s.slice(0, 3))
+    if (shortIdx !== -1) return 2026 * 12 + shortIdx
+  }
+  if (dateStr) {
+    const s = String(dateStr).trim()
+    const parts = s.split(/[/-]/)
+    if (parts.length === 3) {
+      let y = parseInt(parts[2], 10)
+      let m = parseInt(parts[1], 10) - 1
+      if (parts[0].length === 4) {
+        y = parseInt(parts[0], 10)
+        m = parseInt(parts[1], 10) - 1
+      } else if (parts[1] > 12) {
+        m = parseInt(parts[0], 10) - 1
+      }
+      if (!isNaN(y) && !isNaN(m) && y > 2000 && m >= 0 && m < 12) {
+        return y * 12 + m
+      }
+    }
+    const d = new Date(s)
+    if (!isNaN(d.getTime())) {
+      return d.getFullYear() * 12 + d.getMonth()
+    }
+  }
+  return null
+}
+
 function extractRowMonthKey(row, subtabId) {
   if (!row) return null
 
-  // 1. Amazon Vendor (gid: 0)
-  // Columns: orderYear, orderMonth, orderDay
+  // 1. Ads - Overall (normalized row already contains monthKey)
+  if (subtabId === 'ads') {
+    return row.monthKey || null
+  }
+
+  // 2. Amazon Vendor Sales (gid: 0)
   if (subtabId === 'amazon') {
     const y = parseInt(row['orderYear'], 10)
     const m = parseInt(row['orderMonth'], 10) - 1
@@ -38,8 +73,7 @@ function extractRowMonthKey(row, subtabId) {
     }
   }
 
-  // 2. Insta Sales (gid: 534975184)
-  // Columns: ORDERED_DATE (e.g. 2025-08-15)
+  // 3. Insta Sales (gid: 534975184)
   if (subtabId === 'insta') {
     const val = row['ORDERED_DATE']
     if (val) {
@@ -59,8 +93,7 @@ function extractRowMonthKey(row, subtabId) {
     }
   }
 
-  // 3. Blinkit Sales (gid: 45158830)
-  // Columns: date (e.g. 7/25/2026), Month (e.g. July)
+  // 4. Blinkit Sales (gid: 45158830)
   if (subtabId === 'blinkit') {
     const val = row['date']
     if (val) {
@@ -85,8 +118,7 @@ function extractRowMonthKey(row, subtabId) {
     }
   }
 
-  // 4. Amazon Seller (gid: 134290562)
-  // Columns: date/time (e.g. 2 Jul 2026 3:30:56 pm UTC)
+  // 5. Amazon Seller Sales (gid: 134290562)
   if (subtabId === 'seller') {
     const val = row['date/time']
     if (val) {
@@ -113,10 +145,13 @@ export default function SalesTab() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
+  // Ads platform sub-filter ('All' | 'Instamart' | 'Blinkit' | 'Amazon Vendor')
+  const [adsPlatformFilter, setAdsPlatformFilter] = useState('All')
+
   // Month-wise filter state (Set of monthKeys: year * 12 + 0-indexed month)
   const [selectedMonths, setSelectedMonths] = useState(() => new Set())
 
-  // Debounce search query for smooth filtering on 50k+ datasets
+  // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 200)
     return () => clearTimeout(timer)
@@ -149,33 +184,95 @@ export default function SalesTab() {
   const fetchDataForTab = useCallback(async (tabId, force = false) => {
     if (!force && cache[tabId]) return
 
-    const config = SALES_SUBTABS.find(t => t.id === tabId)
-    if (!config) return
-
     setLoading(true)
     setError(null)
 
-    // For ads, provide fallback if the remote export gid isn't directly exposed
+    // For Ads - Overall: Fetch from the 3 real Raw Ads sheets
+    // (Raw-Insta- Ads, Blinkitt- Ads, Amazon vendor - Ads)
     if (tabId === 'ads') {
       try {
-        const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${config.gid}`
-        const res = await fetch(url)
-        if (res.ok) {
-          const text = await res.text()
-          const rows = parseCSV(text)
-          if (rows && rows.length) {
-            setCache(prev => ({ ...prev, [tabId]: rows }))
-            setLoading(false)
-            return
-          }
-        }
-      } catch {
-        // Fallback to default realistic ads budget summary
+        const [instaRes, blinkitRes, amzRes] = await Promise.all([
+          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=2072392090`),
+          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=965711422`),
+          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=2141078441`)
+        ])
+
+        const instaText = await instaRes.text()
+        const blinkitText = await blinkitRes.text()
+        const amzText = await amzRes.text()
+
+        const instaRows = parseCSV(instaText)
+          .filter(r => r['CAMPAIGN_NAME'] && r['CAMPAIGN_NAME'].trim() !== '')
+          .map(r => ({
+            platform: 'Instamart',
+            campaignId: r['CAMPAIGN_ID'] || '',
+            campaignName: r['CAMPAIGN_NAME'],
+            startDate: r['CAMPAIGN_START_DATE'] || '',
+            month: r['Month'] || '',
+            monthKey: parseDateMonthKey(r['CAMPAIGN_START_DATE'], r['Month']),
+            spend: num(r['TOTAL_BUDGET_BURNT']),
+            gmv: num(r['TOTAL_GMV']),
+            impressions: num(r['TOTAL_IMPRESSIONS']),
+            clicks: num(r['TOTAL_CLICKS']),
+            conversions: num(r['TOTAL_CONVERSIONS']),
+            roas: num(r['TOTAL_ROI']) || (num(r['TOTAL_GMV']) / (num(r['TOTAL_BUDGET_BURNT']) || 1)),
+            ctr: r['TOTAL_CTR'] || '',
+            cpm: num(r['eCPM']),
+            cpc: num(r['eCPC']),
+          }))
+
+        const blinkitRows = parseCSV(blinkitText)
+          .filter(r => r['CAMPAIGN_NAME'] && r['CAMPAIGN_NAME'].trim() !== '')
+          .map(r => ({
+            platform: 'Blinkit',
+            campaignId: r['CAMPAIGN_ID'] || '',
+            campaignName: r['CAMPAIGN_NAME'],
+            startDate: r['CAMPAIGN_START_DATE'] || '',
+            month: r['MOnth'] || r['Month'] || '',
+            monthKey: parseDateMonthKey(r['CAMPAIGN_START_DATE'], r['MOnth'] || r['Month']),
+            spend: num(r['TOTAL_BUDGET_BURNT']),
+            gmv: num(r['TOTAL_GMV']),
+            impressions: num(r['TOTAL_IMPRESSIONS']),
+            clicks: num(r['TOTAL_CLICKS']),
+            conversions: num(r['TOTAL_CONVERSIONS']),
+            roas: num(r['TOTAL_ROI']) || (num(r['TOTAL_GMV']) / (num(r['TOTAL_BUDGET_BURNT']) || 1)),
+            ctr: r['TOTAL_CTR'] || '',
+            cpm: num(r['eCPM']),
+            cpc: num(r['eCPC']),
+          }))
+
+        const amzRows = parseCSV(amzText)
+          .filter(r => r['Campaign name'] && r['Campaign name'].trim() !== '')
+          .map(r => ({
+            platform: 'Amazon Vendor',
+            campaignId: r['Campaign ID'] || '',
+            campaignName: r['Campaign name'],
+            startDate: r['Campaign start date'] || '',
+            month: '',
+            monthKey: parseDateMonthKey(r['Campaign start date'], null),
+            spend: num(r['Total cost'] || r['Total cost (converted)']),
+            gmv: num(r['Sales'] || r['Sales (converted)']),
+            impressions: num(r['Impressions']),
+            clicks: num(r['Clicks']),
+            conversions: num(r['Purchases']),
+            roas: num(r['ROAS']) || (num(r['Sales']) / (num(r['Total cost']) || 1)),
+            ctr: r['CTR'] || '',
+            cpc: num(r['CPC'] || r['CPC (converted)']),
+          }))
+
+        const combinedAds = [...instaRows, ...blinkitRows, ...amzRows]
+        setCache(prev => ({ ...prev, ads: combinedAds }))
+      } catch (err) {
+        console.error('Error loading ads data:', err)
+        setError(err.message || 'Failed to fetch raw ads sheets')
+      } finally {
+        setLoading(false)
       }
-      setCache(prev => ({ ...prev, [tabId]: DEFAULT_ADS_ROWS }))
-      setLoading(false)
       return
     }
+
+    const config = SALES_SUBTABS.find(t => t.id === tabId)
+    if (!config) return
 
     try {
       const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${config.gid}`
@@ -201,15 +298,6 @@ export default function SalesTab() {
 
   // Extract available months for the active subtab
   const monthOptions = useMemo(() => {
-    if (activeSubTab === 'ads') {
-      return [
-        { mk: 2026 * 12 + 8, label: "Sep '26" },
-        { mk: 2026 * 12 + 7, label: "Aug '26" },
-        { mk: 2026 * 12 + 6, label: "Jul '26" },
-        { mk: 2026 * 12 + 5, label: "Jun '26" },
-        { mk: 2026 * 12 + 4, label: "May '26" },
-      ]
-    }
     const map = {}
     for (let i = 0; i < activeRows.length; i++) {
       const mk = extractRowMonthKey(activeRows[i], activeSubTab)
@@ -240,7 +328,6 @@ export default function SalesTab() {
 
   // Filter raw rows by selected months
   const periodRows = useMemo(() => {
-    if (activeSubTab === 'ads') return activeRows
     if (!selectedMonths.size) return activeRows
     return activeRows.filter(r => {
       const mk = extractRowMonthKey(r, activeSubTab)
@@ -249,46 +336,158 @@ export default function SalesTab() {
   }, [activeRows, activeSubTab, selectedMonths])
 
   // ==========================================
-  // 1. ADS - OVERALL
+  // 1. ADS - OVERALL (Computed from 3 Raw Sheets)
   // ==========================================
   const adsData = useMemo(() => {
-    if (activeSubTab !== 'ads') return { rows: [], stats: [], chartData: [] }
-    const valid = activeRows.filter(r => (r['Platform'] || r['Platform ']) && (r['Platform'] || r['Platform ']).trim() !== '')
-    const totalRow = valid.find(r => (r['Platform'] || r['Platform ']).trim().toLowerCase() === 'total')
-    const platforms = valid.filter(r => (r['Platform'] || r['Platform ']).trim().toLowerCase() !== 'total')
+    if (activeSubTab !== 'ads') return { stats: [], platformSummary: [], chartData: [], filteredCampaigns: [], columns: [] }
 
-    const may = totalRow ? num(totalRow['May']) : platforms.reduce((s, r) => s + num(r['May']), 0)
-    const june = totalRow ? num(totalRow['June']) : platforms.reduce((s, r) => s + num(r['June']), 0)
-    const july = totalRow ? num(totalRow['July']) : platforms.reduce((s, r) => s + num(r['July']), 0)
-    const august = totalRow ? num(totalRow['August']) : platforms.reduce((s, r) => s + num(r['August']), 0)
-    const sep = totalRow ? num(totalRow['September planned']) : platforms.reduce((s, r) => s + num(r['September planned']), 0)
+    // Filter by platform sub-filter
+    const platformFiltered = adsPlatformFilter === 'All'
+      ? periodRows
+      : periodRows.filter(r => r.platform === adsPlatformFilter)
 
-    const allStats = [
-      { mk: 2026 * 12 + 4, label: 'May Spend', icon: '📅', color: '#64748b', value: '₹' + may.toLocaleString() },
-      { mk: 2026 * 12 + 5, label: 'June Spend', icon: '📅', color: '#3b82f6', value: '₹' + june.toLocaleString() },
-      { mk: 2026 * 12 + 6, label: 'July Spend', icon: '📅', color: '#8b5cf6', value: '₹' + july.toLocaleString() },
-      { mk: 2026 * 12 + 7, label: 'August Spend', icon: '📅', color: '#eab308', value: '₹' + august.toLocaleString() },
-      { mk: 2026 * 12 + 8, label: 'September Planned', icon: '🎯', color: '#22c55e', value: '₹' + sep.toLocaleString() },
+    // Filter by search query
+    const q = debouncedSearch.toLowerCase().trim()
+    const searchFiltered = q
+      ? platformFiltered.filter(r =>
+          r.campaignName.toLowerCase().includes(q) ||
+          r.platform.toLowerCase().includes(q) ||
+          r.month.toLowerCase().includes(q)
+        )
+      : platformFiltered
+
+    // Overall Totals
+    const totalSpend = Math.round(platformFiltered.reduce((s, r) => s + r.spend, 0))
+    const totalGMV = Math.round(platformFiltered.reduce((s, r) => s + r.gmv, 0))
+    const totalImpressions = platformFiltered.reduce((s, r) => s + r.impressions, 0)
+    const totalClicks = platformFiltered.reduce((s, r) => s + r.clicks, 0)
+    const totalConversions = platformFiltered.reduce((s, r) => s + r.conversions, 0)
+    const overallROAS = totalSpend > 0 ? (totalGMV / totalSpend).toFixed(2) : '0.00'
+    const overallCTR = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) + '%' : '—'
+
+    const stats = [
+      { label: 'Total Ad Spend', icon: '💰', color: '#ef4444', value: '₹' + totalSpend.toLocaleString() },
+      { label: 'Total Ad Sales (GMV)', icon: '📈', color: '#22c55e', value: '₹' + totalGMV.toLocaleString() },
+      { label: 'Overall ROAS', icon: '🎯', color: '#3b82f6', value: `${overallROAS}x` },
+      { label: 'Impressions', icon: '👁️', color: '#a855f7', value: totalImpressions > 0 ? totalImpressions.toLocaleString() : '—' },
+      { label: 'Clicks (CTR)', icon: '👆', color: '#eab308', value: `${totalClicks.toLocaleString()} (${overallCTR})` },
+      { label: 'Conversions', icon: '🛒', color: '#06b6d4', value: totalConversions > 0 ? totalConversions.toLocaleString() : '—' },
     ]
 
-    const allChartData = [
-      { mk: 2026 * 12 + 4, month: 'May', ...Object.fromEntries(platforms.map(p => [(p['Platform'] || p['Platform ']).trim(), num(p['May'])])) },
-      { mk: 2026 * 12 + 5, month: 'June', ...Object.fromEntries(platforms.map(p => [(p['Platform'] || p['Platform ']).trim(), num(p['June'])])) },
-      { mk: 2026 * 12 + 6, month: 'July', ...Object.fromEntries(platforms.map(p => [(p['Platform'] || p['Platform ']).trim(), num(p['July'])])) },
-      { mk: 2026 * 12 + 7, month: 'August', ...Object.fromEntries(platforms.map(p => [(p['Platform'] || p['Platform ']).trim(), num(p['August'])])) },
-      { mk: 2026 * 12 + 8, month: 'September (Plan)', ...Object.fromEntries(platforms.map(p => [(p['Platform'] || p['Platform ']).trim(), num(p['September planned'])])) },
+    // Platform Breakdown Summary
+    const platformSummary = ADS_SHEETS.map(cfg => {
+      const pRows = periodRows.filter(r => r.platform === cfg.platform)
+      const spend = Math.round(pRows.reduce((s, r) => s + r.spend, 0))
+      const gmv = Math.round(pRows.reduce((s, r) => s + r.gmv, 0))
+      const clicks = pRows.reduce((s, r) => s + r.clicks, 0)
+      const imp = pRows.reduce((s, r) => s + r.impressions, 0)
+      const conv = pRows.reduce((s, r) => s + r.conversions, 0)
+      const roas = spend > 0 ? (gmv / spend).toFixed(2) : '0.00'
+      return {
+        ...cfg,
+        campaignsCount: pRows.length,
+        spend,
+        gmv,
+        clicks,
+        imp,
+        conv,
+        roas
+      }
+    })
+
+    // Monthly Spend & GMV Chart Data
+    const monthMap = {}
+    periodRows.forEach(r => {
+      if (r.monthKey !== null) {
+        const mk = r.monthKey
+        if (!monthMap[mk]) {
+          const y = Math.floor(mk / 12)
+          const m = mk % 12
+          monthMap[mk] = {
+            mk,
+            month: `${MONTH_NAMES[m]} '${String(y).slice(2)}`,
+            'Instamart Spend': 0,
+            'Blinkit Spend': 0,
+            'Amazon Vendor Spend': 0,
+            'Total GMV': 0,
+          }
+        }
+        if (r.platform === 'Instamart') monthMap[mk]['Instamart Spend'] += r.spend
+        else if (r.platform === 'Blinkit') monthMap[mk]['Blinkit Spend'] += r.spend
+        else if (r.platform === 'Amazon Vendor') monthMap[mk]['Amazon Vendor Spend'] += r.spend
+        monthMap[mk]['Total GMV'] += r.gmv
+      }
+    })
+
+    const chartData = Object.values(monthMap)
+      .sort((a, b) => a.mk - b.mk)
+      .map(item => ({
+        ...item,
+        'Instamart Spend': Math.round(item['Instamart Spend']),
+        'Blinkit Spend': Math.round(item['Blinkit Spend']),
+        'Amazon Vendor Spend': Math.round(item['Amazon Vendor Spend']),
+        'Total GMV': Math.round(item['Total GMV']),
+      }))
+
+    // Campaigns Table Columns
+    const columns = [
+      {
+        key: 'platform',
+        label: 'Platform',
+        align: 'left',
+        render: r => {
+          const cfg = ADS_SHEETS.find(s => s.platform === r.platform) || { color: '#38bdf8', icon: '📢' }
+          return (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 8px',
+              borderRadius: 12,
+              fontSize: 11,
+              fontWeight: 600,
+              background: `${cfg.color}20`,
+              color: cfg.color,
+              border: `1px solid ${cfg.color}40`
+            }}>
+              <span>{cfg.icon}</span>
+              <span>{r.platform}</span>
+            </span>
+          )
+        }
+      },
+      {
+        key: 'campaignName',
+        label: 'Campaign Name',
+        align: 'left',
+        render: r => (
+          <span style={{ maxWidth: 260, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={r.campaignName}>
+            {r.campaignName}
+          </span>
+        )
+      },
+      { key: 'startDate', label: 'Start Date', align: 'left', accessor: r => r.startDate || '—' },
+      { key: 'month', label: 'Month', align: 'left', accessor: r => r.month || '—' },
+      { key: 'spend', label: 'Spend', align: 'right', accessor: r => r.spend, render: r => '₹' + Math.round(r.spend).toLocaleString() },
+      { key: 'gmv', label: 'Ad Sales / GMV', align: 'right', accessor: r => r.gmv, render: r => '₹' + Math.round(r.gmv).toLocaleString() },
+      {
+        key: 'roas',
+        label: 'ROAS',
+        align: 'right',
+        accessor: r => r.roas,
+        render: r => {
+          const val = Number(r.roas) || 0
+          const color = val >= 2.0 ? '#22c55e' : val >= 1.0 ? '#eab308' : '#ef4444'
+          return <span style={{ color, fontWeight: 700 }}>{val.toFixed(2)}x</span>
+        }
+      },
+      { key: 'impressions', label: 'Impressions', align: 'right', accessor: r => r.impressions, render: r => r.impressions ? r.impressions.toLocaleString() : '—' },
+      { key: 'clicks', label: 'Clicks', align: 'right', accessor: r => r.clicks, render: r => r.clicks ? r.clicks.toLocaleString() : '—' },
+      { key: 'conversions', label: 'Conversions', align: 'right', accessor: r => r.conversions, render: r => r.conversions ? r.conversions.toLocaleString() : '—' },
     ]
 
-    const stats = selectedMonths.size
-      ? allStats.filter(s => selectedMonths.has(s.mk))
-      : allStats
-
-    const chartData = selectedMonths.size
-      ? allChartData.filter(c => selectedMonths.has(c.mk))
-      : allChartData
-
-    return { rows: valid, stats, chartData, platformNames: platforms.map(p => (p['Platform'] || p['Platform ']).trim()) }
-  }, [activeSubTab, activeRows, selectedMonths])
+    return { stats, platformSummary, chartData, filteredCampaigns: searchFiltered, columns }
+  }, [activeSubTab, periodRows, adsPlatformFilter, debouncedSearch])
 
   // ==========================================
   // 2. RAW - AMAZON SALES
@@ -461,14 +660,6 @@ export default function SalesTab() {
     return { stats, filtered, columns }
   }, [activeSubTab, periodRows, debouncedSearch])
 
-  // Chart colors for platforms in Ads
-  const PLATFORM_COLORS = {
-    Blinkitt: '#eab308',
-    Instamart: '#f97316',
-    'Amazon Vendor': '#3b82f6',
-    'Amazon Seller': '#10b981',
-  }
-
   return (
     <>
       <header>
@@ -603,7 +794,7 @@ export default function SalesTab() {
               </button>
             )
           })}
-          {selectedMonths.size > 0 && activeSubTab !== 'ads' && (
+          {selectedMonths.size > 0 && (
             <span style={{ fontSize: 11, color: '#64748b', marginLeft: 'auto' }}>
               Showing {periodRows.length.toLocaleString()} of {activeRows.length.toLocaleString()} records
             </span>
@@ -643,9 +834,10 @@ export default function SalesTab() {
         </div>
       )}
 
-      {/* SUBTAB 1: ADS - OVERALL */}
+      {/* SUBTAB 1: ADS - OVERALL (From Raw-Insta- Ads, Blinkitt- Ads, Amazon vendor - Ads) */}
       {activeSubTab === 'ads' && !loading && (
         <>
+          {/* Top KPI Cards */}
           <div className="stats-grid" style={{ marginTop: 0 }}>
             {adsData.stats.map(s => (
               <div className="stat-card" key={s.label}>
@@ -658,76 +850,144 @@ export default function SalesTab() {
             ))}
           </div>
 
-          {/* Monthly Comparison Bar Chart */}
-          <div className="chart-card" style={{ marginTop: 20 }}>
-            <div className="chart-title">Platform Ads Spend Monthly Trend</div>
-            <div style={{ height: 280, marginTop: 16 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={adsData.chartData} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />
-                  <ReTooltip
-                    contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
-                    formatter={(val) => ['₹' + Number(val).toLocaleString(), '']}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                  {adsData.platformNames.map((name) => (
-                    <Bar key={name} dataKey={name} fill={PLATFORM_COLORS[name] || '#a855f7'} radius={[4, 4, 0, 0]} />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          {/* Platform Performance Cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 16,
+            marginTop: 20
+          }}>
+            {adsData.platformSummary.map(p => (
+              <div
+                key={p.platform}
+                onClick={() => setAdsPlatformFilter(adsPlatformFilter === p.platform ? 'All' : p.platform)}
+                style={{
+                  background: '#1e293b',
+                  border: '1px solid ' + (adsPlatformFilter === p.platform ? p.color : '#334155'),
+                  borderRadius: 12,
+                  padding: 16,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: adsPlatformFilter === p.platform ? `0 0 12px ${p.color}33` : 'none'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, color: p.color }}>
+                    <span>{p.icon}</span>
+                    <span>{p.platform} Ads</span>
+                  </div>
+                  <span style={{
+                    fontSize: 10,
+                    background: adsPlatformFilter === p.platform ? p.color : '#334155',
+                    color: adsPlatformFilter === p.platform ? '#000' : '#94a3b8',
+                    padding: '2px 8px',
+                    borderRadius: 10,
+                    fontWeight: 700
+                  }}>
+                    {p.campaignsCount} campaigns
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>Spend</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#ef4444' }}>₹{p.spend.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>Ad Sales / GMV</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#22c55e' }}>₹{p.gmv.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>ROAS</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#38bdf8' }}>{p.roas}x</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>Clicks / Orders</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9' }}>
+                      {p.clicks.toLocaleString()} / {p.conv ? p.conv.toLocaleString() : '—'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Ads Data Table */}
-          <div className="recent-orders" style={{ marginTop: 20 }}>
-            <div className="orders-header">
-              <div className="orders-title">Ads - Overall Summary Table</div>
-              <CSVButton
-                makeRows={() => {
-                  const header = 'Platform,May,June,July,August,September planned'
-                  const rws = adsData.rows.map(r => [
-                    csvEscape((r['Platform'] || r['Platform ']).trim()),
-                    num(r['May']),
-                    num(r['June']),
-                    num(r['July']),
-                    num(r['August']),
-                    num(r['September planned'])
-                  ].join(','))
-                  return [header, ...rws]
+          {/* Monthly Comparison Bar Chart */}
+          {adsData.chartData.length > 0 && (
+            <div className="chart-card" style={{ marginTop: 20 }}>
+              <div className="chart-title">Monthly Platform Ads Spend vs GMV Trend</div>
+              <div style={{ height: 300, marginTop: 16 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={adsData.chartData} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
+                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
+                    <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />
+                    <ReTooltip
+                      contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                      formatter={(val, name) => ['₹' + Number(val).toLocaleString(), name]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
+                    <Bar dataKey="Instamart Spend" fill="#f97316" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Blinkit Spend" fill="#eab308" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Amazon Vendor Spend" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Total GMV" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Platform Filter & Campaigns Table */}
+          <div style={{ marginTop: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, letterSpacing: 0.6 }}>PLATFORM:</span>
+                {['All', 'Instamart', 'Blinkit', 'Amazon Vendor'].map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setAdsPlatformFilter(p)}
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: 14,
+                      border: '1px solid ' + (adsPlatformFilter === p ? '#3b82f6' : '#334155'),
+                      background: adsPlatformFilter === p ? 'rgba(59,130,246,0.18)' : '#1e293b',
+                      color: adsPlatformFilter === p ? '#38bdf8' : '#94a3b8',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              <input
+                type="text"
+                placeholder="🔍 Search campaigns across platforms..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{
+                  background: '#1e293b',
+                  border: '1px solid #334155',
+                  borderRadius: 8,
+                  color: '#f1f5f9',
+                  padding: '7px 12px',
+                  fontSize: 12,
+                  minWidth: 260,
+                  outline: 'none'
                 }}
-                filename="ads_overall_summary.csv"
               />
             </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Platform</th>
-                  <th style={{ textAlign: 'right' }}>May</th>
-                  <th style={{ textAlign: 'right' }}>June</th>
-                  <th style={{ textAlign: 'right' }}>July</th>
-                  <th style={{ textAlign: 'right' }}>August</th>
-                  <th style={{ textAlign: 'right' }}>September Planned</th>
-                </tr>
-              </thead>
-              <tbody>
-                {adsData.rows.map((row, i) => {
-                  const pName = (row['Platform'] || row['Platform ']).trim()
-                  const isTotal = pName.toLowerCase() === 'total'
-                  return (
-                    <tr key={i} style={isTotal ? { background: 'rgba(59,130,246,0.12)', fontWeight: 700 } : {}}>
-                      <td style={isTotal ? { borderTop: '2px solid #334155', color: '#38bdf8' } : { fontWeight: 600 }}>{pName}</td>
-                      <td style={{ textAlign: 'right', borderTop: isTotal ? '2px solid #334155' : 'none' }}>₹{num(row['May']).toLocaleString()}</td>
-                      <td style={{ textAlign: 'right', borderTop: isTotal ? '2px solid #334155' : 'none' }}>₹{num(row['June']).toLocaleString()}</td>
-                      <td style={{ textAlign: 'right', borderTop: isTotal ? '2px solid #334155' : 'none' }}>₹{num(row['July']).toLocaleString()}</td>
-                      <td style={{ textAlign: 'right', borderTop: isTotal ? '2px solid #334155' : 'none' }}>₹{num(row['August']).toLocaleString()}</td>
-                      <td style={{ textAlign: 'right', borderTop: isTotal ? '2px solid #334155' : 'none', color: '#22c55e', fontWeight: 600 }}>₹{num(row['September planned']).toLocaleString()}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+
+            <DataTable
+              columns={adsData.columns}
+              rows={adsData.filteredCampaigns}
+              pageSize={15}
+              filename={`ads_overall_${scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_')}.csv`}
+              emptyMessage="No ad campaigns found matching your filter/search"
+            />
           </div>
         </>
       )}
