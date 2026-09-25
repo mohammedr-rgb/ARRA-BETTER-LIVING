@@ -3,7 +3,7 @@ import { num, parseCSV, csvEscape } from '../lib/utils'
 import { ProfileSection, CSVButton } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend
 } from 'recharts'
 
 const SPREADSHEET_ID = '11kG7PuGGRWhABPFS-aErGvkHHf5tQPFf7r_J4WOE_ks'
@@ -36,6 +36,12 @@ function formatPrettyDate(dStr) {
   } catch {
     return dStr
   }
+}
+
+// Capitalize City
+function formatCityName(city) {
+  if (!city) return 'Unknown'
+  return city.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
 // Price Indicator Badge
@@ -120,10 +126,11 @@ function VolumeDeltaBadge({ delta, deltaPct }) {
 }
 
 export default function StockTab() {
-  const [activeSubTab, setActiveSubTab] = useState('comparison') // 'comparison' | 'pricelog' | 'insta' | 'blinkit' | 'city'
+  const [activeSubTab, setActiveSubTab] = useState('comparison') // 'comparison' | 'city' | 'platform' | 'trend'
   const [platformFilter, setPlatformFilter] = useState('All') // 'All' | 'Instamart' | 'Blinkit'
   const [priceChangeFilter, setPriceChangeFilter] = useState('All') // 'All' | 'INCREASED' | 'DECREASED' | 'STABLE'
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCityDrilldown, setSelectedCityDrilldown] = useState('All')
 
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -253,7 +260,7 @@ export default function StockTab() {
   const effectiveDayD = selectedDayD || latestDate
   const effectiveDayPrev = selectedDayPrev || prevDate
 
-  // Compute 2-Day Comparison Analysis
+  // ==================== 1. SKU 2-DAY COMPARISON ====================
   const comparisonData = useMemo(() => {
     if (!effectiveDayD || !effectiveDayPrev) return []
 
@@ -378,9 +385,6 @@ export default function StockTab() {
     const prevAsp = totalPrevUnits > 0 ? (totalPrevGmv / totalPrevUnits).toFixed(1) : '0.0'
     const aspDelta = (Number(dAsp) - Number(prevAsp)).toFixed(1)
 
-    // Find top SKU by volume on Day D
-    const topSKU = [...comparisonData].sort((a, b) => b.dUnits - a.dUnits)[0] || null
-
     return {
       totalDGmv,
       totalPrevGmv,
@@ -393,12 +397,227 @@ export default function StockTab() {
       aspDelta: Number(aspDelta),
       priceHikes,
       priceDrops,
-      priceStable,
-      topSKU
+      priceStable
     }
   }, [comparisonData])
 
-  // Daily Trend Chart Data (Last 14 days)
+  // ==================== 2. CITY-WISE 2-DAY COMPARISON ====================
+  const cityComparisonData = useMemo(() => {
+    if (!effectiveDayD || !effectiveDayPrev) return []
+
+    const dayDItems = platformFilteredItems.filter(i => i.date === effectiveDayD)
+    const dayPrevItems = platformFilteredItems.filter(i => i.date === effectiveDayPrev)
+
+    const map = {}
+    const getCityEntry = (city) => {
+      const cKey = city || 'unknown'
+      if (!map[cKey]) {
+        map[cKey] = {
+          city: cKey,
+          dUnits: 0, dGmv: 0, dSkus: {},
+          prevUnits: 0, prevGmv: 0, prevSkus: {},
+          platforms: new Set()
+        }
+      }
+      return map[cKey]
+    }
+
+    dayDItems.forEach(i => {
+      const e = getCityEntry(i.city)
+      e.dUnits += i.units
+      e.dGmv += i.gmv
+      e.platforms.add(i.platform)
+      e.dSkus[i.sku] = (e.dSkus[i.sku] || 0) + i.units
+    })
+
+    dayPrevItems.forEach(i => {
+      const e = getCityEntry(i.city)
+      e.prevUnits += i.units
+      e.prevGmv += i.gmv
+      e.platforms.add(i.platform)
+      e.prevSkus[i.sku] = (e.prevSkus[i.sku] || 0) + i.units
+    })
+
+    return Object.values(map).map(e => {
+      const dAvgPrice = e.dUnits > 0 ? Math.round(e.dGmv / e.dUnits) : 0
+      const prevAvgPrice = e.prevUnits > 0 ? Math.round(e.prevGmv / e.prevUnits) : 0
+      const priceDelta = dAvgPrice - prevAvgPrice
+      const priceDeltaPct = prevAvgPrice > 0 ? Number(((priceDelta / prevAvgPrice) * 100).toFixed(1)) : 0
+      const unitDelta = e.dUnits - e.prevUnits
+      const unitDeltaPct = e.prevUnits > 0 ? Number(((unitDelta / e.prevUnits) * 100).toFixed(1)) : (e.dUnits > 0 ? 100 : 0)
+      const gmvDelta = e.dGmv - e.prevGmv
+      const gmvDeltaPct = e.prevGmv > 0 ? Number(((gmvDelta / e.prevGmv) * 100).toFixed(1)) : (e.dGmv > 0 ? 100 : 0)
+
+      let priceStatus = 'STABLE'
+      if (priceDelta > 1) priceStatus = 'INCREASED'
+      else if (priceDelta < -1) priceStatus = 'DECREASED'
+
+      // Top SKU in city
+      const topSKUEntry = Object.entries(e.dSkus).sort((a, b) => b[1] - a[1])[0]
+      const topSKU = topSKUEntry ? `${topSKUEntry[0]} (${topSKUEntry[1]} units)` : '—'
+
+      return {
+        city: e.city,
+        formattedCity: formatCityName(e.city),
+        platforms: Array.from(e.platforms).join(', '),
+        dUnits: e.dUnits,
+        prevUnits: e.prevUnits,
+        unitDelta,
+        unitDeltaPct,
+        dGmv: Math.round(e.dGmv),
+        prevGmv: Math.round(e.prevGmv),
+        gmvDelta: Math.round(gmvDelta),
+        gmvDeltaPct,
+        dAvgPrice,
+        prevAvgPrice,
+        priceDelta,
+        priceDeltaPct,
+        priceStatus,
+        topSKU
+      }
+    }).sort((a, b) => b.dGmv - a.dGmv)
+  }, [platformFilteredItems, effectiveDayD, effectiveDayPrev])
+
+  // Top 10 cities chart data
+  const topCitiesChartData = useMemo(() => {
+    return cityComparisonData.slice(0, 10).map(c => ({
+      city: c.formattedCity,
+      dGmv: c.dGmv,
+      prevGmv: c.prevGmv,
+      dUnits: c.dUnits
+    }))
+  }, [cityComparisonData])
+
+  // Filtered City SKU drilldown
+  const cityDrilldownRows = useMemo(() => {
+    if (selectedCityDrilldown === 'All') return []
+    const c = selectedCityDrilldown.toLowerCase()
+    const dayDItems = platformFilteredItems.filter(i => i.date === effectiveDayD && i.city === c)
+    const dayPrevItems = platformFilteredItems.filter(i => i.date === effectiveDayPrev && i.city === c)
+
+    const map = {}
+    dayDItems.forEach(i => {
+      const key = `${i.platform}___${i.sku}`
+      if (!map[key]) map[key] = { sku: i.sku, platform: i.platform, dUnits: 0, dGmv: 0, prevUnits: 0, prevGmv: 0 }
+      map[key].dUnits += i.units
+      map[key].dGmv += i.gmv
+    })
+    dayPrevItems.forEach(i => {
+      const key = `${i.platform}___${i.sku}`
+      if (!map[key]) map[key] = { sku: i.sku, platform: i.platform, dUnits: 0, dGmv: 0, prevUnits: 0, prevGmv: 0 }
+      map[key].prevUnits += i.units
+      map[key].prevGmv += i.gmv
+    })
+
+    return Object.values(map).map(r => {
+      const dPrice = r.dUnits > 0 ? (r.dGmv / r.dUnits).toFixed(1) : '0'
+      const prevPrice = r.prevUnits > 0 ? (r.prevGmv / r.prevUnits).toFixed(1) : '0'
+      const pDelta = Number(dPrice) - Number(prevPrice)
+      return {
+        ...r,
+        dPrice: Number(dPrice),
+        prevPrice: Number(prevPrice),
+        pDelta: Number(pDelta.toFixed(1)),
+        dGmv: Math.round(r.dGmv),
+        prevGmv: Math.round(r.prevGmv)
+      }
+    }).sort((a, b) => b.dGmv - a.dGmv)
+  }, [selectedCityDrilldown, platformFilteredItems, effectiveDayD, effectiveDayPrev])
+
+  // ==================== 3. PLATFORM-WISE COMPARISON (Instamart vs Blinkit) ====================
+  const platformComparisonSummary = useMemo(() => {
+    if (!effectiveDayD || !effectiveDayPrev) return null
+
+    const computeFor = (items, platformName) => {
+      const dayD = items.filter(i => i.date === effectiveDayD)
+      const dayPrev = items.filter(i => i.date === effectiveDayPrev)
+
+      const dGmv = Math.round(dayD.reduce((s, i) => s + i.gmv, 0))
+      const prevGmv = Math.round(dayPrev.reduce((s, i) => s + i.gmv, 0))
+      const dUnits = dayD.reduce((s, i) => s + i.units, 0)
+      const prevUnits = dayPrev.reduce((s, i) => s + i.units, 0)
+
+      const dAsp = dUnits > 0 ? Number((dGmv / dUnits).toFixed(1)) : 0
+      const prevAsp = prevUnits > 0 ? Number((prevGmv / prevUnits).toFixed(1)) : 0
+      const gmvGrowth = prevGmv > 0 ? Number((((dGmv - prevGmv) / prevGmv) * 100).toFixed(1)) : 0
+      const unitsGrowth = prevUnits > 0 ? Number((((dUnits - prevUnits) / prevUnits) * 100).toFixed(1)) : 0
+
+      const dCities = new Set(dayD.map(i => i.city).filter(Boolean)).size
+      const dSkus = new Set(dayD.map(i => i.sku)).size
+
+      return {
+        platform: platformName,
+        dGmv,
+        prevGmv,
+        gmvGrowth,
+        dUnits,
+        prevUnits,
+        unitsGrowth,
+        dAsp,
+        prevAsp,
+        aspDelta: Number((dAsp - prevAsp).toFixed(1)),
+        dCities,
+        dSkus
+      }
+    }
+
+    const instaStats = computeFor(rawData.insta, 'Instamart')
+    const blinkitStats = computeFor(rawData.blinkit, 'Blinkit')
+
+    const totalGmv = instaStats.dGmv + blinkitStats.dGmv
+    const totalUnits = instaStats.dUnits + blinkitStats.dUnits
+
+    const instaGmvShare = totalGmv > 0 ? Number(((instaStats.dGmv / totalGmv) * 100).toFixed(1)) : 0
+    const blinkitGmvShare = totalGmv > 0 ? Number(((blinkitStats.dGmv / totalGmv) * 100).toFixed(1)) : 0
+
+    const instaUnitShare = totalUnits > 0 ? Number(((instaStats.dUnits / totalUnits) * 100).toFixed(1)) : 0
+    const blinkitUnitShare = totalUnits > 0 ? Number(((blinkitStats.dUnits / totalUnits) * 100).toFixed(1)) : 0
+
+    return {
+      insta: instaStats,
+      blinkit: blinkitStats,
+      totalGmv,
+      totalUnits,
+      instaGmvShare,
+      blinkitGmvShare,
+      instaUnitShare,
+      blinkitUnitShare
+    }
+  }, [rawData, effectiveDayD, effectiveDayPrev])
+
+  // Cross-Platform SKU Price Matrix (Matching SKUs on Day D)
+  const crossPlatformSKUComparison = useMemo(() => {
+    if (!effectiveDayD) return []
+
+    const instaDayD = rawData.insta.filter(i => i.date === effectiveDayD)
+    const blinkitDayD = rawData.blinkit.filter(i => i.date === effectiveDayD)
+
+    const map = {}
+    instaDayD.forEach(i => {
+      const key = i.product.toLowerCase().replace(/[^a-z0-9]/g, ' ')
+      if (!map[key]) map[key] = { label: i.product, instaPrice: 0, instaUnits: 0, blinkitPrice: 0, blinkitUnits: 0 }
+      map[key].instaUnits += i.units
+      map[key].instaPrice = i.effectivePrice
+    })
+
+    blinkitDayD.forEach(i => {
+      const key = i.product.toLowerCase().replace(/[^a-z0-9]/g, ' ')
+      if (!map[key]) map[key] = { label: i.product, instaPrice: 0, instaUnits: 0, blinkitPrice: 0, blinkitUnits: 0 }
+      map[key].blinkitUnits += i.units
+      map[key].blinkitPrice = i.effectivePrice
+    })
+
+    return Object.values(map).map(r => {
+      const diff = (r.instaPrice > 0 && r.blinkitPrice > 0) ? Number((r.blinkitPrice - r.instaPrice).toFixed(1)) : 0
+      return {
+        ...r,
+        priceDiff: diff,
+        status: diff > 0 ? 'Blinkit Higher' : diff < 0 ? 'Instamart Higher' : 'Equal Price'
+      }
+    }).sort((a, b) => (b.instaUnits + b.blinkitUnits) - (a.instaUnits + a.blinkitUnits))
+  }, [rawData, effectiveDayD])
+
+  // ==================== 4. 14-DAY TREND CHART ====================
   const chartTrendData = useMemo(() => {
     const recentDates = availableDates.slice(-14)
     const map = {}
@@ -419,38 +638,6 @@ export default function StockTab() {
       asp: d.units > 0 ? Math.round(d.gmv / d.units) : 0
     }))
   }, [availableDates, platformFilteredItems])
-
-  // City-wise Price Variance Explorer
-  const cityVarianceData = useMemo(() => {
-    const dayItems = platformFilteredItems.filter(i => i.date === effectiveDayD)
-    const map = {}
-
-    dayItems.forEach(i => {
-      const key = `${i.sku}___${i.city}`
-      if (!map[key]) {
-        map[key] = {
-          sku: i.sku,
-          platform: i.platform,
-          city: i.city ? (i.city.charAt(0).toUpperCase() + i.city.slice(1)) : 'Unknown',
-          units: 0,
-          gmv: 0,
-          prices: []
-        }
-      }
-      map[key].units += i.units
-      map[key].gmv += i.gmv
-      if (i.effectivePrice > 0) map[key].prices.push(i.effectivePrice)
-    })
-
-    return Object.values(map).map(r => {
-      const avgPrice = r.units > 0 ? (r.gmv / r.units) : (r.prices.length ? r.prices[0] : 0)
-      return {
-        ...r,
-        avgPrice: Number(avgPrice.toFixed(2)),
-        gmv: Math.round(r.gmv)
-      }
-    }).sort((a, b) => b.units - a.units)
-  }, [platformFilteredItems, effectiveDayD])
 
   // CSV Exporters
   const makeComparisonCSV = () => {
@@ -474,20 +661,26 @@ export default function StockTab() {
     return [headers.join(','), ...lines]
   }
 
-  const makeCityCSV = () => {
-    const headers = ['Platform', 'SKU', 'City', 'Units Sold', 'Avg Price (₹)', 'Total GMV (₹)']
-    const lines = cityVarianceData.map(r => [
-      csvEscape(r.platform),
-      csvEscape(r.sku),
-      csvEscape(r.city),
-      r.units,
-      r.avgPrice,
-      r.gmv
+  const makeCityComparisonCSV = () => {
+    const headers = ['City', 'Platforms', `Day D (${effectiveDayD}) Units`, `Day D-1 (${effectiveDayPrev}) Units`, 'Unit Delta %', `Day D GMV (₹)`, `Day D-1 GMV (₹)`, 'GMV Delta %', 'Day D Avg Price (₹)', 'Day D-1 Avg Price (₹)', 'Price Delta (₹)', 'Top SKU']
+    const lines = cityComparisonData.map(r => [
+      csvEscape(r.formattedCity),
+      csvEscape(r.platforms),
+      r.dUnits,
+      r.prevUnits,
+      `${r.unitDeltaPct}%`,
+      r.dGmv,
+      r.prevGmv,
+      `${r.gmvDeltaPct}%`,
+      r.dAvgPrice,
+      r.prevAvgPrice,
+      r.priceDelta,
+      csvEscape(r.topSKU)
     ].join(','))
     return [headers.join(','), ...lines]
   }
 
-  // DataTable columns for 2-Day Comparison
+  // DataTable columns for SKU 2-Day Comparison
   const comparisonColumns = [
     {
       key: 'platform',
@@ -569,32 +762,65 @@ export default function StockTab() {
     }
   ]
 
-  // City Variance Columns
-  const cityColumns = [
+  // DataTable columns for City-Wise Comparison
+  const cityComparisonColumns = [
     {
-      key: 'platform',
-      label: 'Platform',
+      key: 'formattedCity',
+      label: 'City',
       render: r => (
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          padding: '2px 7px',
-          borderRadius: 6,
-          fontSize: 11,
-          fontWeight: 600,
-          background: r.platform === 'Instamart' ? 'rgba(249, 115, 22, 0.15)' : 'rgba(234, 179, 8, 0.15)',
-          color: r.platform === 'Instamart' ? '#fb923c' : '#facc15'
-        }}>
-          {r.platform === 'Instamart' ? '⚡' : '🟡'} {r.platform}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontWeight: 700, color: '#f8fafc' }}>🏙️ {r.formattedCity}</span>
+          <span style={{ fontSize: 10, color: '#64748b' }}>({r.platforms})</span>
+        </div>
       )
     },
-    { key: 'sku', label: 'Product / SKU', render: r => <span style={{ fontWeight: 600, color: '#f8fafc' }}>{r.sku}</span> },
-    { key: 'city', label: 'City', render: r => <span style={{ color: '#cbd5e1', fontWeight: 500 }}>🏙️ {r.city}</span> },
-    { key: 'units', label: 'Units Sold', align: 'right', render: r => <span style={{ fontWeight: 700, color: '#60a5fa' }}>{r.units.toLocaleString()}</span> },
-    { key: 'avgPrice', label: 'Avg Effective Price', align: 'right', render: r => <span style={{ fontWeight: 700, color: '#f1f5f9' }}>₹{r.avgPrice}</span> },
-    { key: 'gmv', label: 'GMV Revenue', align: 'right', render: r => <span style={{ fontWeight: 700, color: '#34d399' }}>₹{r.gmv.toLocaleString()}</span> }
+    {
+      key: 'dUnits',
+      label: `Day D Units`,
+      align: 'right',
+      render: r => (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+          <span style={{ fontWeight: 700, color: '#60a5fa' }}>{r.dUnits.toLocaleString()}</span>
+          <VolumeDeltaBadge delta={r.unitDelta} deltaPct={r.unitDeltaPct} />
+        </div>
+      )
+    },
+    {
+      key: 'prevUnits',
+      label: `Day D-1 Units`,
+      align: 'right',
+      render: r => <span style={{ color: '#94a3b8' }}>{r.prevUnits.toLocaleString()}</span>
+    },
+    {
+      key: 'dGmv',
+      label: `Day D Sales (GMV)`,
+      align: 'right',
+      render: r => (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+          <span style={{ fontWeight: 700, color: '#34d399' }}>₹{r.dGmv.toLocaleString()}</span>
+          <span style={{ fontSize: 10, color: r.gmvDelta >= 0 ? '#34d399' : '#f87171' }}>
+            {r.gmvDelta >= 0 ? `+${r.gmvDeltaPct}%` : `${r.gmvDeltaPct}%`}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: 'prevGmv',
+      label: `Day D-1 Sales`,
+      align: 'right',
+      render: r => <span style={{ color: '#94a3b8' }}>₹{r.prevGmv.toLocaleString()}</span>
+    },
+    {
+      key: 'dAvgPrice',
+      label: `Day D ASP`,
+      align: 'right',
+      render: r => <span style={{ fontWeight: 700, color: '#c084fc' }}>₹{r.dAvgPrice}</span>
+    },
+    {
+      key: 'topSKU',
+      label: 'Top Volume SKU',
+      render: r => <span style={{ fontSize: 12, color: '#cbd5e1' }}>{r.topSKU}</span>
+    }
   ]
 
   return (
@@ -676,7 +902,7 @@ export default function StockTab() {
             ₹{kpiStats.dAsp}
           </div>
           <div style={{ fontSize: 11, color: kpiStats.aspDelta > 0 ? '#f87171' : kpiStats.aspDelta < 0 ? '#4ade80' : '#94a3b8', marginTop: 6 }}>
-            {kpiStats.aspDelta > 0 ? `▲ +₹${kpiStats.aspDelta} price increase` : kpiStats.aspDelta < 0 ? `▼ -₹${Math.abs(kpiStats.aspDelta)} price drop` : '━ Stable across days'}
+            {kpiStats.aspDelta > 0 ? `▲ +₹${kpiStats.aspDelta} price hike` : kpiStats.aspDelta < 0 ? `▼ -₹${Math.abs(kpiStats.aspDelta)} price drop` : '━ Stable across days'}
           </div>
         </div>
 
@@ -707,9 +933,10 @@ export default function StockTab() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: '#1e293b', padding: '10px 14px', borderRadius: 10, border: '1px solid #334155' }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {[
-            { id: 'comparison', label: '📊 2-Day Comparison Matrix' },
-            { id: 'trend', label: '📈 14-Day Price & Volume Trend' },
-            { id: 'city', label: '🏙️ City / Store Price Variance' }
+            { id: 'comparison', label: '📊 SKU Comparison' },
+            { id: 'city', label: '🏙️ City-Wise Comparison' },
+            { id: 'platform', label: '⚡ Platform-Wise (Insta vs Blinkit)' },
+            { id: 'trend', label: '📈 14-Day Velocity & Trend' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -792,11 +1019,11 @@ export default function StockTab() {
         </div>
       ) : (
         <>
-          {/* TAB 1: 2-DAY COMPARISON MATRIX */}
+          {/* TAB 1: 2-DAY SKU COMPARISON MATRIX */}
           {activeSubTab === 'comparison' && (
             <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18, marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>
                     SKU 2-Day Price &amp; Volume Comparison
                   </h3>
@@ -858,7 +1085,274 @@ export default function StockTab() {
             </div>
           )}
 
-          {/* TAB 2: 14-DAY PRICE & VOLUME TREND */}
+          {/* TAB 2: CITY-WISE COMPARISON VIEW */}
+          {activeSubTab === 'city' && (
+            <div>
+              {/* City Top Ranking Chart */}
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+                <div style={{ marginBottom: 14 }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>
+                    Top 10 Performing Cities (Day D vs Day D-1 GMV Sales)
+                  </h3>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                    Comparing sales revenue across leading geographic markets on <strong>{formatPrettyDate(effectiveDayD)}</strong>
+                  </div>
+                </div>
+
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topCitiesChartData} margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="city" stroke="#94a3b8" fontSize={11} />
+                      <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+                      <ReTooltip
+                        contentStyle={{ background: '#0f172a', borderColor: '#334155', borderRadius: 8, color: '#f8fafc' }}
+                        formatter={(val, name) => [`₹${val.toLocaleString()}`, name === 'dGmv' ? `Day D (${effectiveDayD})` : `Day D-1 (${effectiveDayPrev})`]}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: 10, fontSize: 12 }} formatter={name => name === 'dGmv' ? `Day D Sales` : `Day D-1 Sales`} />
+                      <Bar dataKey="dGmv" fill="#3b82f6" radius={[4, 4, 0, 0]} name="dGmv" />
+                      <Bar dataKey="prevGmv" fill="#64748b" radius={[4, 4, 0, 0]} name="prevGmv" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* City Comparison Table */}
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18, marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>
+                      All Cities 2-Day Performance &amp; Pricing Table
+                    </h3>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                      Tracking {cityComparisonData.length} active cities across platforms
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <select
+                      value={selectedCityDrilldown}
+                      onChange={e => setSelectedCityDrilldown(e.target.value)}
+                      style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, color: '#f8fafc', padding: '5px 10px', fontSize: 12 }}
+                    >
+                      <option value="All">Select City Drilldown...</option>
+                      {cityComparisonData.map(c => <option key={c.city} value={c.city}>{c.formattedCity}</option>)}
+                    </select>
+                    <CSVButton makeRows={makeCityComparisonCSV} filename={`city_2day_comparison_${effectiveDayD}.csv`} />
+                  </div>
+                </div>
+
+                <DataTable
+                  columns={cityComparisonColumns}
+                  rows={cityComparisonData}
+                  pageSize={15}
+                  emptyMessage="No city records found for the selected period."
+                />
+              </div>
+
+              {/* City SKU Drilldown Modal / Section */}
+              {selectedCityDrilldown !== 'All' && (
+                <div style={{ background: '#0f172a', border: '1px solid #3b82f6', borderRadius: 12, padding: 18, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#60a5fa' }}>
+                        🏙️ SKU Price &amp; Volume Drilldown for {formatCityName(selectedCityDrilldown)}
+                      </h4>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                        Day D vs Day D-1 performance in this specific market
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCityDrilldown('All')}
+                      style={{ background: '#334155', border: 'none', borderRadius: 6, color: '#f8fafc', padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}
+                    >
+                      ✕ Close Drilldown
+                    </button>
+                  </div>
+
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #334155', color: '#94a3b8', textAlign: 'left' }}>
+                        <th style={{ padding: '8px 6px' }}>Platform</th>
+                        <th style={{ padding: '8px 6px' }}>SKU</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'right' }}>Day D Units</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'right' }}>Day D-1 Units</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'right' }}>Day D Price</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'right' }}>Day D-1 Price</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'right' }}>Day D GMV</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cityDrilldownRows.map((r, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.4)' }}>
+                          <td style={{ padding: '8px 6px', color: r.platform === 'Instamart' ? '#fb923c' : '#facc15', fontWeight: 600 }}>
+                            {r.platform === 'Instamart' ? '⚡ Insta' : '🟡 Blinkit'}
+                          </td>
+                          <td style={{ padding: '8px 6px', fontWeight: 600, color: '#f8fafc' }}>{r.sku}</td>
+                          <td style={{ padding: '8px 6px', textAlign: 'right', color: '#60a5fa', fontWeight: 700 }}>{r.dUnits}</td>
+                          <td style={{ padding: '8px 6px', textAlign: 'right', color: '#94a3b8' }}>{r.prevUnits}</td>
+                          <td style={{ padding: '8px 6px', textAlign: 'right', color: '#f1f5f9', fontWeight: 700 }}>₹{r.dPrice}</td>
+                          <td style={{ padding: '8px 6px', textAlign: 'right', color: '#94a3b8' }}>₹{r.prevPrice}</td>
+                          <td style={{ padding: '8px 6px', textAlign: 'right', color: '#34d399', fontWeight: 700 }}>₹{r.dGmv.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: PLATFORM-WISE COMPARISON (Instamart vs Blinkit) */}
+          {activeSubTab === 'platform' && platformComparisonSummary && (
+            <div>
+              {/* Head-to-Head Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
+                {/* Instamart Card */}
+                <div style={{ background: '#1e293b', border: '1px solid rgba(249, 115, 22, 0.4)', borderRadius: 12, padding: 18 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 20 }}>⚡</span>
+                      <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#fb923c' }}>Swiggy Instamart</h3>
+                    </div>
+                    <span style={{ padding: '3px 8px', borderRadius: 6, background: 'rgba(249, 115, 22, 0.15)', color: '#fb923c', fontSize: 11, fontWeight: 700 }}>
+                      {platformComparisonSummary.instaGmvShare}% Sales Share
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                    <div style={{ background: '#0f172a', padding: '10px 12px', borderRadius: 8 }}>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>Day D Sales (GMV)</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#34d399', marginTop: 3 }}>
+                        ₹{platformComparisonSummary.insta.dGmv.toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: 10, color: platformComparisonSummary.insta.gmvGrowth >= 0 ? '#34d399' : '#f87171', marginTop: 2 }}>
+                        {platformComparisonSummary.insta.gmvGrowth >= 0 ? `▲ +${platformComparisonSummary.insta.gmvGrowth}%` : `▼ ${platformComparisonSummary.insta.gmvGrowth}%`} vs D-1
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#0f172a', padding: '10px 12px', borderRadius: 8 }}>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>Day D Volume</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#60a5fa', marginTop: 3 }}>
+                        {platformComparisonSummary.insta.dUnits.toLocaleString()} units
+                      </div>
+                      <div style={{ fontSize: 10, color: platformComparisonSummary.insta.unitsGrowth >= 0 ? '#60a5fa' : '#facc15', marginTop: 2 }}>
+                        {platformComparisonSummary.insta.unitsGrowth >= 0 ? `▲ +${platformComparisonSummary.insta.unitsGrowth}%` : `▼ ${platformComparisonSummary.insta.unitsGrowth}%`} vs D-1
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#cbd5e1', paddingTop: 8, borderTop: '1px solid #334155' }}>
+                    <span>Effective ASP: <strong style={{ color: '#c084fc' }}>₹{platformComparisonSummary.insta.dAsp}</strong></span>
+                    <span>Active Cities: <strong style={{ color: '#f8fafc' }}>{platformComparisonSummary.insta.dCities}</strong></span>
+                    <span>Active SKUs: <strong style={{ color: '#f8fafc' }}>{platformComparisonSummary.insta.dSkus}</strong></span>
+                  </div>
+                </div>
+
+                {/* Blinkit Card */}
+                <div style={{ background: '#1e293b', border: '1px solid rgba(234, 179, 8, 0.4)', borderRadius: 12, padding: 18 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 20 }}>🟡</span>
+                      <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#facc15' }}>Blinkit</h3>
+                    </div>
+                    <span style={{ padding: '3px 8px', borderRadius: 6, background: 'rgba(234, 179, 8, 0.15)', color: '#facc15', fontSize: 11, fontWeight: 700 }}>
+                      {platformComparisonSummary.blinkitGmvShare}% Sales Share
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                    <div style={{ background: '#0f172a', padding: '10px 12px', borderRadius: 8 }}>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>Day D Sales (GMV)</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#34d399', marginTop: 3 }}>
+                        ₹{platformComparisonSummary.blinkit.dGmv.toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: 10, color: platformComparisonSummary.blinkit.gmvGrowth >= 0 ? '#34d399' : '#f87171', marginTop: 2 }}>
+                        {platformComparisonSummary.blinkit.gmvGrowth >= 0 ? `▲ +${platformComparisonSummary.blinkit.gmvGrowth}%` : `▼ ${platformComparisonSummary.blinkit.gmvGrowth}%`} vs D-1
+                      </div>
+                    </div>
+
+                    <div style={{ background: '#0f172a', padding: '10px 12px', borderRadius: 8 }}>
+                      <div style={{ fontSize: 11, color: '#94a3b8' }}>Day D Volume</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#60a5fa', marginTop: 3 }}>
+                        {platformComparisonSummary.blinkit.dUnits.toLocaleString()} units
+                      </div>
+                      <div style={{ fontSize: 10, color: platformComparisonSummary.blinkit.unitsGrowth >= 0 ? '#60a5fa' : '#facc15', marginTop: 2 }}>
+                        {platformComparisonSummary.blinkit.unitsGrowth >= 0 ? `▲ +${platformComparisonSummary.blinkit.unitsGrowth}%` : `▼ ${platformComparisonSummary.blinkit.unitsGrowth}%`} vs D-1
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#cbd5e1', paddingTop: 8, borderTop: '1px solid #334155' }}>
+                    <span>Effective ASP: <strong style={{ color: '#c084fc' }}>₹{platformComparisonSummary.blinkit.dAsp}</strong></span>
+                    <span>Active Cities: <strong style={{ color: '#f8fafc' }}>{platformComparisonSummary.blinkit.dCities}</strong></span>
+                    <span>Active SKUs: <strong style={{ color: '#f8fafc' }}>{platformComparisonSummary.blinkit.dSkus}</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cross-Platform SKU Price Matrix */}
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18, marginBottom: 20 }}>
+                <div style={{ marginBottom: 14 }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>
+                    Cross-Platform SKU Pricing &amp; Unit Sales Matrix
+                  </h3>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                    Side-by-side comparison of product prices and volumes on Instamart vs Blinkit on <strong>{formatPrettyDate(effectiveDayD)}</strong>
+                  </div>
+                </div>
+
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #334155', color: '#94a3b8', textAlign: 'left' }}>
+                      <th style={{ padding: '10px 8px' }}>Product</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#fb923c' }}>⚡ Insta Price</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#fb923c' }}>⚡ Insta Units</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#facc15' }}>🟡 Blinkit Price</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#facc15' }}>🟡 Blinkit Units</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'center' }}>Price Variance Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {crossPlatformSKUComparison.map((r, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.4)' }}>
+                        <td style={{ padding: '10px 8px', fontWeight: 600, color: '#f8fafc' }}>{r.label}</td>
+                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 700, color: '#f1f5f9' }}>
+                          {r.instaPrice > 0 ? `₹${r.instaPrice}` : '—'}
+                        </td>
+                        <td style={{ padding: '10px 8px', textAlign: 'right', color: '#60a5fa', fontWeight: 600 }}>
+                          {r.instaUnits > 0 ? r.instaUnits.toLocaleString() : '0'}
+                        </td>
+                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 700, color: '#f1f5f9' }}>
+                          {r.blinkitPrice > 0 ? `₹${r.blinkitPrice}` : '—'}
+                        </td>
+                        <td style={{ padding: '10px 8px', textAlign: 'right', color: '#60a5fa', fontWeight: 600 }}>
+                          {r.blinkitUnits > 0 ? r.blinkitUnits.toLocaleString() : '0'}
+                        </td>
+                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                          {r.instaPrice > 0 && r.blinkitPrice > 0 ? (
+                            <span style={{
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              background: r.priceDiff !== 0 ? 'rgba(234, 179, 8, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                              color: r.priceDiff !== 0 ? '#facc15' : '#4ade80'
+                            }}>
+                              {r.priceDiff !== 0 ? `Diff: ₹${Math.abs(r.priceDiff)} (${r.status})` : '✓ Parity Price'}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#64748b', fontSize: 11 }}>Single Platform SKU</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: 14-DAY PRICE & VOLUME TREND */}
           {activeSubTab === 'trend' && (
             <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 20, marginBottom: 20 }}>
               <div style={{ marginBottom: 16 }}>
@@ -887,30 +1381,6 @@ export default function StockTab() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          )}
-
-          {/* TAB 3: CITY / STORE PRICE VARIANCE */}
-          {activeSubTab === 'city' && (
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18, marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>
-                    City-Level Price &amp; Volume Breakdown on Day D ({formatPrettyDate(effectiveDayD)})
-                  </h3>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                    Highlighting regional price differences across cities (e.g. Chennai, Salem, Hyderabad, Coimbatore)
-                  </div>
-                </div>
-                <CSVButton makeRows={makeCityCSV} filename={`city_price_variance_${effectiveDayD}.csv`} />
-              </div>
-
-              <DataTable
-                columns={cityColumns}
-                rows={cityVarianceData}
-                pageSize={15}
-                emptyMessage="No city variance records found for this date."
-              />
             </div>
           )}
         </>
