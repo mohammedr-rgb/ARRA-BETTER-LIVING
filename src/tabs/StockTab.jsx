@@ -696,7 +696,7 @@ export default function StockTab() {
   return (
     <>
       {/* Header */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <div>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, fontSize: 24, fontWeight: 700, color: '#f8fafc' }}>
             <span>🏷️ Competitive Price &amp; Stock Intelligence</span>
@@ -729,6 +729,30 @@ export default function StockTab() {
           <ProfileSection />
         </div>
       </header>
+
+      {/* Data Capture & Column Mapping Info Card */}
+      <div style={{
+        background: '#0f172a',
+        border: '1px solid #1e293b',
+        borderRadius: 10,
+        padding: '10px 16px',
+        marginBottom: 18,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 10,
+        fontSize: 12,
+        color: '#94a3b8'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ color: '#60a5fa', fontWeight: 700 }}>📋 Sheet Column Mapping:</span>
+          <span>⚡ <strong>Instamart:</strong> Units = <code>UNITS_SOLD</code> • Sales Value = <code>GMV</code> • Unit Price = <code>GMV ÷ UNITS_SOLD</code></span>
+          <span style={{ color: '#475569' }}>|</span>
+          <span>🟡 <strong>Blinkit:</strong> Units = <code>qty_sold</code> • Sales Value = <code>mrp</code> (Gross) / <code>Net</code> • Unit Price = <code>mrp ÷ qty_sold</code></span>
+        </div>
+        <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>✓ Verified with live Google Sheet feeds</span>
+      </div>
 
       {/* Alert Banner for Hikes / Drops / Gaps */}
       {(alertStats.totalHikes > 0 || alertStats.totalDrops > 0 || alertStats.totalGaps > 0) && (
