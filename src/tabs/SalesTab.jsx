@@ -20,6 +20,7 @@ const ADS_SHEETS = [
   { platform: 'Instamart', gid: '2072392090', color: '#f97316', icon: '⚡' },
   { platform: 'Blinkit', gid: '965711422', color: '#eab308', icon: '🟡' },
   { platform: 'Amazon Vendor', gid: '2141078441', color: '#3b82f6', icon: '🛒' },
+  { platform: 'Amazon Seller', gid: '752627896', color: '#10b981', icon: '📦' },
 ]
 
 // Extract month key (year * 12 + 0-indexed month)
@@ -145,7 +146,7 @@ export default function SalesTab() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  // Ads platform sub-filter ('All' | 'Instamart' | 'Blinkit' | 'Amazon Vendor')
+  // Ads platform sub-filter ('All' | 'Instamart' | 'Blinkit' | 'Amazon Vendor' | 'Amazon Seller')
   const [adsPlatformFilter, setAdsPlatformFilter] = useState('All')
 
   // Month-wise filter state (Set of monthKeys: year * 12 + 0-indexed month)
@@ -187,19 +188,21 @@ export default function SalesTab() {
     setLoading(true)
     setError(null)
 
-    // For Ads - Overall: Fetch from the 3 real Raw Ads sheets
-    // (Raw-Insta- Ads, Blinkitt- Ads, Amazon vendor - Ads)
+    // For Ads - Overall: Fetch from the 4 real Raw Ads sheets
+    // (Raw-Insta- Ads, Blinkitt- Ads, Amazon vendor - Ads, Seller Raw Ads)
     if (tabId === 'ads') {
       try {
-        const [instaRes, blinkitRes, amzRes] = await Promise.all([
+        const [instaRes, blinkitRes, amzRes, sellerAdsRes] = await Promise.all([
           fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=2072392090`),
           fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=965711422`),
-          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=2141078441`)
+          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=2141078441`),
+          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=752627896`)
         ])
 
         const instaText = await instaRes.text()
         const blinkitText = await blinkitRes.text()
         const amzText = await amzRes.text()
+        const sellerAdsText = await sellerAdsRes.text()
 
         const instaRows = parseCSV(instaText)
           .filter(r => r['CAMPAIGN_NAME'] && r['CAMPAIGN_NAME'].trim() !== '')
@@ -260,7 +263,26 @@ export default function SalesTab() {
             cpc: num(r['CPC'] || r['CPC (converted)']),
           }))
 
-        const combinedAds = [...instaRows, ...blinkitRows, ...amzRows]
+        const sellerAdsRows = parseCSV(sellerAdsText)
+          .filter(r => r['Campaign name'] && r['Campaign name'].trim() !== '')
+          .map(r => ({
+            platform: 'Amazon Seller',
+            campaignId: r['Campaign ID'] || '',
+            campaignName: r['Campaign name'],
+            startDate: r['Campaign start date'] || '',
+            month: '',
+            monthKey: parseDateMonthKey(r['Campaign start date'], null),
+            spend: num(r['Total cost'] || r['Total cost (converted)']),
+            gmv: num(r['Sales'] || r['Sales (converted)']),
+            impressions: num(r['Impressions']),
+            clicks: num(r['Clicks']),
+            conversions: num(r['Purchases']),
+            roas: num(r['ROAS']) || (num(r['Sales']) / (num(r['Total cost']) || 1)),
+            ctr: r['CTR'] || '',
+            cpc: num(r['CPC'] || r['CPC (converted)']),
+          }))
+
+        const combinedAds = [...instaRows, ...blinkitRows, ...amzRows, ...sellerAdsRows]
         setCache(prev => ({ ...prev, ads: combinedAds }))
       } catch (err) {
         console.error('Error loading ads data:', err)
@@ -336,7 +358,7 @@ export default function SalesTab() {
   }, [activeRows, activeSubTab, selectedMonths])
 
   // ==========================================
-  // 1. ADS - OVERALL (Computed from 3 Raw Sheets)
+  // 1. ADS - OVERALL (Computed from 4 Raw Sheets)
   // ==========================================
   const adsData = useMemo(() => {
     if (activeSubTab !== 'ads') return { stats: [], platformSummary: [], chartData: [], filteredCampaigns: [], columns: [] }
@@ -409,12 +431,14 @@ export default function SalesTab() {
             'Instamart Spend': 0,
             'Blinkit Spend': 0,
             'Amazon Vendor Spend': 0,
+            'Amazon Seller Spend': 0,
             'Total GMV': 0,
           }
         }
         if (r.platform === 'Instamart') monthMap[mk]['Instamart Spend'] += r.spend
         else if (r.platform === 'Blinkit') monthMap[mk]['Blinkit Spend'] += r.spend
         else if (r.platform === 'Amazon Vendor') monthMap[mk]['Amazon Vendor Spend'] += r.spend
+        else if (r.platform === 'Amazon Seller') monthMap[mk]['Amazon Seller Spend'] += r.spend
         monthMap[mk]['Total GMV'] += r.gmv
       }
     })
@@ -426,6 +450,7 @@ export default function SalesTab() {
         'Instamart Spend': Math.round(item['Instamart Spend']),
         'Blinkit Spend': Math.round(item['Blinkit Spend']),
         'Amazon Vendor Spend': Math.round(item['Amazon Vendor Spend']),
+        'Amazon Seller Spend': Math.round(item['Amazon Seller Spend']),
         'Total GMV': Math.round(item['Total GMV']),
       }))
 
@@ -834,7 +859,7 @@ export default function SalesTab() {
         </div>
       )}
 
-      {/* SUBTAB 1: ADS - OVERALL (From Raw-Insta- Ads, Blinkitt- Ads, Amazon vendor - Ads) */}
+      {/* SUBTAB 1: ADS - OVERALL (From Raw-Insta- Ads, Blinkitt- Ads, Amazon vendor - Ads, Seller Raw Ads) */}
       {activeSubTab === 'ads' && !loading && (
         <>
           {/* Top KPI Cards */}
@@ -853,7 +878,7 @@ export default function SalesTab() {
           {/* Platform Performance Cards */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
             gap: 16,
             marginTop: 20
           }}>
@@ -891,19 +916,19 @@ export default function SalesTab() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
                   <div>
                     <div style={{ fontSize: 11, color: '#94a3b8' }}>Spend</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#ef4444' }}>₹{p.spend.toLocaleString()}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#ef4444' }}>₹{p.spend.toLocaleString()}</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 11, color: '#94a3b8' }}>Ad Sales / GMV</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#22c55e' }}>₹{p.gmv.toLocaleString()}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>₹{p.gmv.toLocaleString()}</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 11, color: '#94a3b8' }}>ROAS</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#38bdf8' }}>{p.roas}x</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8' }}>{p.roas}x</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 11, color: '#94a3b8' }}>Clicks / Orders</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>
                       {p.clicks.toLocaleString()} / {p.conv ? p.conv.toLocaleString() : '—'}
                     </div>
                   </div>
@@ -930,6 +955,7 @@ export default function SalesTab() {
                     <Bar dataKey="Instamart Spend" fill="#f97316" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Blinkit Spend" fill="#eab308" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Amazon Vendor Spend" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Amazon Seller Spend" fill="#10b981" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Total GMV" fill="#22c55e" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -942,7 +968,7 @@ export default function SalesTab() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 12 }}>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, letterSpacing: 0.6 }}>PLATFORM:</span>
-                {['All', 'Instamart', 'Blinkit', 'Amazon Vendor'].map(p => (
+                {['All', 'Instamart', 'Blinkit', 'Amazon Vendor', 'Amazon Seller'].map(p => (
                   <button
                     key={p}
                     onClick={() => setAdsPlatformFilter(p)}
