@@ -417,15 +417,12 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
       totalQty += byPO[k].qty
       totalDel += byPO[k].delQty
     }
-    const purchase = purchaseStats(active)
     return {
       orders: poSet.size,
       value: sumPOField(active, 'PO Value with Tax'),
       tonnage: sumField(active, 'Tonnage'),
       boxes: sumField(active, 'Box Count'),
       fillRate: totalQty ? Math.round(totalDel / totalQty * 100) : null,
-      purchaseBase: purchase.base,
-      purchaseValue: Math.round(purchase.withGST),
     }
   }, [periodData])
 
