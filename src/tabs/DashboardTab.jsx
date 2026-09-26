@@ -598,67 +598,12 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
           value={(periodMetrics.purchaseTonnage || 0).toLocaleString() + ' KG'}
           change={`▲ ${purchaseSummary.uniqueInvoices} Invoices • ${purchaseSummary.uniqueEntities} Entities`}
           changeColor="#22c55e"
-          tooltip={
-            <div style={{ minWidth: 260, maxWidth: 320 }}>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid #334155' }}>
-                Purchase Tonnage Summary
-              </div>
-              <TooltipRow label="Total Purchase Tonnage" value={(periodMetrics.purchaseTonnage || 0).toLocaleString() + ' KG'} valueColor="#f97316" />
-              <TooltipRow label="Total Purchase Value" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#22c55e" />
-              <TooltipRow label="Total Purchase QTY" value={(periodMetrics.purchaseQty || 0).toLocaleString() + ' Units'} valueColor="#38bdf8" />
-              <TooltipRow label="Total Purchase Boxes" value={(periodMetrics.purchaseBoxes || 0).toLocaleString()} valueColor="#eab308" />
-              <TooltipRow label="Purchase Invoices" value={purchaseSummary.uniqueInvoices} valueColor="#f1f5f9" />
-              <TooltipRow label="Purchase Entities" value={purchaseSummary.uniqueEntities} valueColor="#f1f5f9" />
-              <TooltipRow label="Purchase Lines" value={purchaseSummary.lines} valueColor="#94a3b8" />
-              {purchaseSummary.entities.length > 0 && (
-                <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px solid #334155' }}>
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}>Top Entities by Tonnage:</div>
-                  {purchaseSummary.entities.slice(0, 4).map(e => (
-                    <div key={e.entity} style={{ fontSize: 11, color: '#cbd5e1', display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                      <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.entity}</span>
-                      <span style={{ color: '#f97316', fontWeight: 600 }}>{Math.round(e.tonnage).toLocaleString()} KG</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          }
-          tooltipStyle={{ zIndex: 100 }}
         />
         <StatCard
           label="Purchase Value" icon="🛒" color="#84cc16"
           value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()}
           change={`▲ ${purchaseSummary.lines} Lines • ${purchaseSummary.uniqueInvoices} Invoices`}
           changeColor="#22c55e"
-          tooltip={
-            <div style={{ minWidth: 260, maxWidth: 320 }}>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid #334155' }}>
-                Purchase Value Summary
-              </div>
-              <TooltipRow label="Total Purchase Value" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#84cc16" />
-              <TooltipRow label="Total Purchase Tonnage" value={(periodMetrics.purchaseTonnage || 0).toLocaleString() + ' KG'} valueColor="#f97316" />
-              <TooltipRow label="Total Purchase QTY" value={(periodMetrics.purchaseQty || 0).toLocaleString() + ' Units'} valueColor="#38bdf8" />
-              <TooltipRow label="Total Purchase Boxes" value={(periodMetrics.purchaseBoxes || 0).toLocaleString()} valueColor="#eab308" />
-              <TooltipRow label="Unique Invoices" value={purchaseSummary.uniqueInvoices} valueColor="#f1f5f9" />
-              <TooltipRow label="Unique Entities" value={purchaseSummary.uniqueEntities} valueColor="#f1f5f9" />
-              <TooltipRow label="Avg Value / Invoice" value={'₹' + purchaseSummary.avgInvoiceValue.toLocaleString()} valueColor="#22c55e" />
-              {purchaseSummary.avgCostPerKg > 0 && (
-                <TooltipRow label="Avg Cost / KG" value={'₹' + purchaseSummary.avgCostPerKg} valueColor="#38bdf8" />
-              )}
-              {purchaseSummary.entities.length > 0 && (
-                <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px solid #334155' }}>
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}>Top Entities by Value:</div>
-                  {[...purchaseSummary.entities].sort((a, b) => b.value - a.value).slice(0, 4).map(e => (
-                    <div key={e.entity} style={{ fontSize: 11, color: '#cbd5e1', display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                      <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.entity}</span>
-                      <span style={{ color: '#84cc16', fontWeight: 600 }}>{'₹' + Math.round(e.value).toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          }
-          tooltipStyle={{ zIndex: 100 }}
         />
         <StatCard
           label="Total Tonnage" icon="⚖️" color="#a855f7"
