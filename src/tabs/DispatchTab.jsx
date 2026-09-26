@@ -106,8 +106,6 @@ export default function DispatchTab({ data, onOpenPO }) {
   }, [invoicePeriodData])
 
   const totalRecon = tonnageByStatus.reduce((s, r) => s + r.tonnage, 0)
-
-  const poData = useMemo(() => uniqueByPO(periodData), [periodData])
   const [pendingFilter, setPendingFilter] = useState(null)
 
   const pendingData = useMemo(() => {
@@ -136,85 +134,75 @@ export default function DispatchTab({ data, onOpenPO }) {
     return Object.values(map).map(x => ({ platform: x.platform, pos: x.pos.size })).sort((a, b) => b.pos - a.pos)
   }, [pendingData])
 
-  const dispatchMetrics = useMemo(() => {
-    const dispatched = poData.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes(r['Status'] || ''))
-    const allDispatched = periodData.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes(r['Status'] || ''))
-    return {
-      openDispatches: dispatched.length,
-      openLines: allDispatched.length,
-      openQty: sumField(allDispatched, 'PO Qty'),
-      openBoxes: sumField(allDispatched, 'Box Count'),
-      openTonnage: sumField(allDispatched, 'Tonnage'),
-      openCharge: sumField(allDispatched, 'Transport Charges'),
-      openValue: sumField(allDispatched, 'PO Value with Tax'),
+  const openMetrics = useMemo(() => {
+    const lines = periodData.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes((r['Status'] || '').trim()))
+    const pos = uniqueByPO(lines)
+    const byStatus = {}
+    for (const r of lines) {
+      const s = (r['Status'] || 'Unknown').trim()
+      if (!byStatus[s]) byStatus[s] = { status: s, tonnage: 0, count: 0 }
+      byStatus[s].tonnage += num(r['Tonnage'])
+      byStatus[s].count++
     }
-  }, [periodData, poData])
-
-  const readyMetrics = useMemo(() => {
-    const readyLines = periodData.filter(r => r['Status'] === 'Ready for Dispatch')
-    const readyPOs = uniqueByPO(readyLines)
+    const byStatusArr = Object.values(byStatus).sort((a, b) => b.tonnage - a.tonnage)
     return {
-      readyPOs: readyPOs.length,
-      readyLines: readyLines.length,
-      readyQty: sumField(readyLines, 'PO Qty'),
-      readyBoxes: sumField(readyLines, 'Box Count'),
-      readyTonnage: sumField(readyLines, 'Tonnage'),
-      readyValue: sumField(readyLines, 'PO Value with Tax'),
+      pos: pos.length,
+      lines: lines.length,
+      qty: sumField(lines, 'PO Qty'),
+      boxes: sumField(lines, 'Box Count'),
+      tonnage: sumField(lines, 'Tonnage'),
+      value: sumField(lines, 'PO Value with Tax'),
+      byStatus: byStatusArr,
     }
   }, [periodData])
 
-  const deliveredMetricsInvoice = useMemo(() => {
-    const deliveredLines = invoicePeriodData.filter(r => r['Status'] === 'Delivered')
-    const deliveredPOs = uniqueByPO(deliveredLines)
+  const readyMetrics = useMemo(() => {
+    const lines = periodData.filter(r => (r['Status'] || '').trim() === 'Ready for Dispatch')
+    const pos = uniqueByPO(lines)
     return {
-      deliveredPOs: deliveredPOs.length,
-      deliveredLines: deliveredLines.length,
-      deliveredQty: sumField(deliveredLines, 'PO Qty'),
-      deliveredBoxes: sumField(deliveredLines, 'Box Count'),
-      deliveredTonnage: sumField(deliveredLines, 'Tonnage'),
-      deliveredValue: sumField(deliveredLines, 'PO Value with Tax'),
+      pos: pos.length,
+      lines: lines.length,
+      qty: sumField(lines, 'PO Qty'),
+      boxes: sumField(lines, 'Box Count'),
+      tonnage: sumField(lines, 'Tonnage'),
+      value: sumField(lines, 'PO Value with Tax'),
     }
-  }, [invoicePeriodData])
+  }, [periodData])
 
-  const inTransitMetricsInvoice = useMemo(() => {
-    const lines = invoicePeriodData.filter(r => (r['Status'] || '') !== 'Delivered')
-    const poRows = uniqueByPO(lines)
+  const deliveredMetrics = useMemo(() => {
+    const lines = periodData.filter(r => (r['Status'] || '').trim() === 'Delivered')
+    const pos = uniqueByPO(lines)
+    return {
+      pos: pos.length,
+      lines: lines.length,
+      qty: sumField(lines, 'PO Qty'),
+      boxes: sumField(lines, 'Box Count'),
+      tonnage: sumField(lines, 'Tonnage'),
+      value: sumField(lines, 'PO Value with Tax'),
+    }
+  }, [periodData])
+
+  const inTransitMetrics = useMemo(() => {
+    const lines = periodData.filter(r => ['In-Transit', 'In Transit', 'Dispatched'].includes((r['Status'] || '').trim()))
+    const pos = uniqueByPO(lines)
     const byStatus = {}
     for (const r of lines) {
-      const s = r['Status'] || 'Unknown'
+      const s = (r['Status'] || 'Unknown').trim()
       if (!byStatus[s]) byStatus[s] = { status: s, tonnage: 0, count: 0 }
       byStatus[s].tonnage += num(r['Tonnage'])
       byStatus[s].count++
     }
     const byStatusArr = Object.values(byStatus).sort((a, b) => b.tonnage - a.tonnage)
     return {
-      tonnage: sumField(lines, 'Tonnage'),
-      pos: poRows.length,
+      pos: pos.length,
       lines: lines.length,
+      qty: sumField(lines, 'PO Qty'),
+      boxes: sumField(lines, 'Box Count'),
+      tonnage: sumField(lines, 'Tonnage'),
       value: sumField(lines, 'PO Value with Tax'),
       byStatus: byStatusArr,
     }
-  }, [invoicePeriodData])
-
-  const readyMetricsInvoice = useMemo(() => {
-    const lines = invoicePeriodData.filter(r => (r['Status'] || '') === 'Ready for Dispatch')
-    const poRows = uniqueByPO(lines)
-    const byStatus = {}
-    for (const r of lines) {
-      const s = r['Status'] || 'Unknown'
-      if (!byStatus[s]) byStatus[s] = { status: s, tonnage: 0, count: 0 }
-      byStatus[s].tonnage += num(r['Tonnage'])
-      byStatus[s].count++
-    }
-    const byStatusArr = Object.values(byStatus).sort((a, b) => b.tonnage - a.tonnage)
-    return {
-      tonnage: sumField(lines, 'Tonnage'),
-      pos: poRows.length,
-      lines: lines.length,
-      value: sumField(lines, 'PO Value with Tax'),
-      byStatus: byStatusArr,
-    }
-  }, [invoicePeriodData])
+  }, [periodData])
 
   const downloadPendingCSV = () => {
     const filtered = periodData.filter(r => DISPATCH_STATUSES.has(r['Status']))
@@ -282,7 +270,7 @@ export default function DispatchTab({ data, onOpenPO }) {
       <header>
         <div>
           <h1>Dispatch Overview</h1>
-          <div className="date">{readyMetrics.readyPOs} ready POs • {dispatchMetrics.openDispatches} pending POs • {pendingData.length} product lines{selectedMonths.size > 0 ? ` • ${scopeLabel}` : ''}</div>
+          <div className="date">{readyMetrics.pos} ready POs • {openMetrics.pos} pending POs • {pendingData.length} product lines{selectedMonths.size > 0 ? ` • ${scopeLabel}` : ''}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={downloadPendingCSV} style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#22c55e', padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -318,70 +306,84 @@ export default function DispatchTab({ data, onOpenPO }) {
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
         <StatCard
           label="Open Dispatches" icon="🚚" color="#3b82f6"
-          value={Math.round(inTransitMetricsInvoice.tonnage).toLocaleString() + ' KG'} change={`${inTransitMetricsInvoice.pos} POs • ₹${Math.round(inTransitMetricsInvoice.value).toLocaleString()}`}
+          value={Math.round(openMetrics.tonnage).toLocaleString() + ' KG'}
+          change={`${openMetrics.pos} POs • ₹${Math.round(openMetrics.value).toLocaleString()}`}
           tooltip={
             <>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Open Dispatches Details (by Invoice Date)</div>
-              <TooltipRow label="Unique POs" value={inTransitMetricsInvoice.pos} valueColor="#3b82f6" />
-              <TooltipRow label="Product Lines" value={inTransitMetricsInvoice.lines} valueColor="#3b82f6" />
-              <TooltipRow label="Tonnage" value={Math.round(inTransitMetricsInvoice.tonnage).toLocaleString() + ' KG'} valueColor="#3b82f6" />
-              <TooltipRow label="Invoice Value" value={'₹' + Math.round(inTransitMetricsInvoice.value).toLocaleString()} valueColor="#3b82f6" />
-              <div style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 4px', fontWeight: 600 }}>Tonnage by Status</div>
-              {inTransitMetricsInvoice.byStatus.map(s => (
-                <TooltipRow key={s.status} label={s.status} value={`${Math.round(s.tonnage).toLocaleString()} KG • ${s.count} POs`} valueColor="#3b82f6" />
-              ))}
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Open Dispatches (Pending Dispatch &amp; Schedule)</div>
+              <TooltipRow label="Unique POs" value={openMetrics.pos} valueColor="#3b82f6" />
+              <TooltipRow label="Product Lines" value={openMetrics.lines} valueColor="#3b82f6" />
+              <TooltipRow label="PO Qty (Units)" value={Math.round(openMetrics.qty).toLocaleString()} valueColor="#3b82f6" />
+              <TooltipRow label="Box Count" value={Math.round(openMetrics.boxes).toLocaleString()} valueColor="#3b82f6" />
+              <TooltipRow label="Tonnage" value={Math.round(openMetrics.tonnage).toLocaleString() + ' KG'} valueColor="#3b82f6" />
+              <TooltipRow label="PO Value (Tax Inc)" value={'₹' + Math.round(openMetrics.value).toLocaleString()} valueColor="#3b82f6" />
+              {openMetrics.byStatus.length > 0 && (
+                <>
+                  <div style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 4px', fontWeight: 600 }}>Tonnage by Status</div>
+                  {openMetrics.byStatus.map(s => (
+                    <TooltipRow key={s.status} label={s.status} value={`${Math.round(s.tonnage).toLocaleString()} KG • ${s.count} lines`} valueColor="#3b82f6" />
+                  ))}
+                </>
+              )}
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
         />
         <StatCard
           label="Ready for Dispatch" icon="📦" color="#22c55e"
-          value={Math.round(readyMetricsInvoice.tonnage).toLocaleString() + ' KG'} change={`${readyMetricsInvoice.pos} POs • ₹${Math.round(readyMetricsInvoice.value).toLocaleString()}`}
+          value={Math.round(readyMetrics.tonnage).toLocaleString() + ' KG'}
+          change={`${readyMetrics.pos} POs • ₹${Math.round(readyMetrics.value).toLocaleString()}`}
           tooltip={
             <>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Ready for Dispatch Details (by Invoice Date)</div>
-              <TooltipRow label="Unique POs" value={readyMetricsInvoice.pos} valueColor="#22c55e" />
-              <TooltipRow label="Product Lines" value={readyMetricsInvoice.lines} valueColor="#22c55e" />
-              <TooltipRow label="Tonnage" value={Math.round(readyMetricsInvoice.tonnage).toLocaleString() + ' KG'} valueColor="#22c55e" />
-              <TooltipRow label="Invoice Value" value={'₹' + Math.round(readyMetricsInvoice.value).toLocaleString()} valueColor="#22c55e" />
-              <div style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 4px', fontWeight: 600 }}>Tonnage by Status</div>
-              {readyMetricsInvoice.byStatus.map(s => (
-                <TooltipRow key={s.status} label={s.status} value={`${Math.round(s.tonnage).toLocaleString()} KG • ${s.count} POs`} valueColor="#22c55e" />
-              ))}
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Ready for Dispatch Details</div>
+              <TooltipRow label="Unique POs" value={readyMetrics.pos} valueColor="#22c55e" />
+              <TooltipRow label="Product Lines" value={readyMetrics.lines} valueColor="#22c55e" />
+              <TooltipRow label="PO Qty (Units)" value={Math.round(readyMetrics.qty).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Box Count" value={Math.round(readyMetrics.boxes).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Tonnage" value={Math.round(readyMetrics.tonnage).toLocaleString() + ' KG'} valueColor="#22c55e" />
+              <TooltipRow label="PO Value (Tax Inc)" value={'₹' + Math.round(readyMetrics.value).toLocaleString()} valueColor="#22c55e" />
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
         />
         <StatCard
           label="Delivered" icon="✅" color="#22c55e"
-          value={Math.round(deliveredMetricsInvoice.deliveredTonnage).toLocaleString() + ' KG'} change={`${deliveredMetricsInvoice.deliveredPOs} POs • ₹${Math.round(deliveredMetricsInvoice.deliveredValue).toLocaleString()}`}
+          value={Math.round(deliveredMetrics.tonnage).toLocaleString() + ' KG'}
+          change={`${deliveredMetrics.pos} POs • ₹${Math.round(deliveredMetrics.value).toLocaleString()}`}
           tooltip={
             <>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Delivered Details (by Invoice Date)</div>
-              <TooltipRow label="Unique POs" value={deliveredMetricsInvoice.deliveredPOs} valueColor="#22c55e" />
-              <TooltipRow label="Product Lines" value={deliveredMetricsInvoice.deliveredLines} valueColor="#22c55e" />
-              <TooltipRow label="Qty (Units)" value={Math.round(deliveredMetricsInvoice.deliveredQty).toLocaleString()} valueColor="#22c55e" />
-              <TooltipRow label="Box Count" value={Math.round(deliveredMetricsInvoice.deliveredBoxes).toLocaleString()} valueColor="#22c55e" />
-              <TooltipRow label="Tonnage" value={Math.round(deliveredMetricsInvoice.deliveredTonnage).toLocaleString() + ' KG'} valueColor="#22c55e" />
-              <TooltipRow label="Invoice Value" value={'₹' + Math.round(deliveredMetricsInvoice.deliveredValue).toLocaleString()} valueColor="#22c55e" />
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Delivered Details</div>
+              <TooltipRow label="Unique POs" value={deliveredMetrics.pos} valueColor="#22c55e" />
+              <TooltipRow label="Product Lines" value={deliveredMetrics.lines} valueColor="#22c55e" />
+              <TooltipRow label="PO Qty (Units)" value={Math.round(deliveredMetrics.qty).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Box Count" value={Math.round(deliveredMetrics.boxes).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Tonnage" value={Math.round(deliveredMetrics.tonnage).toLocaleString() + ' KG'} valueColor="#22c55e" />
+              <TooltipRow label="PO Value (Tax Inc)" value={'₹' + Math.round(deliveredMetrics.value).toLocaleString()} valueColor="#22c55e" />
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
         />
         <StatCard
           label="In-Transit" icon="🚛" color="#a855f7"
-          value={Math.round(inTransitMetricsInvoice.tonnage).toLocaleString() + ' KG'} change={`${inTransitMetricsInvoice.pos} POs • ₹${Math.round(inTransitMetricsInvoice.value).toLocaleString()}`}
+          value={Math.round(inTransitMetrics.tonnage).toLocaleString() + ' KG'}
+          change={`${inTransitMetrics.pos} POs • ₹${Math.round(inTransitMetrics.value).toLocaleString()}`}
           tooltip={
             <>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>In-Transit Details (by Invoice Date)</div>
-              <TooltipRow label="Unique POs" value={inTransitMetricsInvoice.pos} valueColor="#a855f7" />
-              <TooltipRow label="Product Lines" value={inTransitMetricsInvoice.lines} valueColor="#a855f7" />
-              <TooltipRow label="Tonnage" value={Math.round(inTransitMetricsInvoice.tonnage).toLocaleString() + ' KG'} valueColor="#a855f7" />
-              <TooltipRow label="Invoice Value" value={'₹' + Math.round(inTransitMetricsInvoice.value).toLocaleString()} valueColor="#a855f7" />
-              <div style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 4px', fontWeight: 600 }}>Tonnage by Status</div>
-              {inTransitMetricsInvoice.byStatus.map(s => (
-                <TooltipRow key={s.status} label={s.status} value={`${Math.round(s.tonnage).toLocaleString()} KG • ${s.count} POs`} valueColor="#a855f7" />
-              ))}
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>In-Transit / Dispatched Details</div>
+              <TooltipRow label="Unique POs" value={inTransitMetrics.pos} valueColor="#a855f7" />
+              <TooltipRow label="Product Lines" value={inTransitMetrics.lines} valueColor="#a855f7" />
+              <TooltipRow label="PO Qty (Units)" value={Math.round(inTransitMetrics.qty).toLocaleString()} valueColor="#a855f7" />
+              <TooltipRow label="Box Count" value={Math.round(inTransitMetrics.boxes).toLocaleString()} valueColor="#a855f7" />
+              <TooltipRow label="Tonnage" value={Math.round(inTransitMetrics.tonnage).toLocaleString() + ' KG'} valueColor="#a855f7" />
+              <TooltipRow label="PO Value (Tax Inc)" value={'₹' + Math.round(inTransitMetrics.value).toLocaleString()} valueColor="#a855f7" />
+              {inTransitMetrics.byStatus.length > 0 && (
+                <>
+                  <div style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 4px', fontWeight: 600 }}>Tonnage by Status</div>
+                  {inTransitMetrics.byStatus.map(s => (
+                    <TooltipRow key={s.status} label={s.status} value={`${Math.round(s.tonnage).toLocaleString()} KG • ${s.count} lines`} valueColor="#a855f7" />
+                  ))}
+                </>
+              )}
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
