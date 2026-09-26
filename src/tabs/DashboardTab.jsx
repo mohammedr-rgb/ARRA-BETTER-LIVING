@@ -3,7 +3,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ComposedChart, Line,
 } from 'recharts'
-import { num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES, purchaseStats, detectPurchaseColumns, detectBDateColumn, bDateOf, sumPurchaseUnique } from '../lib/utils'
+import {
+  num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES,
+  getPurchaseDate, getPurchaseEntity, getPurchaseInvoiceNo, getPurchaseProduct,
+  getPurchaseTonnage, getPurchaseQty, getPurchaseBox, getPurchaseValue,
+} from '../lib/utils'
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection, ChartEmpty } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import { PONumberLink } from '../components/PONumberLink'
@@ -38,18 +42,98 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
     })
   }, [data, selectedMonths])
 
-  // Purchase period: same selected months, matched against spreadsheet
-  // column B date. Purchase Value = UNIQUE sum of J (Purchase Values):
-  // max per PO, summed.
-  const bDateCol = useMemo(() => detectBDateColumn(data), [data])
-
+  // Purchase period: rows filtered by Purchase Date(MM-DD-YYYY) matching the selected period
   const purchasePeriodData = useMemo(() => {
-    if (!selectedMonths.size) return data
-    return data.filter(r => {
-      const d = parseMMDDDate(bDateOf(r, bDateCol.bKey))
+    const hasPurchaseData = (r) => {
+      const d = getPurchaseDate(r)
+      const val = getPurchaseValue(r)
+      const ton = getPurchaseTonnage(r)
+      const qty = getPurchaseQty(r)
+      const inv = getPurchaseInvoiceNo(r)
+      const ent = getPurchaseEntity(r)
+      return Boolean(d || val > 0 || ton > 0 || qty > 0 || inv || ent)
+    }
+
+    if (!selectedMonths.size) {
+      return (data || []).filter(hasPurchaseData)
+    }
+
+    return (data || []).filter(r => {
+      if (!hasPurchaseData(r)) return false
+      const dStr = getPurchaseDate(r)
+      const d = parseMMDDDate(dStr)
       return d && selectedMonths.has(d.getFullYear() * 12 + d.getMonth())
     })
-  }, [data, selectedMonths, bDateCol])
+  }, [data, selectedMonths])
+
+  const purchaseSummary = useMemo(() => {
+    let totalTonnage = 0
+    let totalValue = 0
+    let totalQty = 0
+    let totalBoxes = 0
+    const invoices = new Set()
+    const entities = new Map()
+    const products = new Map()
+
+    for (const r of purchasePeriodData) {
+      const ton = getPurchaseTonnage(r)
+      const val = getPurchaseValue(r)
+      const qty = getPurchaseQty(r)
+      const box = getPurchaseBox(r)
+      const inv = getPurchaseInvoiceNo(r)
+      const ent = (getPurchaseEntity(r) || '').trim() || 'General / Direct'
+      const prod = (getPurchaseProduct(r) || '').trim() || 'General Product'
+
+      totalTonnage += ton
+      totalValue += val
+      totalQty += qty
+      totalBoxes += box
+
+      if (inv) invoices.add(inv)
+
+      if (!entities.has(ent)) {
+        entities.set(ent, { entity: ent, tonnage: 0, value: 0, qty: 0, boxes: 0, invoices: new Set() })
+      }
+      const eData = entities.get(ent)
+      eData.tonnage += ton
+      eData.value += val
+      eData.qty += qty
+      eData.boxes += box
+      if (inv) eData.invoices.add(inv)
+
+      if (!products.has(prod)) {
+        products.set(prod, { product: prod, tonnage: 0, value: 0, qty: 0, boxes: 0, lines: 0 })
+      }
+      const pData = products.get(prod)
+      pData.tonnage += ton
+      pData.value += val
+      pData.qty += qty
+      pData.boxes += box
+      pData.lines += 1
+    }
+
+    const entityList = [...entities.values()]
+      .map(e => ({ ...e, invoiceCount: e.invoices.size }))
+      .sort((a, b) => b.tonnage - a.tonnage)
+
+    const productList = [...products.values()]
+      .sort((a, b) => b.tonnage - a.tonnage)
+
+    return {
+      lines: purchasePeriodData.length,
+      tonnage: Math.round(totalTonnage),
+      tonnageExact: totalTonnage,
+      value: Math.round(totalValue),
+      qty: Math.round(totalQty),
+      boxes: Math.round(totalBoxes),
+      uniqueInvoices: invoices.size,
+      uniqueEntities: entities.size,
+      avgInvoiceValue: invoices.size ? Math.round(totalValue / invoices.size) : 0,
+      avgCostPerKg: totalTonnage ? Math.round(totalValue / totalTonnage * 100) / 100 : 0,
+      entities: entityList,
+      products: productList,
+    }
+  }, [purchasePeriodData])
 
   const toggleMonth = (mk) => {
     setSelectedMonths(prev => {
@@ -196,15 +280,6 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
     const totalRejectedQty = Object.values(fillByPO).reduce((s, v) => s + v.rejected, 0)
     const delivered = periodData.filter(r => r['Status'] === 'Delivered')
     const cities = [...new Set(poData.map(r => r['City']).filter(Boolean))]
-    const purchase = purchaseStats(purchasePeriodData)
-    const purchaseUniqueValue = sumPurchaseUnique(purchasePeriodData)
-    const purchaseUniquePOs = new Set(purchasePeriodData.map(r => r['PO Number']).filter(Boolean)).size
-    const purchaseTonnage = Math.round(
-      purchasePeriodData.reduce((s, r) => s + num(r['Purchase Tonnage']), 0)
-    )
-    const purchaseAllLinesBase = purchase.base
-    const purchaseAllLinesWithGST = purchase.withGST
-    const purchaseByInvoiceDate = sumPurchaseUnique(periodData)
     return {
       totalOrders: poData.length,
       totalValue: Math.round(sumPOField(periodData, 'PO Value with Tax')),
@@ -214,18 +289,17 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
       deliveredTonnage: Math.round(sumField(delivered, 'Tonnage')),
       cities: cities.length,
       avgFillRate: totalPOQty ? Math.round((totalPOQty - totalRejectedQty) / totalPOQty * 100) : 0,
-      purchaseLines: purchase.lines,
-      purchasePopulated: purchase.populated,
-      purchaseBlank: purchase.blank,
-      purchaseBase: Math.round(purchase.base * 100) / 100,
-      purchaseValue: Math.round(purchaseUniqueValue),
-      purchaseUniquePOs,
-      purchaseTonnage,
-      purchaseAllLinesBase: Math.round(purchaseAllLinesBase),
-      purchaseAllLinesWithGST: Math.round(purchaseAllLinesWithGST),
-      purchaseByInvoiceDate: Math.round(purchaseByInvoiceDate),
+      purchaseLines: purchaseSummary.lines,
+      purchaseValue: purchaseSummary.value,
+      purchaseUniqueInvoices: purchaseSummary.uniqueInvoices,
+      purchaseUniquePOs: purchaseSummary.uniqueInvoices,
+      purchaseEntitiesCount: purchaseSummary.uniqueEntities,
+      purchaseTonnage: purchaseSummary.tonnage,
+      purchaseQty: purchaseSummary.qty,
+      purchaseBoxes: purchaseSummary.boxes,
+      purchaseAvgInvoiceValue: purchaseSummary.avgInvoiceValue,
     }
-  }, [periodData, purchasePeriodData])
+  }, [periodData, purchaseSummary])
 
   const periodInvoiced = useMemo(() => {
     const seen = new Set()
@@ -354,25 +428,6 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
       purchaseValue: Math.round(purchase.withGST),
     }
   }, [periodData])
-
-  const septemberPurchase = useMemo(() => {
-    // September by B-column date (same basis as the Purchase cards):
-    // unique sum of J (Purchase Values), max per PO.
-    const septRows = data.filter(r => {
-      const d = parseMMDDDate(bDateOf(r, bDateCol.bKey))
-      return d && d.getMonth() === 8
-    })
-    return {
-      rows: septRows,
-      stats: {
-        lines: septRows.length,
-        uniquePOs: new Set(septRows.map(r => r['PO Number']).filter(Boolean)).size,
-        uniqueSum: sumPurchaseUnique(septRows),
-      },
-    }
-  }, [data, bDateCol])
-
-  const purchaseCols = useMemo(() => detectPurchaseColumns(data), [data])
 
   const periodDeltas = useMemo(() => {
     let maxDate = null
@@ -543,37 +598,68 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
         />
         <StatCard
           label="Purchase Tonnage" icon="🏭" color="#f97316"
-          value={(periodMetrics.purchaseTonnage || 0) + ' KG'} change="▲ Purchase tonnage" changeColor="#22c55e"
+          value={(periodMetrics.purchaseTonnage || 0).toLocaleString() + ' KG'}
+          change={`▲ ${purchaseSummary.uniqueInvoices} Invoices • ${purchaseSummary.uniqueEntities} Entities`}
+          changeColor="#22c55e"
           tooltip={
-            <>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>Purchased in the selected period (by Purchase Date)</div>
-              <TooltipRow label="Purchase Tonnage" value={(periodMetrics.purchaseTonnage || 0) + ' KG'} valueColor="#f97316" />
-              <TooltipRow label="Unique sum (B-date)" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#84cc16" />
-              <TooltipRow label="All lines base (B-date)" value={'₹' + (periodMetrics.purchaseAllLinesBase || 0).toLocaleString()} valueColor="#f97316" />
-              <TooltipRow label="All lines +GST (B-date)" value={'₹' + (periodMetrics.purchaseAllLinesWithGST || 0).toLocaleString()} valueColor="#eab308" />
-              <TooltipRow label="Unique sum (Invoice-date)" value={'₹' + (periodMetrics.purchaseByInvoiceDate || 0).toLocaleString()} valueColor="#3b82f6" />
-            </>
+            <div style={{ minWidth: 260, maxWidth: 320 }}>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid #334155' }}>
+                Purchase Tonnage Summary
+              </div>
+              <TooltipRow label="Total Purchase Tonnage" value={(periodMetrics.purchaseTonnage || 0).toLocaleString() + ' KG'} valueColor="#f97316" />
+              <TooltipRow label="Total Purchase Value" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#22c55e" />
+              <TooltipRow label="Total Purchase QTY" value={(periodMetrics.purchaseQty || 0).toLocaleString() + ' Units'} valueColor="#38bdf8" />
+              <TooltipRow label="Total Purchase Boxes" value={(periodMetrics.purchaseBoxes || 0).toLocaleString()} valueColor="#eab308" />
+              <TooltipRow label="Purchase Invoices" value={purchaseSummary.uniqueInvoices} valueColor="#f1f5f9" />
+              <TooltipRow label="Purchase Entities" value={purchaseSummary.uniqueEntities} valueColor="#f1f5f9" />
+              <TooltipRow label="Purchase Lines" value={purchaseSummary.lines} valueColor="#94a3b8" />
+              {purchaseSummary.entities.length > 0 && (
+                <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px solid #334155' }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}>Top Entities by Tonnage:</div>
+                  {purchaseSummary.entities.slice(0, 4).map(e => (
+                    <div key={e.entity} style={{ fontSize: 11, color: '#cbd5e1', display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                      <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.entity}</span>
+                      <span style={{ color: '#f97316', fontWeight: 600 }}>{Math.round(e.tonnage).toLocaleString()} KG</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           }
           tooltipStyle={{ zIndex: 100 }}
         />
         <StatCard
           label="Purchase Value" icon="🛒" color="#84cc16"
-          value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} change="▲ Purchase value" changeColor="#22c55e"
+          value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()}
+          change={`▲ ${purchaseSummary.lines} Lines • ${purchaseSummary.uniqueInvoices} Invoices`}
+          changeColor="#22c55e"
           tooltip={
-            <>
-              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8 }}>B-column date basis • unique sum of J (Purchase Values), max per PO</div>
-              <TooltipRow label="B col" value={bDateCol.bKey || 'NOT FOUND'} valueColor={bDateCol.bKey ? '#22c55e' : '#ef4444'} />
-              <TooltipRow label="J col" value={purchaseCols.valueKey || 'NOT FOUND'} valueColor={purchaseCols.valueKey ? '#22c55e' : '#ef4444'} />
-              <TooltipRow label="Period POs" value={periodMetrics.purchaseUniquePOs || 0} valueColor="#f1f5f9" />
-              <TooltipRow label="Period unique sum" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#84cc16" />
-              <TooltipRow label="All lines base (B-date)" value={'₹' + (periodMetrics.purchaseAllLinesBase || 0).toLocaleString()} valueColor="#f97316" />
-              <TooltipRow label="All lines +GST (B-date)" value={'₹' + (periodMetrics.purchaseAllLinesWithGST || 0).toLocaleString()} valueColor="#eab308" />
-              <TooltipRow label="Unique sum (Invoice-date)" value={'₹' + (periodMetrics.purchaseByInvoiceDate || 0).toLocaleString()} valueColor="#3b82f6" />
-              <TooltipRow label="Sep lines" value={septemberPurchase.stats.lines} valueColor="#f1f5f9" />
-              <TooltipRow label="Sep unique POs" value={septemberPurchase.stats.uniquePOs} valueColor="#f1f5f9" />
-              <TooltipRow label="Sep unique sum" value={'₹' + Math.round(septemberPurchase.stats.uniqueSum).toLocaleString()} valueColor="#22c55e" />
-              <TooltipRow label="Purchase Tonnage" value={(periodMetrics.purchaseTonnage || 0) + ' KG'} valueColor="#f97316" />
-            </>
+            <div style={{ minWidth: 260, maxWidth: 320 }}>
+              <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600, marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid #334155' }}>
+                Purchase Value Summary
+              </div>
+              <TooltipRow label="Total Purchase Value" value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()} valueColor="#84cc16" />
+              <TooltipRow label="Total Purchase Tonnage" value={(periodMetrics.purchaseTonnage || 0).toLocaleString() + ' KG'} valueColor="#f97316" />
+              <TooltipRow label="Total Purchase QTY" value={(periodMetrics.purchaseQty || 0).toLocaleString() + ' Units'} valueColor="#38bdf8" />
+              <TooltipRow label="Total Purchase Boxes" value={(periodMetrics.purchaseBoxes || 0).toLocaleString()} valueColor="#eab308" />
+              <TooltipRow label="Unique Invoices" value={purchaseSummary.uniqueInvoices} valueColor="#f1f5f9" />
+              <TooltipRow label="Unique Entities" value={purchaseSummary.uniqueEntities} valueColor="#f1f5f9" />
+              <TooltipRow label="Avg Value / Invoice" value={'₹' + purchaseSummary.avgInvoiceValue.toLocaleString()} valueColor="#22c55e" />
+              {purchaseSummary.avgCostPerKg > 0 && (
+                <TooltipRow label="Avg Cost / KG" value={'₹' + purchaseSummary.avgCostPerKg} valueColor="#38bdf8" />
+              )}
+              {purchaseSummary.entities.length > 0 && (
+                <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px solid #334155' }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}>Top Entities by Value:</div>
+                  {[...purchaseSummary.entities].sort((a, b) => b.value - a.value).slice(0, 4).map(e => (
+                    <div key={e.entity} style={{ fontSize: 11, color: '#cbd5e1', display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                      <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.entity}</span>
+                      <span style={{ color: '#84cc16', fontWeight: 600 }}>{'₹' + Math.round(e.value).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           }
           tooltipStyle={{ zIndex: 100 }}
         />

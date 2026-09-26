@@ -128,17 +128,127 @@ export function sumPOField(arr, field) {
 export const PURCHASE_GST_RATE = 0.05
 
 function getFieldCI(row, candidates) {
+  if (!row) return ''
   for (const c of candidates) {
     if (row[c] !== undefined && row[c] !== null && String(row[c]).trim() !== '') return row[c]
   }
   const keys = Object.keys(row || {})
-  const lower = {}
-  keys.forEach(k => { lower[String(k).toLowerCase().trim()] = k })
+  const normMap = {}
+  for (const k of keys) {
+    const norm = String(k).toLowerCase().replace(/\s+/g, ' ').replace(/[()_-]/g, '').trim()
+    normMap[norm] = k
+  }
   for (const c of candidates) {
-    const k = lower[String(c).toLowerCase().trim()]
-    if (k && row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return row[k]
+    const normC = String(c).toLowerCase().replace(/\s+/g, ' ').replace(/[()_-]/g, '').trim()
+    const matchKey = normMap[normC]
+    if (matchKey && row[matchKey] !== undefined && row[matchKey] !== null && String(row[matchKey]).trim() !== '') {
+      return row[matchKey]
+    }
+  }
+  for (const c of candidates) {
+    const normC = String(c).toLowerCase().replace(/\s+/g, ' ').replace(/[()_-]/g, '').trim()
+    for (const k of keys) {
+      const normK = String(k).toLowerCase().replace(/\s+/g, ' ').replace(/[()_-]/g, '').trim()
+      if (normK.includes(normC) || normC.includes(normK)) {
+        if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
+          return row[k]
+        }
+      }
+    }
   }
   return ''
+}
+
+export function getPurchaseDate(row) {
+  return getFieldCI(row, [
+    'Purchase Date(MM-DD-YYYY)',
+    'Purchase Date(MM-DD-YYYY',
+    'Purchase Date (MM-DD-YYYY)',
+    'Purchase Date',
+    'Purchase_Date'
+  ]) || ''
+}
+
+export function getPurchaseEntity(row) {
+  return getFieldCI(row, [
+    'Purchase Entity',
+    'Purchase entity',
+    'Purchase Vendor',
+    'Entity'
+  ]) || ''
+}
+
+export function getPurchaseInvoiceNo(row) {
+  return getFieldCI(row, [
+    'Purchase Invoice Number',
+    'Purchase Invoice No',
+    'Purchase Inv No',
+    'Purchase Inv Number',
+    'PURCHASE INV NO',
+    'Purchase Invoice'
+  ]) || ''
+}
+
+export function getPurchaseProduct(row) {
+  return getFieldCI(row, [
+    'Purchase Products',
+    'Purchase Product',
+    'Purchase Item',
+    'Purchase Description'
+  ]) || ''
+}
+
+export function getPurchaseCost(row) {
+  return num(getFieldCI(row, [
+    'Purchase Cost',
+    'Purchase cost',
+    'Purchase Rate',
+    'Purchase Price'
+  ]))
+}
+
+export function getPurchaseTonnage(row) {
+  return num(getFieldCI(row, [
+    'Purchase Tonnage',
+    'Purchase tonnage',
+    'Purchase Tonnage(KG)',
+    'Purchase Tonnage (KG)'
+  ]))
+}
+
+export function getPurchaseQty(row) {
+  return num(getFieldCI(row, [
+    'Purchase  QTY',
+    'Purchase QTY',
+    'Purchase Qty',
+    'Purchase qty',
+    'Purchase Quantity',
+    'Purchase quantity'
+  ]))
+}
+
+export function getPurchaseBox(row) {
+  return num(getFieldCI(row, [
+    'Purchase Box',
+    'Purchase box',
+    'Purchase Boxes',
+    'Purchase Box Count'
+  ]))
+}
+
+export function getPurchaseValue(row) {
+  const direct = num(getFieldCI(row, [
+    'Purchase  Values',
+    'Purchase Values',
+    'Purchase Value',
+    'Purchase  Value',
+    'Purchase Amount'
+  ]))
+  if (direct > 0) return direct
+  const cost = getPurchaseCost(row)
+  const qty = getPurchaseQty(row)
+  if (cost > 0 && qty > 0) return cost * qty
+  return 0
 }
 
 export function detectPurchaseColumns(rows) {
@@ -164,8 +274,6 @@ export function detectPurchaseColumns(rows) {
   return { costKey, qtyKey, valueKey, dateKey, allKeys: list }
 }
 
-// B-column date: spreadsheet column B (2nd column) is the date basis for
-// Purchase Value. Falls back to a date-named column if B rarely parses.
 export function detectBDateColumn(rows) {
   const keyOrder = []
   const seen = new Set()
@@ -195,85 +303,32 @@ export function bDateOf(row, bKey) {
   return purchaseDateOf(row)
 }
 
-// Sheet header is literally `Purchase Date(MM-DD-YYYY` (no closing paren),
-// so match fuzzily: any key containing purchase+date.
 export function purchaseDateOf(row) {
-  const exact = getFieldCI(row, ['Purchase Date(MM-DD-YYYY', 'Purchase Date(MM-DD-YYYY)', 'Purchase Date'])
-  if (exact && String(exact).trim() !== '') return exact
-  const keys = Object.keys(row || {})
-  for (const k of keys) {
-    const l = String(k).toLowerCase()
-    if (l.includes('purchase') && l.includes('date')) {
-      if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return row[k]
-    }
-  }
-  return ''
-}
-
-// Unique sum of J (Purchase Values): max per PO, summed. Falls back to
-// per-PO max of computed (Cost × QTY) when no Values column exists.
-export function sumPurchaseUnique(arr) {
-  const rows = arr || []
-  const { valueKey } = detectPurchaseColumns(rows)
-  if (valueKey) return sumPOField(rows, valueKey)
-  const map = {}
-  for (const r of rows) {
-    const po = r['PO Number']
-    if (!po) continue
-    const v = purchaseLineValue(r)
-    if (v > 0 && v > (map[po] || 0)) map[po] = v
-  }
-  return Object.values(map).reduce((s, v) => s + v, 0)
+  return getPurchaseDate(row)
 }
 
 export function purchaseCostOf(row) {
-  const exact = num(getFieldCI(row, ['Purchase Cost', 'Purchase cost', 'Purchase Rate', 'Purchase Price']))
-  if (exact > 0) return exact
-  const keys = Object.keys(row || {})
-  for (const k of keys) {
-    const l = String(k).toLowerCase()
-    if (l.includes('purchase') && (l.includes('cost') || l.includes('rate') || l.includes('price'))) {
-      const v = num(row[k])
-      if (v > 0) return v
-    }
-  }
-  return 0
+  return getPurchaseCost(row)
 }
 
 export function purchaseQtyOf(row) {
-  const exact = num(getFieldCI(row, ['Purchase QTY', 'Purchase Qty', 'Purchase qty', 'Purchase Quantity', 'Purchase quantity', 'Purchase QT']))
-  if (exact > 0) return exact
-  const keys = Object.keys(row || {})
-  for (const k of keys) {
-    const l = String(k).toLowerCase()
-    if (l.includes('purchase') && (l.includes('qty') || l.includes('quantity') || l.includes('qnty'))) {
-      const v = num(row[k])
-      if (v > 0) return v
-    }
-  }
-  return 0
+  return getPurchaseQty(row)
 }
 
 export function purchaseLineValue(row) {
-  const computed = purchaseCostOf(row) * purchaseQtyOf(row)
-  if (computed > 0) return computed
-  const keys = Object.keys(row || {})
-  for (const k of keys) {
-    const l = String(k).toLowerCase()
-    if (l.includes('purchase') && (l.includes('value') || l.includes('amount'))) {
-      const v = num(row[k])
-      if (v > 0) return v
-    }
-  }
-  return 0
+  return getPurchaseValue(row)
 }
 
 export function sumPurchaseBase(arr) {
-  return (arr || []).reduce((s, r) => s + purchaseLineValue(r), 0)
+  return (arr || []).reduce((s, r) => s + getPurchaseValue(r), 0)
 }
 
 export function sumPurchaseWithGST(arr, rate = PURCHASE_GST_RATE) {
   return sumPurchaseBase(arr) * (1 + rate)
+}
+
+export function sumPurchaseUnique(arr) {
+  return (arr || []).reduce((s, r) => s + getPurchaseValue(r), 0)
 }
 
 export function purchaseStats(arr, rate = PURCHASE_GST_RATE) {
@@ -282,7 +337,7 @@ export function purchaseStats(arr, rate = PURCHASE_GST_RATE) {
   let blank = 0
   let base = 0
   for (const r of rows) {
-    const v = purchaseLineValue(r)
+    const v = getPurchaseValue(r)
     base += v
     if (v > 0) populated++
     else blank++
@@ -292,19 +347,39 @@ export function purchaseStats(arr, rate = PURCHASE_GST_RATE) {
 
 export function parseDate(str) {
   if (!str) return null
-  const parts = str.split('-')
-  if (parts.length !== 3) return null
-  const month = parseInt(parts[0], 10) - 1
-  const day = parseInt(parts[1], 10)
-  const year = parseInt(parts[2], 10)
-  return new Date(year, month, day)
+  const parts = String(str).trim().replace(/\//g, '-').split('-')
+  if (parts.length === 3) {
+    if (parts[0].length === 4) return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10))
+    if (parts[2].length === 4) return new Date(parseInt(parts[2], 10), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10))
+  }
+  const d = new Date(str)
+  return isNaN(d.getTime()) ? null : d
 }
 
 export function parseMMDDDate(str) {
   if (!str) return null
-  const parts = String(str).trim().replace(/\//g, '-').split('-')
-  if (parts.length !== 3) return null
-  return new Date(parseInt(parts[2], 10), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10))
+  const cleaned = String(str).trim()
+  if (!cleaned) return null
+  const parts = cleaned.replace(/\//g, '-').split('-')
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const y = parseInt(parts[0], 10)
+      const m = parseInt(parts[1], 10) - 1
+      const d = parseInt(parts[2], 10)
+      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) return new Date(y, m, d)
+    }
+    if (parts[2].length === 4) {
+      const y = parseInt(parts[2], 10)
+      const p0 = parseInt(parts[0], 10)
+      const p1 = parseInt(parts[1], 10)
+      if (p0 > 12) {
+        return new Date(y, p1 - 1, p0)
+      }
+      return new Date(y, p0 - 1, p1)
+    }
+  }
+  const d = new Date(cleaned)
+  return isNaN(d.getTime()) ? null : d
 }
 
 export function formatDate(d) {
