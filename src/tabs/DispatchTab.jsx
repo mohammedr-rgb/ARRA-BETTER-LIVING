@@ -170,7 +170,7 @@ export default function DispatchTab({ data, onOpenPO }) {
   }, [periodData])
 
   const deliveredMetrics = useMemo(() => {
-    const lines = periodData.filter(r => (r['Status'] || '').trim() === 'Delivered')
+    const lines = invoicePeriodData.filter(r => (r['Status'] || '').trim() === 'Delivered')
     const pos = uniqueByPO(lines)
     return {
       pos: pos.length,
@@ -180,10 +180,10 @@ export default function DispatchTab({ data, onOpenPO }) {
       tonnage: sumField(lines, 'Tonnage'),
       value: sumField(lines, 'PO Value with Tax'),
     }
-  }, [periodData])
+  }, [invoicePeriodData])
 
   const inTransitMetrics = useMemo(() => {
-    const lines = periodData.filter(r => ['In-Transit', 'In Transit', 'Dispatched'].includes((r['Status'] || '').trim()))
+    const lines = invoicePeriodData.filter(r => ['In-Transit', 'In Transit', 'Dispatched'].includes((r['Status'] || '').trim()))
     const pos = uniqueByPO(lines)
     const byStatus = {}
     for (const r of lines) {
@@ -202,7 +202,7 @@ export default function DispatchTab({ data, onOpenPO }) {
       value: sumField(lines, 'PO Value with Tax'),
       byStatus: byStatusArr,
     }
-  }, [periodData])
+  }, [invoicePeriodData])
 
   const downloadPendingCSV = () => {
     const filtered = periodData.filter(r => DISPATCH_STATUSES.has(r['Status']))
