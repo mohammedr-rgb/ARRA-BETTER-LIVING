@@ -594,18 +594,6 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
           tooltipStyle={{ zIndex: 100 }}
         />
         <StatCard
-          label="Purchase Tonnage" icon="🏭" color="#f97316"
-          value={(periodMetrics.purchaseTonnage || 0).toLocaleString() + ' KG'}
-          change={`▲ ${purchaseSummary.uniqueInvoices} Invoices • ${purchaseSummary.uniqueEntities} Entities`}
-          changeColor="#22c55e"
-        />
-        <StatCard
-          label="Purchase Value" icon="🛒" color="#84cc16"
-          value={'₹' + (periodMetrics.purchaseValue || 0).toLocaleString()}
-          change={`▲ ${purchaseSummary.lines} Lines • ${purchaseSummary.uniqueInvoices} Invoices`}
-          changeColor="#22c55e"
-        />
-        <StatCard
           label="Total Tonnage" icon="⚖️" color="#a855f7"
           value={periodMetrics.totalTonnage + ' KG'} change={`▲ ${periodMetrics.deliveredTonnage} KG delivered`} changeColor="#22c55e"
           delta={cardDeltas.tonnage}
