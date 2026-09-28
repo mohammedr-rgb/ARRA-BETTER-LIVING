@@ -189,28 +189,37 @@ export default function PerformanceTab({ data, platformFilter }) {
 
   const agings = ['New PO', 'Less than 7 days PO', 'Grater than 7 days', 'Grater than 15 days', 'More than 30 days', 'N/A']
 
-  const transportChartData = useMemo(() => analysis.transportData.slice(0, 8).map(t => ({
-    name: t.transporter.length > 12 ? t.transporter.slice(0, 10) + '...' : t.transporter,
-    'Cost/KG': parseFloat(t.costPerKG.toFixed(2)),
-    'POs': t.count,
-  })), [analysis])
+  const transportChartData = useMemo(() => (analysis.transportData || []).slice(0, 8).map(t => {
+    const name = String(t?.transporter || 'Unknown')
+    return {
+      name: name.length > 12 ? name.slice(0, 10) + '...' : name,
+      'Cost/KG': parseFloat(t?.costPerKG ? t.costPerKG.toFixed(2) : 0),
+      'POs': t?.count || 0,
+    }
+  }), [analysis])
 
-  const leadChartData = useMemo(() => analysis.leadData.slice(0, 8).map(l => ({
-    name: l.platform.length > 12 ? l.platform.slice(0, 10) + '...' : l.platform,
-    'Booking': l.avgBooking === '—' ? 0 : l.avgBooking,
-    'Delivery': l.avgDelivery === '—' ? 0 : l.avgDelivery,
-    'Total': l.avgTotal === '—' ? 0 : l.avgTotal,
-  })), [analysis])
+  const leadChartData = useMemo(() => (analysis.leadData || []).slice(0, 8).map(l => {
+    const name = String(l?.platform || 'Unknown')
+    return {
+      name: name.length > 12 ? name.slice(0, 10) + '...' : name,
+      'Booking': l?.avgBooking === '—' ? 0 : (l?.avgBooking || 0),
+      'Delivery': l?.avgDelivery === '—' ? 0 : (l?.avgDelivery || 0),
+      'Total': l?.avgTotal === '—' ? 0 : (l?.avgTotal || 0),
+    }
+  }), [analysis])
 
-  const fillChartData = useMemo(() => analysis.fillData.filter(x => x.samples > 1).slice(0, 10).map(f => ({
-    name: f.product.length > 14 ? f.product.slice(0, 12) + '...' : f.product,
-    'Fill Rate': f.avgFinal,
-    'Gap': f.gap,
-  })), [analysis])
+  const fillChartData = useMemo(() => (analysis.fillData || []).filter(x => (x?.samples || 0) > 1).slice(0, 10).map(f => {
+    const name = String(f?.product || 'Unknown')
+    return {
+      name: name.length > 14 ? name.slice(0, 12) + '...' : name,
+      'Fill Rate': f?.avgFinal || 0,
+      'Gap': f?.gap || 0,
+    }
+  }), [analysis])
 
-  const rtoPieData = useMemo(() => analysis.rtoData.slice(0, 6).map(r => ({
-    name: r.reason,
-    value: r.count,
+  const rtoPieData = useMemo(() => (analysis.rtoData || []).slice(0, 6).map(r => ({
+    name: String(r?.reason || 'Other'),
+    value: r?.count || 0,
   })), [analysis])
 
   const perfCSVRows = () => {

@@ -42,17 +42,20 @@ export default function ReportsTab({ data, platformFilter }) {
     })).sort((a, b) => b.orders - a.orders)
   }, [data, dateFrom, dateTo, platformFilter])
 
-  const chartData = useMemo(() => reportData.slice(0, 8).map(r => ({
-    name: r.platform.length > 12 ? r.platform.slice(0, 10) + '...' : r.platform,
-    Orders: r.orders,
-    Delivered: r.delivered,
-    RTO: r.rto,
-    'Fill Rate': r.fillRate
-  })), [reportData])
+  const chartData = useMemo(() => (reportData || []).slice(0, 8).map(r => {
+    const name = String(r?.platform || 'Unknown')
+    return {
+      name: name.length > 12 ? name.slice(0, 10) + '...' : name,
+      Orders: r?.orders || 0,
+      Delivered: r?.delivered || 0,
+      RTO: r?.rto || 0,
+      'Fill Rate': r?.fillRate || 0,
+    }
+  }), [reportData])
 
-  const valuePieData = useMemo(() => reportData.slice(0, 6).map(r => ({
-    name: r.platform,
-    value: Math.round(r.value)
+  const valuePieData = useMemo(() => (reportData || []).slice(0, 6).map(r => ({
+    name: String(r?.platform || 'Unknown'),
+    value: Math.round(r?.value || 0)
   })), [reportData])
 
   const reportCSVRows = () => {

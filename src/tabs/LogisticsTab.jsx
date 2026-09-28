@@ -113,13 +113,16 @@ export default function LogisticsTab() {
 
   // Top destinations by spend & rate
   const destinationChartData = useMemo(() => {
-    return metrics.destinations.slice(0, 8).map(d => ({
-      destination: d.destination.length > 12 ? d.destination.slice(0, 10) + '...' : d.destination,
-      fullName: d.destination,
-      tonnage: Math.round(d.tonnage),
-      spend: Math.round(d.cost),
-      rate: d.avgRate,
-    }))
+    return (metrics?.destinations || []).slice(0, 8).map(d => {
+      const destName = String(d?.destination || 'Unknown')
+      return {
+        destination: destName.length > 12 ? destName.slice(0, 10) + '...' : destName,
+        fullName: destName,
+        tonnage: Math.round(d?.tonnage || 0),
+        spend: Math.round(d?.cost || 0),
+        rate: d?.avgRate || 0,
+      }
+    })
   }, [metrics])
 
   // Download raw shipments CSV
