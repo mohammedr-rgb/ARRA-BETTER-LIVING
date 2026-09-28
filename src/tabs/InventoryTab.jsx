@@ -1,6 +1,11 @@
 import { useMemo, useState, Fragment } from 'react'
-import { num, parseMMDDDate, csvEscape, MONTH_NAMES, productSummary } from '../lib/utils'
-import { CSVButton, ProfileSection } from '../components/ui'
+import {
+  num, parseMMDDDate, csvEscape, MONTH_NAMES, productSummary,
+  getPurchaseDate, getPurchaseEntity, getPurchaseInvoiceNo, getPurchaseProduct,
+  getPurchaseCost, getPurchaseTonnage, getPurchaseQty, getPurchaseBox, getPurchaseValue,
+} from '../lib/utils'
+import { CSVButton, ProfileSection, StatCard } from '../components/ui'
+import { DataTable } from '../components/DataTable'
 import { buildProductionPlan, planCSVRows, groupRowsByBoxType, totalsFor } from '../lib/productionPlan'
 
 const BOX_CHIP_COLORS = { 'White Box': '#22c55e', 'Standard Box': '#3b82f6' }
@@ -41,6 +46,7 @@ const matchOilLabel = (product) => {
 }
 
 export default function InventoryTab({ data }) {
+  const [purchaseSubView, setPurchaseSubView] = useState('lines') // 'lines', 'entity', 'product'
   const [selectedMonths, setSelectedMonths] = useState(() => {
     const now = new Date()
     return new Set([now.getFullYear() * 12 + now.getMonth()])
@@ -49,7 +55,7 @@ export default function InventoryTab({ data }) {
   const monthOptions = useMemo(() => {
     const map = {}
     data.forEach(r => {
-      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+      const d = parseMMDDDate(r['Invoice Date (MM-DD-YYYY)']) || parseMMDDDate(getPurchaseDate(r))
       if (!d) return
       const mk = d.getFullYear() * 12 + d.getMonth()
       if (!map[mk]) map[mk] = `${MONTH_NAMES[mk % 12]} ${String(Math.floor(mk / 12)).slice(2)}`
@@ -261,6 +267,325 @@ export default function InventoryTab({ data }) {
     return rows
   }
 
+  // ========================================================
+  // PURCHASE DATA (COLUMNS B TO J - GID 1664329820)
+  // ========================================================
+  const purchaseRows = useMemo(() => {
+    const list = []
+    let sno = 1
+    for (const r of data || []) {
+      const date = getPurchaseDate(r)
+      const entity = getPurchaseEntity(r)
+      const invoice = getPurchaseInvoiceNo(r)
+      const product = getPurchaseProduct(r)
+      const cost = getPurchaseCost(r)
+      const tonnage = getPurchaseTonnage(r)
+      const qty = getPurchaseQty(r)
+      const box = getPurchaseBox(r)
+      const value = getPurchaseValue(r)
+
+      const hasAny = Boolean(date || entity || invoice || product || cost > 0 || tonnage > 0 || qty > 0 || box > 0 || value > 0)
+      if (!hasAny) continue
+
+      if (selectedMonths.size > 0) {
+        const d = parseMMDDDate(date) || parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
+        if (!d || !selectedMonths.has(d.getFullYear() * 12 + d.getMonth())) {
+          continue
+        }
+      }
+
+      list.push({
+        sno: sno++,
+        date: date || '—',
+        entity: entity || 'General / Direct',
+        invoice: invoice || '—',
+        product: product || '—',
+        cost: cost || (qty > 0 && value > 0 ? Math.round(value / qty) : 0),
+        tonnage: tonnage || 0,
+        qty: qty || 0,
+        box: box || 0,
+        value: value || 0,
+        ratePerKg: tonnage > 0 ? Math.round((value / tonnage) * 100) / 100 : 0,
+        raw: r,
+      })
+    }
+    return list
+  }, [data, selectedMonths])
+
+  const purchaseMetrics = useMemo(() => {
+    let totalTonnage = 0
+    let totalValue = 0
+    let totalQty = 0
+    let totalBoxes = 0
+    const invoices = new Set()
+    const entities = new Map()
+    const products = new Map()
+
+    for (const r of purchaseRows) {
+      totalTonnage += r.tonnage
+      totalValue += r.value
+      totalQty += r.qty
+      totalBoxes += r.box
+
+      if (r.invoice && r.invoice !== '—') invoices.add(r.invoice)
+
+      const ent = r.entity
+      if (!entities.has(ent)) {
+        entities.set(ent, { entity: ent, tonnage: 0, value: 0, qty: 0, boxes: 0, invoices: new Set() })
+      }
+      const eData = entities.get(ent)
+      eData.tonnage += r.tonnage
+      eData.value += r.value
+      eData.qty += r.qty
+      eData.boxes += r.box
+      if (r.invoice && r.invoice !== '—') eData.invoices.add(r.invoice)
+
+      const prod = r.product
+      if (!products.has(prod)) {
+        products.set(prod, { product: prod, tonnage: 0, value: 0, qty: 0, boxes: 0, lines: 0 })
+      }
+      const pData = products.get(prod)
+      pData.tonnage += r.tonnage
+      pData.value += r.value
+      pData.qty += r.qty
+      pData.boxes += r.box
+      pData.lines += 1
+    }
+
+    const entityList = [...entities.values()]
+      .map(e => ({
+        ...e,
+        invoiceCount: e.invoices.size,
+        avgRate: e.tonnage ? Math.round((e.value / e.tonnage) * 100) / 100 : 0,
+      }))
+      .sort((a, b) => b.tonnage - a.tonnage)
+
+    const productList = [...products.values()]
+      .map(p => ({
+        ...p,
+        avgRate: p.tonnage ? Math.round((p.value / p.tonnage) * 100) / 100 : 0,
+      }))
+      .sort((a, b) => b.tonnage - a.tonnage)
+
+    return {
+      lines: purchaseRows.length,
+      tonnage: Math.round(totalTonnage),
+      value: Math.round(totalValue),
+      qty: Math.round(totalQty),
+      boxes: Math.round(totalBoxes),
+      uniqueInvoices: invoices.size,
+      uniqueEntities: entities.size,
+      avgRatePerKg: totalTonnage ? Math.round((totalValue / totalTonnage) * 100) / 100 : 0,
+      entities: entityList,
+      products: productList,
+    }
+  }, [purchaseRows])
+
+  const purchaseCSVRows = () => {
+    const rows = ['Purchase Details (Columns B to J)']
+    rows.push('')
+    rows.push('S.No,Purchase Date(MM-DD-YYYY),Purchase Entity,Purchase Invoice Number,Purchase Products,Purchase Cost,Purchase Tonnage,Purchase QTY,Purchase Box,Purchase Values,Rate / KG (₹)')
+    purchaseRows.forEach(r => {
+      rows.push([
+        r.sno,
+        csvEscape(r.date),
+        csvEscape(r.entity),
+        csvEscape(r.invoice),
+        csvEscape(r.product),
+        r.cost,
+        r.tonnage,
+        r.qty,
+        r.box,
+        r.value,
+        r.ratePerKg,
+      ].join(','))
+    })
+    rows.push('')
+    rows.push(`TOTAL,,${purchaseMetrics.uniqueEntities} Entities,${purchaseMetrics.uniqueInvoices} Invoices,,${purchaseMetrics.tonnage},${purchaseMetrics.qty},${purchaseMetrics.boxes},${purchaseMetrics.value},${purchaseMetrics.avgRatePerKg}`)
+    return rows
+  }
+
+  const purchaseColumns = [
+    {
+      key: 'sno',
+      label: 'S.No',
+      align: 'center',
+      accessor: r => r.sno,
+      render: r => <span style={{ color: '#64748b', fontSize: 11 }}>{r.sno}</span>,
+    },
+    {
+      key: 'date',
+      label: 'Purchase Date (B)',
+      accessor: r => r.date,
+      render: r => <span style={{ color: '#cbd5e1', fontSize: 12 }}>{r.date}</span>,
+    },
+    {
+      key: 'entity',
+      label: 'Purchase Entity (C)',
+      accessor: r => r.entity,
+      render: r => <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{r.entity}</span>,
+    },
+    {
+      key: 'invoice',
+      label: 'Invoice No (D)',
+      accessor: r => r.invoice,
+      render: r => <span style={{ fontFamily: 'monospace', color: '#38bdf8', fontSize: 12 }}>{r.invoice}</span>,
+    },
+    {
+      key: 'product',
+      label: 'Purchase Product (E)',
+      accessor: r => r.product,
+      render: r => <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{r.product}</span>,
+    },
+    {
+      key: 'cost',
+      label: 'Cost ₹ (F)',
+      align: 'right',
+      accessor: r => r.cost,
+      render: r => r.cost ? '₹' + Number(r.cost).toLocaleString() : '—',
+    },
+    {
+      key: 'tonnage',
+      label: 'Tonnage KG (G)',
+      align: 'right',
+      accessor: r => r.tonnage,
+      render: r => <span style={{ fontWeight: 600 }}>{r.tonnage ? Number(r.tonnage).toLocaleString() + ' KG' : '—'}</span>,
+    },
+    {
+      key: 'qty',
+      label: 'QTY (H)',
+      align: 'right',
+      accessor: r => r.qty,
+      render: r => r.qty ? Number(r.qty).toLocaleString() : '—',
+    },
+    {
+      key: 'box',
+      label: 'Box (I)',
+      align: 'right',
+      accessor: r => r.box,
+      render: r => r.box ? Number(r.box).toLocaleString() : '—',
+    },
+    {
+      key: 'value',
+      label: 'Purchase Value ₹ (J)',
+      align: 'right',
+      accessor: r => r.value,
+      render: r => <span style={{ fontWeight: 700, color: '#22c55e' }}>{'₹' + Number(r.value).toLocaleString()}</span>,
+    },
+    {
+      key: 'ratePerKg',
+      label: 'Rate / KG (₹)',
+      align: 'right',
+      accessor: r => r.ratePerKg,
+      render: r => {
+        const rate = r.ratePerKg
+        if (!rate) return <span style={{ color: '#64748b' }}>—</span>
+        return <span style={{ fontWeight: 600, color: '#c084fc' }}>{'₹' + Number(rate).toFixed(2)}</span>
+      },
+    },
+  ]
+
+  const entityColumns = [
+    {
+      key: 'entity',
+      label: 'Purchase Entity (Supplier)',
+      accessor: r => r.entity,
+      render: r => <span style={{ fontWeight: 700, color: '#f1f5f9' }}>{r.entity}</span>,
+    },
+    {
+      key: 'invoiceCount',
+      label: 'Invoices',
+      align: 'right',
+      accessor: r => r.invoiceCount,
+      render: r => <span style={{ color: '#38bdf8', fontWeight: 600 }}>{r.invoiceCount}</span>,
+    },
+    {
+      key: 'qty',
+      label: 'Total QTY',
+      align: 'right',
+      accessor: r => r.qty,
+      render: r => r.qty.toLocaleString(),
+    },
+    {
+      key: 'tonnage',
+      label: 'Total Tonnage (KG)',
+      align: 'right',
+      accessor: r => r.tonnage,
+      render: r => <span style={{ fontWeight: 600 }}>{r.tonnage.toLocaleString()} KG</span>,
+    },
+    {
+      key: 'boxes',
+      label: 'Boxes',
+      align: 'right',
+      accessor: r => r.boxes,
+      render: r => r.boxes.toLocaleString(),
+    },
+    {
+      key: 'value',
+      label: 'Total Purchase Spend (₹)',
+      align: 'right',
+      accessor: r => r.value,
+      render: r => <span style={{ color: '#22c55e', fontWeight: 700 }}>₹{r.value.toLocaleString()}</span>,
+    },
+    {
+      key: 'avgRate',
+      label: 'Avg Cost / KG (₹)',
+      align: 'right',
+      accessor: r => r.avgRate,
+      render: r => <span style={{ color: '#c084fc', fontWeight: 700 }}>₹{r.avgRate.toFixed(2)}</span>,
+    },
+  ]
+
+  const purchaseProductColumns = [
+    {
+      key: 'product',
+      label: 'Purchase Product',
+      accessor: r => r.product,
+      render: r => <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{r.product}</span>,
+    },
+    {
+      key: 'lines',
+      label: 'Line Items',
+      align: 'right',
+      accessor: r => r.lines,
+      render: r => <span style={{ color: '#94a3b8' }}>{r.lines}</span>,
+    },
+    {
+      key: 'qty',
+      label: 'Total QTY',
+      align: 'right',
+      accessor: r => r.qty,
+      render: r => r.qty.toLocaleString(),
+    },
+    {
+      key: 'tonnage',
+      label: 'Total Tonnage (KG)',
+      align: 'right',
+      accessor: r => r.tonnage,
+      render: r => <span style={{ fontWeight: 600 }}>{r.tonnage.toLocaleString()} KG</span>,
+    },
+    {
+      key: 'boxes',
+      label: 'Boxes',
+      align: 'right',
+      accessor: r => r.boxes,
+      render: r => r.boxes.toLocaleString(),
+    },
+    {
+      key: 'value',
+      label: 'Total Purchase Spend (₹)',
+      align: 'right',
+      accessor: r => r.value,
+      render: r => <span style={{ color: '#22c55e', fontWeight: 700 }}>₹{r.value.toLocaleString()}</span>,
+    },
+    {
+      key: 'avgRate',
+      label: 'Avg Cost / KG (₹)',
+      align: 'right',
+      accessor: r => r.avgRate,
+      render: r => <span style={{ color: '#c084fc', fontWeight: 700 }}>₹{r.avgRate.toFixed(2)}</span>,
+    },
+  ]
 
   return (
     <>
@@ -305,6 +630,235 @@ export default function InventoryTab({ data }) {
             <div className="stat-value">{s.value}</div>
           </div>
         ))}
+      </div>
+
+      {/* ======================================================== */}
+      {/* PURCHASE OVERVIEW & TABLES (COLUMNS B TO J)              */}
+      {/* ======================================================== */}
+      <div style={{ marginTop: 24, marginBottom: 24 }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+          marginBottom: 14,
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 20 }}>🛒</span>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9', margin: 0 }}>
+                Purchase Overview &amp; Cost Analysis (Columns B to J)
+              </h2>
+            </div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3 }}>
+              Source Sheet: gid=1664329820 • Columns: Date (B), Entity (C), Invoice (D), Product (E), Cost (F), Tonnage (G), QTY (H), Box (I), Value (J) • {scopeLabel}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <a
+              href="https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/edit?gid=1664329820#gid=1664329820"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'rgba(59,130,246,0.15)',
+                border: '1px solid rgba(59,130,246,0.3)',
+                color: '#38bdf8',
+                fontSize: 12,
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              📊 Open Sheet (gid 1664329820)
+            </a>
+            <CSVButton makeRows={purchaseCSVRows} filename="purchase_records_b_to_j.csv" />
+          </div>
+        </div>
+
+        {/* Purchase KPI Cards */}
+        <div className="stats-grid" style={{ marginBottom: 16 }}>
+          <StatCard
+            label="Total Purchase Value"
+            icon="💰"
+            color="#22c55e"
+            value={'₹' + purchaseMetrics.value.toLocaleString()}
+            change={`Col J • ${purchaseMetrics.lines} Line Items`}
+            changeColor="#22c55e"
+          />
+          <StatCard
+            label="Total Purchase Tonnage"
+            icon="⚖️"
+            color="#f97316"
+            value={purchaseMetrics.tonnage.toLocaleString() + ' KG'}
+            change={`Col G • ${purchaseMetrics.boxes.toLocaleString()} Boxes (Col I)`}
+            changeColor="#38bdf8"
+          />
+          <StatCard
+            label="Total Purchase QTY"
+            icon="🧴"
+            color="#3b82f6"
+            value={purchaseMetrics.qty.toLocaleString() + ' Units'}
+            change={`Col H Quantity`}
+            changeColor="#3b82f6"
+          />
+          <StatCard
+            label="Avg Cost per KG"
+            icon="🎯"
+            color="#a855f7"
+            value={'₹' + purchaseMetrics.avgRatePerKg.toFixed(2) + ' / KG'}
+            change={`Total Spend ÷ Total KG`}
+            changeColor="#a855f7"
+          />
+          <StatCard
+            label="Purchase Invoices"
+            icon="🧾"
+            color="#06b6d4"
+            value={purchaseMetrics.uniqueInvoices.toLocaleString()}
+            change={`Col D Unique Invoices`}
+            changeColor="#06b6d4"
+          />
+          <StatCard
+            label="Purchase Entities"
+            icon="🏢"
+            color="#eab308"
+            value={purchaseMetrics.uniqueEntities.toLocaleString()}
+            change={`Col C Suppliers / Vendors`}
+            changeColor="#eab308"
+          />
+        </div>
+
+        {/* View Switcher / Sub-tabs */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+          background: '#1e293b',
+          padding: '10px 14px',
+          borderRadius: '12px 12px 0 0',
+          border: '1px solid #334155',
+          borderBottom: 'none',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Purchase View:</span>
+            {[
+              { id: 'lines', label: `📑 Detailed Invoices (${purchaseRows.length})` },
+              { id: 'entity', label: `🏢 By Entity (${purchaseMetrics.entities.length})` },
+              { id: 'product', label: `🧴 By Product (${purchaseMetrics.products.length})` },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setPurchaseSubView(t.id)}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: 6,
+                  border: '1px solid ' + (purchaseSubView === t.id ? '#3b82f6' : '#334155'),
+                  background: purchaseSubView === t.id ? '#3b82f6' : '#0f172a',
+                  color: purchaseSubView === t.id ? '#ffffff' : '#94a3b8',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>
+            Showing {purchaseSubView === 'lines' ? `${purchaseRows.length} line items` : purchaseSubView === 'entity' ? `${purchaseMetrics.entities.length} entities` : `${purchaseMetrics.products.length} products`}
+          </div>
+        </div>
+
+        {/* Table Container */}
+        <div style={{
+          background: '#1e293b',
+          borderRadius: '0 0 12px 12px',
+          border: '1px solid #334155',
+          overflow: 'hidden',
+          marginBottom: 10,
+        }}>
+          {purchaseSubView === 'lines' && (
+            <DataTable
+              columns={purchaseColumns}
+              rows={purchaseRows}
+              pageSize={15}
+              filename="purchase_detailed_records.csv"
+              emptyMessage="No purchase records found in the selected period"
+            />
+          )}
+
+          {purchaseSubView === 'entity' && (
+            <DataTable
+              columns={entityColumns}
+              rows={purchaseMetrics.entities}
+              pageSize={10}
+              filename="purchase_by_entity.csv"
+              emptyMessage="No entity summary found"
+            />
+          )}
+
+          {purchaseSubView === 'product' && (
+            <DataTable
+              columns={purchaseProductColumns}
+              rows={purchaseMetrics.products}
+              pageSize={10}
+              filename="purchase_by_product.csv"
+              emptyMessage="No product summary found"
+            />
+          )}
+
+          {/* Totals Summary Footer */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 16,
+            background: '#0f172a',
+            borderTop: '2px solid #334155',
+            padding: '12px 18px',
+            fontSize: 13,
+          }}>
+            <div style={{ color: '#94a3b8', fontWeight: 600 }}>
+              Purchase Total: <span style={{ color: '#f1f5f9' }}>{purchaseRows.length} Line Items</span> • <span style={{ color: '#f1f5f9' }}>{purchaseMetrics.uniqueInvoices} Invoices</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+              <div>
+                <span style={{ color: '#94a3b8', marginRight: 6 }}>Total QTY:</span>
+                <span style={{ color: '#38bdf8', fontWeight: 700 }}>{purchaseMetrics.qty.toLocaleString()}</span>
+              </div>
+              <div>
+                <span style={{ color: '#94a3b8', marginRight: 6 }}>Total Weight:</span>
+                <span style={{ color: '#eab308', fontWeight: 700 }}>{purchaseMetrics.tonnage.toLocaleString()} KG</span>
+              </div>
+              <div>
+                <span style={{ color: '#94a3b8', marginRight: 6 }}>Total Boxes:</span>
+                <span style={{ color: '#a855f7', fontWeight: 700 }}>{purchaseMetrics.boxes.toLocaleString()}</span>
+              </div>
+              <div>
+                <span style={{ color: '#94a3b8', marginRight: 6 }}>Total Spend:</span>
+                <span style={{ color: '#22c55e', fontWeight: 700 }}>₹{purchaseMetrics.value.toLocaleString()}</span>
+              </div>
+              <div style={{
+                padding: '3px 10px',
+                background: 'rgba(168,85,247,0.15)',
+                border: '1px solid rgba(168,85,247,0.4)',
+                borderRadius: 8,
+              }}>
+                <span style={{ color: '#94a3b8', marginRight: 6 }}>Avg Rate:</span>
+                <span style={{ color: '#c084fc', fontWeight: 800, fontSize: 13 }}>₹{purchaseMetrics.avgRatePerKg.toFixed(2)} / KG</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="recent-orders" style={{ marginTop: 20 }}>
