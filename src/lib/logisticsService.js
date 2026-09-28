@@ -1,15 +1,13 @@
-import defaultShipments from '../data/logisticsData.json'
+import septemberShipments from '../data/septemberLogisticsData.json'
 import { num } from './utils'
 
 export const LOGISTICS_SHEET_ID = '1ISxAO1oyQwNXphmrH2m_le7A8BqDo2IJRJ78jJ1MjZU'
 export const LOGISTICS_GIDS = {
   summary: '1904390094',
-  cxlAugJuly: '0',
-  septemberAll: '40975194',
-  rivigoAugJuly: '1337918837',
+  september2026: '40975194',
 }
 
-// Canonical master numbers from the Google Sheet Summary tab
+// Exact Master Numbers from "Summery - overall logistics report" (gid 1904390094)
 export const MASTER_LOGISTICS_SUMMARY = {
   carriers: {
     CXL: {
@@ -37,7 +35,7 @@ export const MASTER_LOGISTICS_SUMMARY = {
       avgRate: 13.21,
       color: '#a855f7',
       badge: 'Regional Secondary',
-      strengths: 'Direct regional quick distribution',
+      strengths: 'Direct regional quick distribution (Chennai, Cochin)',
     },
   },
   months: {
@@ -48,9 +46,9 @@ export const MASTER_LOGISTICS_SUMMARY = {
       avgRate: 11.84,
       avgRateBase: 12.48,
       byCarrier: {
-        CXL: { tonnage: 12355.00, value: 106264.00, rate: 8.60 },
-        RIVIGO: { tonnage: 3209.00, value: 78034.58, rate: 24.32 },
-        LCC: { tonnage: 0, value: 0, rate: 0 },
+        CXL: { tonnage: 12355.00, value: 106264.00, rate: 8.60, rateSheet: 9.41 },
+        RIVIGO: { tonnage: 3209.00, value: 78034.58, rate: 24.32, rateSheet: 24.32 },
+        LCC: { tonnage: 0, value: 0, rate: 0, rateSheet: 0 },
       },
     },
     August: {
@@ -61,21 +59,22 @@ export const MASTER_LOGISTICS_SUMMARY = {
       avgRateBase: 11.87,
       isLowestRate: true,
       byCarrier: {
-        CXL: { tonnage: 25651.00, value: 214945.50, rate: 8.38 },
-        RIVIGO: { tonnage: 10732.00, value: 216759.00, rate: 20.20 },
-        LCC: { tonnage: 0, value: 0, rate: 0 },
+        CXL: { tonnage: 25651.00, value: 214945.50, rate: 8.38, rateSheet: 8.38 },
+        RIVIGO: { tonnage: 10732.00, value: 216759.00, rate: 20.20, rateSheet: 20.20 },
+        LCC: { tonnage: 0, value: 0, rate: 0, rateSheet: 0 },
       },
     },
     September: {
       label: 'September 2026',
       tonnage: 13573.00,
+      tonnageBase: 12471.10,
       value: 173022.85,
       avgRate: 12.75,
       avgRateBase: 13.07,
       byCarrier: {
-        CXL: { tonnage: 8228.00, value: 84789.60, rate: 10.31 },
-        RIVIGO: { tonnage: 1498.10, value: 31265.94, rate: 20.87 },
-        LCC: { tonnage: 1465.00, value: 19352.50, rate: 13.21 },
+        CXL: { tonnage: 8228.00, value: 84789.60, rate: 10.31, rateSheet: 10.31 },
+        RIVIGO: { tonnage: 1498.10, value: 31265.94, rate: 20.87, rateSheet: 20.87 },
+        LCC: { tonnage: 1465.00, value: 19352.50, rate: 13.21, rateSheet: 13.21 },
       },
     },
   },
@@ -83,64 +82,57 @@ export const MASTER_LOGISTICS_SUMMARY = {
     totalTonnage: 63138.10,
     totalValue: 761411.12,
     avgRate: 12.06,
-    totalShipments: defaultShipments.length,
   },
   reasons: [
     {
-      title: 'Why August Had the Lowest Rate (₹11.87 / kg)',
-      desc: 'August achieved the best cost efficiency because 70.5% of total volume (25,651 kg) was consolidated via CXL at its lowest rate of ₹8.38/kg. Bulk dispatches minimized per-KG docket and handling overhead.',
+      title: 'August 2026 (₹11.87 / kg - Lowest Rate)',
+      desc: '70.5% of volume (25,651 kg) was consolidated via CXL at its lowest rate of ₹8.38/kg. Bulk dispatches minimized per-KG docket and handling overhead.',
       type: 'positive',
     },
     {
-      title: 'Why September Rate Rose (₹13.07 / kg)',
-      desc: 'September rate increased due to smaller, fragmented batch sizes, introducing LCC (₹13.21/kg), and a higher proportion of fixed docket/fuel charges relative to lower shipment weights.',
+      title: 'September 2026 (₹13.07 / kg - Rate Rose)',
+      desc: 'Rate increased due to smaller load batches, introducing LCC (₹13.21/kg), and a higher proportion of fixed docket/fuel charges relative to lower shipment weights.',
       type: 'warning',
     },
     {
       title: 'Carrier Cost Disparity (CXL ₹9.00 vs RIVIGO ₹21.12 / kg)',
-      desc: 'RIVIGO is 2.35× higher in cost per KG due to mandatory fuel surcharges (20%), fixed appointment charges (₹1,000/drop), ODA charges (₹800+), and long-distance coverage (Mumbai, Pune, Goa, Cochin, Vizag).',
+      desc: 'RIVIGO is 2.35× higher in cost per KG due to fuel surcharges, appointment fees (₹1,000/drop), ODA charges, and long-distance coverage (Mumbai, Pune, Goa, Cochin, Vizag).',
       type: 'info',
     },
   ],
 }
 
-export function getInitialLogisticsData() {
-  return defaultShipments
+export function getSeptemberShipments() {
+  return septemberShipments
 }
 
-export function computeLogisticsMetrics(shipments) {
+export function computeSeptemberMetrics(shipments) {
   let totalTonnage = 0
   let totalCost = 0
-  let totalFreight = 0
+  let totalKgCost = 0
   let totalDocket = 0
   let totalStationaryAndFuel = 0
-  let totalAppointment = 0
-  let totalInsurance = 0
-  let totalOda = 0
+  let totalValWithoutGst = 0
   let totalGst = 0
   let totalQty = 0
 
   const carrierMap = {}
-  const monthMap = {}
   const destMap = {}
 
   for (const s of shipments) {
     const w = num(s.weight)
-    const cost = num(s.totalCost)
+    const cost = num(s.overall)
     const qty = num(s.qty)
     const c = s.carrier || 'Other'
-    const m = s.month || 'Other'
     const dest = (s.to || 'Unknown').trim()
 
     totalTonnage += w
     totalCost += cost
     totalQty += qty
-    totalFreight += num(s.freightAmount)
-    totalDocket += num(s.docketCharges)
+    totalKgCost += num(s.kgCost)
+    totalDocket += num(s.docket)
     totalStationaryAndFuel += num(s.stationaryAndFuel)
-    totalAppointment += num(s.appointmentCharges)
-    totalInsurance += num(s.insuranceCharges)
-    totalOda += num(s.odaCharges)
+    totalValWithoutGst += num(s.valWithoutGST)
     totalGst += num(s.gst)
 
     // Carrier
@@ -149,13 +141,6 @@ export function computeLogisticsMetrics(shipments) {
     carrierMap[c].tonnage += w
     carrierMap[c].cost += cost
     carrierMap[c].qty += qty
-
-    // Month
-    if (!monthMap[m]) monthMap[m] = { month: m, shipments: 0, tonnage: 0, cost: 0, qty: 0 }
-    monthMap[m].shipments += 1
-    monthMap[m].tonnage += w
-    monthMap[m].cost += cost
-    monthMap[m].qty += qty
 
     // Destination
     if (!destMap[dest]) destMap[dest] = { destination: dest, shipments: 0, tonnage: 0, cost: 0, qty: 0 }
@@ -172,11 +157,6 @@ export function computeLogisticsMetrics(shipments) {
     costShare: totalCost ? Math.round((x.cost / totalCost) * 1000) / 10 : 0,
   })).sort((a, b) => b.tonnage - a.tonnage)
 
-  const months = Object.values(monthMap).map(x => ({
-    ...x,
-    avgRate: x.tonnage ? Math.round((x.cost / x.tonnage) * 100) / 100 : 0,
-  }))
-
   const destinations = Object.values(destMap).map(x => ({
     ...x,
     avgRate: x.tonnage ? Math.round((x.cost / x.tonnage) * 100) / 100 : 0,
@@ -189,16 +169,13 @@ export function computeLogisticsMetrics(shipments) {
     totalQty,
     avgRate: totalTonnage ? Math.round((totalCost / totalTonnage) * 100) / 100 : 0,
     breakdown: {
-      freight: Math.round(totalFreight),
+      kgCost: Math.round(totalKgCost),
       docket: Math.round(totalDocket),
-      fuelAndStationary: Math.round(totalStationaryAndFuel),
-      appointment: Math.round(totalAppointment),
-      insurance: Math.round(totalInsurance),
-      oda: Math.round(totalOda),
+      stationaryAndFuel: Math.round(totalStationaryAndFuel),
+      valWithoutGST: Math.round(totalValWithoutGst),
       gst: Math.round(totalGst),
     },
     carriers,
-    months,
     destinations,
   }
 }
