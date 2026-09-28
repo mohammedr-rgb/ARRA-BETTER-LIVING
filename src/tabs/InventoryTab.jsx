@@ -294,6 +294,9 @@ export default function InventoryTab({ data }) {
         }
       }
 
+      const unitTonnage = tonnage
+      const totalRowTonnage = (unitTonnage > 0 && qty > 0) ? Math.round(unitTonnage * qty * 100) / 100 : (unitTonnage || 0)
+
       list.push({
         sno: sno++,
         date: date || '—',
@@ -301,11 +304,12 @@ export default function InventoryTab({ data }) {
         invoice: invoice || '—',
         product: product || '—',
         cost: cost || (qty > 0 && value > 0 ? Math.round(value / qty) : 0),
-        tonnage: tonnage || 0,
+        unitTonnage: unitTonnage || 0,
+        tonnage: totalRowTonnage,
         qty: qty || 0,
         box: box || 0,
         value: value || 0,
-        ratePerKg: tonnage > 0 ? Math.round((value / tonnage) * 100) / 100 : 0,
+        ratePerKg: totalRowTonnage > 0 ? Math.round((value / totalRowTonnage) * 100) / 100 : 0,
         raw: r,
       })
     }
@@ -384,7 +388,7 @@ export default function InventoryTab({ data }) {
   const purchaseCSVRows = () => {
     const rows = ['Purchase Details (Columns B to J)']
     rows.push('')
-    rows.push('S.No,Purchase Date(MM-DD-YYYY),Purchase Entity,Purchase Invoice Number,Purchase Products,Purchase Cost,Purchase Tonnage,Purchase QTY,Purchase Box,Purchase Values,Rate / KG (₹)')
+    rows.push('S.No,Purchase Date(MM-DD-YYYY),Purchase Entity,Purchase Invoice Number,Purchase Products,Purchase Cost,Unit Tonnage(KG),Purchase QTY,Total Tonnage(KG) [G*H],Purchase Box,Purchase Values,Rate / KG (₹)')
     purchaseRows.forEach(r => {
       rows.push([
         r.sno,
@@ -393,8 +397,9 @@ export default function InventoryTab({ data }) {
         csvEscape(r.invoice),
         csvEscape(r.product),
         r.cost,
-        r.tonnage,
+        r.unitTonnage,
         r.qty,
+        r.tonnage,
         r.box,
         r.value,
         r.ratePerKg,
@@ -445,11 +450,11 @@ export default function InventoryTab({ data }) {
       render: r => r.cost ? '₹' + Number(r.cost).toLocaleString() : '—',
     },
     {
-      key: 'tonnage',
-      label: 'Tonnage KG (G)',
+      key: 'unitTonnage',
+      label: 'Unit Tonnage (G)',
       align: 'right',
-      accessor: r => r.tonnage,
-      render: r => <span style={{ fontWeight: 600 }}>{r.tonnage ? Number(r.tonnage).toLocaleString() + ' KG' : '—'}</span>,
+      accessor: r => r.unitTonnage,
+      render: r => r.unitTonnage ? Number(r.unitTonnage).toFixed(2) + ' KG' : '—',
     },
     {
       key: 'qty',
@@ -457,6 +462,13 @@ export default function InventoryTab({ data }) {
       align: 'right',
       accessor: r => r.qty,
       render: r => r.qty ? Number(r.qty).toLocaleString() : '—',
+    },
+    {
+      key: 'tonnage',
+      label: 'Total Tonnage KG (G × H)',
+      align: 'right',
+      accessor: r => r.tonnage,
+      render: r => <span style={{ fontWeight: 700, color: '#f97316' }}>{r.tonnage ? Number(r.tonnage).toLocaleString() + ' KG' : '—'}</span>,
     },
     {
       key: 'box',
@@ -696,7 +708,7 @@ export default function InventoryTab({ data }) {
             icon="⚖️"
             color="#f97316"
             value={purchaseMetrics.tonnage.toLocaleString() + ' KG'}
-            change={`Col G • ${purchaseMetrics.boxes.toLocaleString()} Boxes (Col I)`}
+            change={`Col G (Unit Tonnage) × Col H (QTY)`}
             changeColor="#38bdf8"
           />
           <StatCard

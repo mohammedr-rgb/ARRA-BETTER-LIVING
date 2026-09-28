@@ -79,12 +79,13 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
       const ton = getPurchaseTonnage(r)
       const val = getPurchaseValue(r)
       const qty = getPurchaseQty(r)
+      const lineTonnage = (ton > 0 && qty > 0) ? ton * qty : ton
       const box = getPurchaseBox(r)
       const inv = getPurchaseInvoiceNo(r)
       const ent = (getPurchaseEntity(r) || '').trim() || 'General / Direct'
       const prod = (getPurchaseProduct(r) || '').trim() || 'General Product'
 
-      totalTonnage += ton
+      totalTonnage += lineTonnage
       totalValue += val
       totalQty += qty
       totalBoxes += box
