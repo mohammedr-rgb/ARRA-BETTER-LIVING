@@ -309,13 +309,13 @@ export default function LogisticsTab() {
     },
     {
       key: 'ratePerKg',
-      label: 'Rate (₹/KG)',
+      label: 'Avg Cost / KG (₹)',
       accessor: r => r.ratePerKg,
       align: 'right',
       render: r => {
         const rate = r.ratePerKg || (r.weight ? r.overall / r.weight : 0)
         const color = rate <= 10 ? '#22c55e' : rate <= 16 ? '#eab308' : '#ef4444'
-        return <span style={{ fontWeight: 600, color }}>{'₹' + rate.toFixed(2)}</span>
+        return <span style={{ fontWeight: 700, color }}>{'₹' + rate.toFixed(2)}</span>
       },
     },
   ]
@@ -433,11 +433,11 @@ export default function LogisticsTab() {
           changeColor="#38bdf8"
         />
         <StatCard
-          label="Overall Rate / KG"
+          label="Avg Cost per KG (Overall)"
           icon="🎯"
           color="#f97316"
-          value={'₹' + MASTER_LOGISTICS_SUMMARY.overall.avgRate + ' / kg'}
-          change="● Aug: ₹11.87 (lowest) | Sep: ₹13.07"
+          value={'₹' + MASTER_LOGISTICS_SUMMARY.overall.avgRate.toFixed(2) + ' / KG'}
+          change="● Jul: ₹11.84 | Aug: ₹11.87 (lowest) | Sep: ₹12.75"
           changeColor="#eab308"
         />
         <StatCard
@@ -445,7 +445,7 @@ export default function LogisticsTab() {
           icon="🚚"
           color="#3b82f6"
           value={'₹' + Math.round(MASTER_LOGISTICS_SUMMARY.carriers.CXL.value).toLocaleString()}
-          change={`₹${MASTER_LOGISTICS_SUMMARY.carriers.CXL.avgRate}/kg • 46,234 kg (73.2% vol)`}
+          change={`Avg Cost: ₹${MASTER_LOGISTICS_SUMMARY.carriers.CXL.avgRate.toFixed(2)} / KG • 46,234 KG (73.2% vol)`}
           changeColor="#38bdf8"
         />
         <StatCard
@@ -453,7 +453,7 @@ export default function LogisticsTab() {
           icon="🚀"
           color="#f97316"
           value={'₹' + Math.round(MASTER_LOGISTICS_SUMMARY.carriers.RIVIGO.value).toLocaleString()}
-          change={`₹${MASTER_LOGISTICS_SUMMARY.carriers.RIVIGO.avgRate}/kg • 15,439 kg (24.5% vol)`}
+          change={`Avg Cost: ₹${MASTER_LOGISTICS_SUMMARY.carriers.RIVIGO.avgRate.toFixed(2)} / KG • 15,439 KG (24.5% vol)`}
           changeColor="#f97316"
         />
         <StatCard
@@ -461,7 +461,7 @@ export default function LogisticsTab() {
           icon="📦"
           color="#a855f7"
           value={'₹' + Math.round(MASTER_LOGISTICS_SUMMARY.carriers.LCC.value).toLocaleString()}
-          change={`₹${MASTER_LOGISTICS_SUMMARY.carriers.LCC.avgRate}/kg • 1,465 kg (2.3% vol)`}
+          change={`Avg Cost: ₹${MASTER_LOGISTICS_SUMMARY.carriers.LCC.avgRate.toFixed(2)} / KG • 1,465 KG (2.3% vol)`}
           changeColor="#a855f7"
         />
       </div>
@@ -493,7 +493,7 @@ export default function LogisticsTab() {
                   <th style={{ padding: '10px 14px', textAlign: 'left' }}>Carrier</th>
                   <th style={{ padding: '10px 14px', textAlign: 'right' }}>Total Tonnage (kg)</th>
                   <th style={{ padding: '10px 14px', textAlign: 'right' }}>Total Value (₹)</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'right' }}>Avg Rate (₹/kg)</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'right' }}>Avg Cost per KG (₹/KG)</th>
                 </tr>
               </thead>
               <tbody>
@@ -628,7 +628,7 @@ export default function LogisticsTab() {
             <div className="chart-card">
               <div className="chart-header">
                 <div>
-                  <div className="chart-title">Monthly Spend & Effective Rate Trend</div>
+                  <div className="chart-title">Monthly Spend & Avg Cost per KG Trend</div>
                   <div className="chart-period">July vs August vs September</div>
                 </div>
               </div>
@@ -642,13 +642,13 @@ export default function LogisticsTab() {
                     contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
                     formatter={(val, name) => {
                       if (name === 'Spend (₹)') return ['₹' + Number(val).toLocaleString(), name]
-                      if (name === 'Effective Rate (₹/kg)') return ['₹' + Number(val).toFixed(2) + '/kg', name]
+                      if (name === 'Avg Cost per KG (₹/KG)') return ['₹' + Number(val).toFixed(2) + ' / KG', name]
                       return [val, name]
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
                   <Bar yAxisId="left" dataKey="spend" name="Spend (₹)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="right" type="monotone" dataKey="rate" name="Effective Rate (₹/kg)" stroke="#22c55e" strokeWidth={3} dot={{ r: 5, fill: '#22c55e' }} />
+                  <Line yAxisId="right" type="monotone" dataKey="rate" name="Avg Cost per KG (₹/KG)" stroke="#22c55e" strokeWidth={3} dot={{ r: 5, fill: '#22c55e' }} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -657,8 +657,8 @@ export default function LogisticsTab() {
             <div className="chart-card">
               <div className="chart-header">
                 <div>
-                  <div className="chart-title">Carrier Volume & Rate Benchmarking</div>
-                  <div className="chart-period">CXL (₹9/kg) vs RIVIGO (₹21.12/kg) vs LCC (₹13.21/kg)</div>
+                  <div className="chart-title">Carrier Volume & Avg Cost per KG Benchmarking</div>
+                  <div className="chart-period">CXL (₹9.00/KG) vs RIVIGO (₹21.12/KG) vs LCC (₹13.21/KG)</div>
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={260}>
@@ -669,7 +669,7 @@ export default function LogisticsTab() {
                   <ReTooltip
                     contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
                     formatter={(val, name, item) => [
-                      `${Number(val).toLocaleString()} KG (₹${item.payload.rate}/kg • ₹${Math.round(item.payload.spend).toLocaleString()})`,
+                      `${Number(val).toLocaleString()} KG (Avg: ₹${item.payload.rate.toFixed(2)} / KG • Spend: ₹${Math.round(item.payload.spend).toLocaleString()})`,
                       'Tonnage'
                     ]}
                   />
@@ -790,31 +790,31 @@ export default function LogisticsTab() {
               icon="💰"
               color="#22c55e"
               value={'₹' + Math.round(sepMetrics.totalCost).toLocaleString()}
-              change={`Avg: ₹${sepMetrics.avgRate.toFixed(2)} / kg`}
+              change={`Base + Surcharges + GST`}
               changeColor="#22c55e"
             />
             <StatCard
-              label="KG Cost (Freight)"
-              icon="🚛"
-              color="#3b82f6"
-              value={'₹' + Math.round(sepMetrics.breakdown.kgCost).toLocaleString()}
-              change="Base Freight Value"
-              changeColor="#94a3b8"
-            />
-            <StatCard
-              label="Docket & Stationary"
-              icon="📑"
+              label="SEP-2026 Avg Cost / KG"
+              icon="🎯"
               color="#f97316"
-              value={'₹' + Math.round(sepMetrics.breakdown.docket + sepMetrics.breakdown.stationaryAndFuel).toLocaleString()}
-              change="Surcharges & Handling"
+              value={'₹' + sepMetrics.avgRate.toFixed(2) + ' / KG'}
+              change={`Total Spend ÷ Total KG`}
               changeColor="#f97316"
             />
             <StatCard
-              label="GST Total"
-              icon="🏛️"
+              label="Freight KG Cost"
+              icon="🚛"
+              color="#3b82f6"
+              value={'₹' + Math.round(sepMetrics.breakdown.kgCost).toLocaleString()}
+              change={`₹${(sepMetrics.totalTonnage ? sepMetrics.breakdown.kgCost / sepMetrics.totalTonnage : 0).toFixed(2)} / KG net rate`}
+              changeColor="#38bdf8"
+            />
+            <StatCard
+              label="Surcharges & GST"
+              icon="📑"
               color="#eab308"
-              value={'₹' + Math.round(sepMetrics.breakdown.gst).toLocaleString()}
-              change="5% - 18% Tax Component"
+              value={'₹' + Math.round(sepMetrics.breakdown.docket + sepMetrics.breakdown.stationaryAndFuel + sepMetrics.breakdown.gst).toLocaleString()}
+              change={`Dockets, Fuel & Taxes`}
               changeColor="#eab308"
             />
           </div>
@@ -860,7 +860,7 @@ export default function LogisticsTab() {
             <div className="chart-card">
               <div className="chart-header">
                 <div>
-                  <div className="chart-title">SEP-2026 Route Efficiency (₹/KG)</div>
+                  <div className="chart-title">SEP-2026 Route Efficiency (Avg Cost / KG)</div>
                   <div className="chart-period">Average Cost per KG by Destination</div>
                 </div>
               </div>
@@ -872,11 +872,11 @@ export default function LogisticsTab() {
                   <ReTooltip
                     contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
                     formatter={(val, name, item) => [
-                      `₹${Number(val).toFixed(2)}/kg (Total: ${item.payload.tonnage.toLocaleString()} KG • ₹${item.payload.spend.toLocaleString()})`,
-                      'Avg Rate'
+                      `Avg: ₹${Number(val).toFixed(2)} / KG (Total: ${item.payload.tonnage.toLocaleString()} KG • ₹${item.payload.spend.toLocaleString()})`,
+                      'Avg Cost / KG'
                     ]}
                   />
-                  <Bar dataKey="rate" name="Rate (₹/kg)" fill="#06b6d4" radius={[0, 4, 4, 0]}>
+                  <Bar dataKey="rate" name="Avg Cost / KG (₹)" fill="#06b6d4" radius={[0, 4, 4, 0]}>
                     {sepDestChartData.map(entry => (
                       <Cell
                         key={entry.destination}
@@ -890,13 +890,51 @@ export default function LogisticsTab() {
           </div>
 
           {/* September DataTable matching Sheet 2 */}
-          <DataTable
-            columns={tableColumns}
-            rows={filteredShipments}
-            defaultSortKey="sno"
-            defaultSortDir="asc"
-            pageSize={25}
-          />
+          <div style={{ background: '#1e293b', borderRadius: 12, border: '1px solid #334155', overflow: 'hidden' }}>
+            <DataTable
+              columns={tableColumns}
+              rows={filteredShipments}
+              defaultSortKey="sno"
+              defaultSortDir="asc"
+              pageSize={25}
+            />
+
+            {/* Table Totals Summary Bar */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 16,
+              background: '#0f172a',
+              borderTop: '2px solid #334155',
+              padding: '14px 20px',
+              fontSize: 13,
+            }}>
+              <div style={{ color: '#94a3b8', fontWeight: 600 }}>
+                Filtered Total: <span style={{ color: '#f1f5f9' }}>{filteredShipments.length} Shipments</span> • <span style={{ color: '#f1f5f9' }}>{sepMetrics.totalQty.toLocaleString()} Boxes</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+                <div>
+                  <span style={{ color: '#94a3b8', marginRight: 6 }}>Total Weight:</span>
+                  <span style={{ color: '#38bdf8', fontWeight: 700 }}>{Math.round(sepMetrics.totalTonnage).toLocaleString()} KG</span>
+                </div>
+                <div>
+                  <span style={{ color: '#94a3b8', marginRight: 6 }}>Total Cost:</span>
+                  <span style={{ color: '#22c55e', fontWeight: 700 }}>₹{Math.round(sepMetrics.totalCost).toLocaleString()}</span>
+                </div>
+                <div style={{
+                  padding: '4px 10px',
+                  background: 'rgba(249,115,22,0.15)',
+                  border: '1px solid rgba(249,115,22,0.4)',
+                  borderRadius: 8,
+                }}>
+                  <span style={{ color: '#94a3b8', marginRight: 6 }}>Avg Cost per KG:</span>
+                  <span style={{ color: '#f97316', fontWeight: 800, fontSize: 14 }}>₹{sepMetrics.avgRate.toFixed(2)} / KG</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </>
