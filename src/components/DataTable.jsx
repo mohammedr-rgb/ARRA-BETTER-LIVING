@@ -24,26 +24,28 @@ const pageBtn = (active) => ({
   minWidth: 32,
 })
 
-export function DataTable({ columns, rows, pageSize = 10, filename, onRowClick, emptyMessage, initialPageSize }) {
+export function DataTable({ columns = [], rows, data, pageSize = 10, filename, onRowClick, emptyMessage, initialPageSize }) {
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(initialPageSize || pageSize)
   const sort = useSort()
 
+  const actualRows = rows || data || []
+
   const accessors = useMemo(() => {
     const map = {}
-    columns.forEach(c => { map[c.key] = c.accessor || (r => r[c.key]) })
+    ;(columns || []).forEach(c => { map[c.key] = c.accessor || (r => r?.[c.key]) })
     return map
   }, [columns])
 
-  const filtered = rows;
+  const filtered = actualRows
 
   const sorted = useMemo(() => applySort(filtered, sort, accessors), [filtered, sort, accessors])
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / perPage))
+  const totalPages = Math.max(1, Math.ceil((sorted?.length || 0) / perPage))
   useEffect(() => { if (page >= totalPages) setPage(0) }, [totalPages, page])
-  useEffect(() => { setPage(0) }, [perPage, rows.length])
+  useEffect(() => { setPage(0) }, [perPage, actualRows.length])
 
-  const pageRows = sorted.slice(page * perPage, page * perPage + perPage)
+  const pageRows = (sorted || []).slice(page * perPage, page * perPage + perPage)
 
   const doExport = () => {
     if (!filename || !sorted.length) return

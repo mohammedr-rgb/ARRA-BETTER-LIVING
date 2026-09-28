@@ -832,7 +832,7 @@ export default function LogisticsTab() {
 
         <DataTable
           columns={tableColumns}
-          data={filteredShipments}
+          rows={filteredShipments}
           defaultSortKey="weight"
           defaultSortDir="desc"
           pageSize={20}
