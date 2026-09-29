@@ -3,16 +3,19 @@ import { parseCSV, csvEscape } from '../lib/utils'
 import { ProfileSection, CSVButton } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend, LineChart, Line
 } from 'recharts'
 
 const PARITY_SPREADSHEET_ID = '1w7PsIoiwh5U1jmgkFoD1VWeWYwSZ56Tmbe-0F5OdTe8'
+const GID_COMPETITORS = '888123456' // Raw Data Competitors
+const GID_INSTA = '12345678'       // Raw Data of Insta
+const GID_BLINKIT = '712798484'     // Raw Data of Blinkit
 
-// Helper to clean price: "₹192.00" -> 192, "280(bottle)" -> 280, "*" -> null
+// Helper to extract clean numeric price
 function extractPriceNum(val) {
   if (!val) return null
-  const s = String(val).trim()
-  if (s === '*' || s === '-' || s.toLowerCase() === 'missing' || s.toLowerCase() === 'n/a') return null
+  const s = String(val).replace(/₹/g, '').replace(/,/g, '').trim()
+  if (s === '*' || s === '-' || s.toLowerCase() === 'missing' || s.toLowerCase() === 'n/a' || !s) return null
   const m = s.match(/([0-9]+(?:\.[0-9]+)?)/)
   if (m) {
     const n = parseFloat(m[1])
@@ -21,34 +24,26 @@ function extractPriceNum(val) {
   return null
 }
 
-// Extract pack type from string: e.g. "197 (pouch)" -> "Pouch"
-function extractPackTag(val) {
-  if (!val) return ''
-  const m = String(val).match(/\(([^)]+)\)/)
-  return m ? m[1].trim() : ''
-}
-
 // Capitalize city name
 function formatCity(c) {
   if (!c) return 'All Cities'
   return c.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
 }
 
-// Normalize product name across platforms
-function normalizeProductName(p) {
-  const s = (p || '').trim().toLowerCase()
-  if (s === '1l pouch' || s === '1l groundnut' || s === '1l groundnut (pouch)') return 'Groundnut Oil 1L (Pouch)'
-  if (s === '1l sb' || s === '1l groundnut (bottle)') return 'Groundnut Oil 1L (Smart Bottle)'
-  if (s === '2l bottle') return 'Groundnut Oil 2L (Bottle)'
-  if (s === '500ml sb') return 'Groundnut Oil 500ml (Smart Bottle)'
-  if (s === '200 ml spray' || s === 'ovlive spray' || s === 'olive spray') return 'Oil Spray 200ml'
-  if (s === '1l olive') return 'Extra Virgin Olive Oil 1L'
-  if (s === '1l sesame') return 'Sesame / Gingelly Oil 1L'
-  if (s === '1l mustard') return 'Mustard Oil 1L'
-  return p
+// Format date: "2026-09-29" -> "29 Sep"
+function formatShortDate(dStr) {
+  if (!dStr) return '—'
+  try {
+    const [y, m, d] = dStr.split('-').map(Number)
+    if (!y || !m || !d) return dStr
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `${d} ${months[m - 1]}`
+  } catch {
+    return dStr
+  }
 }
 
-// Format date: "2026-09-25" -> "25 Sep 2026"
+// Format date: "2026-09-29" -> "29 Sep 2026"
 function formatPrettyDate(dStr) {
   if (!dStr) return 'N/A'
   try {
@@ -61,21 +56,75 @@ function formatPrettyDate(dStr) {
   }
 }
 
+// Parse Raw Data Competitors
+function parseCompetitorRawData(csvText) {
+  const rows = parseCSV(csvText)
+  const items = []
+  for (const r of rows) {
+    const cols = Object.values(r)
+    const date = (r._col_0 || r.Date || cols[0] || '').trim()
+    const city = (r._col_1 || r.City || cols[1] || '').trim().toUpperCase()
+    const product = (r._col_2 || r.Product || cols[2] || '').trim()
+    const brand = (r._col_3 || r.Brand || cols[3] || '').trim()
+    const rawPrice = (r._col_4 || r.Price || cols[4] || '').trim()
+    const price = extractPriceNum(rawPrice)
+
+    if (!date.startsWith('202') || !city || city === 'CITY' || !product || !brand) continue
+
+    items.push({
+      date,
+      city,
+      product,
+      brand,
+      price,
+      rawPrice,
+    })
+  }
+  return items
+}
+
+// Parse Raw Data of Insta
+function parseInstaRawData(csvText) {
+  const rows = parseCSV(csvText)
+  const items = []
+  for (const r of rows) {
+    const cols = Object.values(r)
+    const date = (r._col_0 || r.Date || cols[0] || '').trim()
+    const city = (r._col_1 || r.City || cols[1] || '').trim().toUpperCase()
+    const product = (r._col_2 || r.Product || cols[2] || '').trim()
+    const availability = (r._col_3 || r.Availability || cols[3] || '').trim()
+    const mrp = extractPriceNum(r._col_4 || r.MRP || cols[4])
+    const gem = extractPriceNum(r._col_5 || r.Gem || cols[5])
+
+    if (!date.startsWith('202') || !city || city === 'CITY' || !product || product.toLowerCase() === 'product') continue
+
+    items.push({
+      date,
+      city,
+      product,
+      availability: availability || 'Available',
+      mrp,
+      gem,
+    })
+  }
+  return items
+}
+
 // Price Delta Badge
-function PriceDeltaBadge({ delta, priceD, prevPrice }) {
+function PriceDeltaBadge({ delta, priceD, prevPrice, showStable = true }) {
   if (prevPrice === null || prevPrice === undefined || prevPrice === 0) {
     if (priceD > 0) return <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa' }}>New</span>
     return <span style={{ color: '#64748b' }}>—</span>
   }
-  if (delta > 0.5) {
+  if (delta > 0.4) {
     const pct = prevPrice > 0 ? ((delta / prevPrice) * 100).toFixed(1) : '0'
     return (
       <span style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: 3,
-        padding: '2px 7px',
-        borderRadius: 5,
+        padding: '2px 6px',
+        borderRadius: 4,
         fontSize: 11,
         fontWeight: 700,
         background: 'rgba(239, 68, 68, 0.15)',
@@ -87,15 +136,15 @@ function PriceDeltaBadge({ delta, priceD, prevPrice }) {
       </span>
     )
   }
-  if (delta < -0.5) {
+  if (delta < -0.4) {
     const pct = prevPrice > 0 ? ((Math.abs(delta) / prevPrice) * 100).toFixed(1) : '0'
     return (
       <span style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: 3,
-        padding: '2px 7px',
-        borderRadius: 5,
+        padding: '2px 6px',
+        borderRadius: 4,
         fontSize: 11,
         fontWeight: 700,
         background: 'rgba(34, 197, 94, 0.15)',
@@ -107,12 +156,13 @@ function PriceDeltaBadge({ delta, priceD, prevPrice }) {
       </span>
     )
   }
+  if (!showStable) return null
   return (
     <span style={{
       display: 'inline-flex',
       alignItems: 'center',
-      padding: '2px 7px',
-      borderRadius: 5,
+      padding: '2px 6px',
+      borderRadius: 4,
       fontSize: 11,
       fontWeight: 600,
       background: 'rgba(148, 163, 184, 0.12)',
@@ -125,117 +175,56 @@ function PriceDeltaBadge({ delta, priceD, prevPrice }) {
   )
 }
 
-// Availability Pill
-function AvailabilityBadge({ status }) {
+// Availability Status Pill
+function AvailabilityPill({ status }) {
   const s = (status || '').toLowerCase()
   if (s.includes('avail')) {
-    return <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)' }}>✓ Available</span>
+    return <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)' }}>✓ Available</span>
   }
-  if (s.includes('out') || s.includes('stock')) {
-    return <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}>⛔ Out of Stock</span>
+  if (s.includes('out') || s.includes('stock') || s === 'oos') {
+    return <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}>⛔ Out of Stock</span>
   }
   if (s.includes('miss')) {
-    return <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: 'rgba(234, 179, 8, 0.15)', color: '#facc15', border: '1px solid rgba(234, 179, 8, 0.3)' }}>⚠️ Missing</span>
+    return <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(234, 179, 8, 0.15)', color: '#facc15', border: '1px solid rgba(234, 179, 8, 0.3)' }}>⚠️ Missing</span>
   }
   return <span style={{ color: '#64748b', fontSize: 11 }}>{status || '—'}</span>
 }
 
 export default function StockTab() {
-  const [activeSubTab, setActiveSubTab] = useState('benchmarking') // 'benchmarking' | 'city_matrix' | 'alerts_2day' | 'chart'
+  const [activeSubTab, setActiveSubTab] = useState('competitors') // 'competitors' | 'insta_avail' | 'parity_matrix' | 'alerts' | 'trends'
   const [selectedCity, setSelectedCity] = useState('All')
   const [selectedProduct, setSelectedProduct] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
-  const [alertFilter, setAlertFilter] = useState('All') // 'All' | 'hikes' | 'drops' | 'gaps' | 'oos'
+  const [alertFilter, setAlertFilter] = useState('All') // 'All' | 'hikes' | 'drops' | 'newly_oos' | 'restocked' | 'premium'
 
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState(null)
-  const [rawData, setRawData] = useState({ insta: [], blinkit: [] })
+  const [competitorData, setCompetitorData] = useState([])
+  const [instaData, setInstaData] = useState([])
 
-  // Fetch both sheets from Parity workbook
+  // Fetch all required data sheets
   const loadData = useCallback(async () => {
     setIsRefreshing(true)
     setError(null)
     try {
-      const [resInsta, resBlinkit] = await Promise.all([
-        fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/gviz/tq?sheet=Raw%20Data%20of%20Insta&tqx=out:csv`),
-        fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/gviz/tq?sheet=Raw%20Data%20of%20Blinkit&tqx=out:csv`)
+      const [resComp, resInsta] = await Promise.all([
+        fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_COMPETITORS}`),
+        fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_INSTA}`)
       ])
 
-      if (!resInsta.ok || !resBlinkit.ok) {
-        throw new Error('Failed to fetch from Parity spreadsheet.')
+      if (!resComp.ok || !resInsta.ok) {
+        throw new Error('Failed to fetch data from Parity spreadsheet.')
       }
 
+      const compText = await resComp.text()
       const instaText = await resInsta.text()
-      const blinkitText = await resBlinkit.text()
 
-      const instaParsed = parseCSV(instaText)
-      const blinkitParsed = parseCSV(blinkitText)
+      const parsedComp = parseCompetitorRawData(compText)
+      const parsedInsta = parseInstaRawData(instaText)
 
-      // Transform Instamart Rows
-      const instaItems = instaParsed.map(r => {
-        const date = (r.Date || '').trim()
-        const city = (r.City || '').trim().toUpperCase()
-        const rawProduct = (r.Product || '').trim()
-        const product = normalizeProductName(rawProduct)
-        const availability = (r.Availability || 'Available').trim()
-        const mrp = extractPriceNum(r.MRP)
-        const gem = extractPriceNum(r.Gem)
-        const jivo = extractPriceNum(r.Jivo)
-        const mrGold = extractPriceNum(r['MR. Gold'])
-        const fortune = extractPriceNum(r.Fortune)
-        const goldwinner = extractPriceNum(r.Goldwinner)
-        const idhayam = extractPriceNum(r.Idhayam)
-
-        return {
-          platform: 'Instamart',
-          date,
-          city,
-          rawProduct,
-          product,
-          availability,
-          mrp,
-          gem,
-          jivo,
-          mrGold,
-          fortune,
-          goldwinner,
-          idhayam
-        }
-      }).filter(r => r.date && r.city && r.city !== 'CITY' && r.product && r.product !== 'Product')
-
-      // Transform Blinkit Rows
-      const blinkitItems = blinkitParsed.map(r => {
-        const date = (r.Date || '').trim()
-        const city = (r.Cities || '').trim().toUpperCase()
-        const rawProduct = (r.Product || '').trim()
-        const product = normalizeProductName(rawProduct)
-        const gem = extractPriceNum(r.Gem)
-        const gemPack = extractPackTag(r.Gem)
-        const jivo = extractPriceNum(r.Jivo)
-        const mrGold = extractPriceNum(r['MR. Gold'])
-        const fortune = extractPriceNum(r.Fortune)
-        const goldwinner = extractPriceNum(r.Goldwinner)
-        const idhayam = extractPriceNum(r.Idhayam)
-
-        return {
-          platform: 'Blinkit',
-          date,
-          city,
-          rawProduct,
-          product,
-          gem,
-          gemPack,
-          jivo,
-          mrGold,
-          fortune,
-          goldwinner,
-          idhayam,
-          availability: gem > 0 ? 'Available' : 'Out of Stock'
-        }
-      }).filter(r => r.date && r.city && r.city !== 'CITIES' && r.product && r.product !== 'Product')
-
-      setRawData({ insta: instaItems, blinkit: blinkitItems })
+      setCompetitorData(parsedComp)
+      setInstaData(parsedInsta)
       setLoading(false)
       setIsRefreshing(false)
     } catch (e) {
@@ -249,604 +238,916 @@ export default function StockTab() {
     loadData()
   }, [loadData])
 
-  // Extract available dates for Instamart
-  const instaDates = useMemo(() => {
-    const set = new Set(rawData.insta.map(r => r.date).filter(Boolean))
+  // Extract available dates for Competitors
+  const compDates = useMemo(() => {
+    const set = new Set(competitorData.map(r => r.date).filter(Boolean))
     return Array.from(set).sort()
-  }, [rawData.insta])
+  }, [competitorData])
 
-  const latestInstaDate = instaDates[instaDates.length - 1] || '2026-09-25'
-  const prevInstaDate = instaDates[instaDates.length - 2] || '2026-09-24'
+  // Extract available dates for Insta
+  const instaDates = useMemo(() => {
+    const set = new Set(instaData.map(r => r.date).filter(Boolean))
+    return Array.from(set).sort()
+  }, [instaData])
 
-  const [dayD, setDayD] = useState('')
-  const [dayPrev, setDayPrev] = useState('')
+  // Selected Day D, D-1, D-2
+  const latestCompDate = compDates[compDates.length - 1] || '2026-09-29'
+  const prevCompDate = compDates[compDates.length - 2] || '2026-09-28'
+  const prev2CompDate = compDates[compDates.length - 3] || '2026-09-27'
+
+  const [selectedDate, setSelectedDate] = useState('')
 
   useEffect(() => {
-    if (latestInstaDate && prevInstaDate) {
-      setDayD(latestInstaDate)
-      setDayPrev(prevInstaDate)
+    if (latestCompDate && !selectedDate) {
+      setSelectedDate(latestCompDate)
     }
-  }, [latestInstaDate, prevInstaDate])
+  }, [latestCompDate, selectedDate])
 
-  const effectiveDayD = dayD || latestInstaDate
-  const effectiveDayPrev = dayPrev || prevInstaDate
+  const dayD = selectedDate || latestCompDate
+  const dateIndex = compDates.indexOf(dayD)
+  const dayDMinus1 = dateIndex > 0 ? compDates[dateIndex - 1] : prevCompDate
+  const dayDMinus2 = dateIndex > 1 ? compDates[dateIndex - 2] : prev2CompDate
 
-  // Distinct cities list
+  // Dates for Instamart 3-day tracking
+  const latestInstaDate = instaDates[instaDates.length - 1] || dayD
+  const instaDIndex = instaDates.indexOf(latestInstaDate)
+  const instaD = latestInstaDate
+  const instaD1 = instaDIndex > 0 ? instaDates[instaDIndex - 1] : '2026-09-28'
+  const instaD2 = instaDIndex > 1 ? instaDates[instaDIndex - 2] : '2026-09-27'
+  const instaD3 = instaDIndex > 2 ? instaDates[instaDIndex - 3] : '2026-09-26'
+
+  // Distinct cities list across both sources
   const allCities = useMemo(() => {
-    const set = new Set([...rawData.insta.map(r => r.city), ...rawData.blinkit.map(r => r.city)].filter(Boolean))
+    const set = new Set([
+      ...competitorData.map(r => r.city),
+      ...instaData.map(r => r.city)
+    ].filter(Boolean))
     return ['All', ...Array.from(set).sort()]
-  }, [rawData])
+  }, [competitorData, instaData])
 
   // Distinct products list
-  const allProducts = useMemo(() => {
-    const set = new Set([...rawData.insta.map(r => r.product), ...rawData.blinkit.map(r => r.product)].filter(Boolean))
+  const allCompProducts = useMemo(() => {
+    const set = new Set(competitorData.map(r => r.product).filter(Boolean))
     return ['All', ...Array.from(set).sort()]
-  }, [rawData])
+  }, [competitorData])
 
-  // ==================== 1. COMPETITOR BENCHMARKING (GEM VS JIVO, MR. GOLD, FORTUNE, GOLDWINNER, IDHAYAM) ====================
-  const competitorBenchmarkData = useMemo(() => {
-    const filterCity = (list) => {
-      if (selectedCity === 'All') return list
-      return list.filter(r => r.city === selectedCity)
-    }
+  const allInstaProducts = useMemo(() => {
+    const set = new Set(instaData.map(r => r.product).filter(Boolean))
+    return ['All', ...Array.from(set).sort()]
+  }, [instaData])
 
-    const instaDayD = filterCity(rawData.insta.filter(r => r.date === effectiveDayD))
-    const blinkitDayD = filterCity(rawData.blinkit.filter(r => r.date === effectiveDayD))
+  // =========================================================================
+  // 1. COMPETITOR & GEM PRICE TRACKING (DOD & LAST 2 DAYS)
+  // =========================================================================
+  const competitorTrackingData = useMemo(() => {
+    // Filter data for Day D, D-1, D-2
+    const rowsD = competitorData.filter(r => r.date === dayD)
+    const rowsD1 = competitorData.filter(r => r.date === dayDMinus1)
+    const rowsD2 = competitorData.filter(r => r.date === dayDMinus2)
 
-    // Group by Product
-    const map = {}
-    const getProdEntry = (prod) => {
-      if (!map[prod]) {
-        map[prod] = {
-          product: prod,
-          mrps: [],
-          gemPrices: [],
-          jivoPrices: [],
-          mrGoldPrices: [],
-          fortunePrices: [],
-          goldwinnerPrices: [],
-          idhayamPrices: [],
-          availabilities: { Available: 0, OutOfStock: 0, Missing: 0 },
-          cityCount: new Set()
+    // Build lookup maps: city||product||brand -> price
+    const mapD = {}
+    const mapD1 = {}
+    const mapD2 = {}
+
+    rowsD.forEach(r => { mapD[`${r.city}||${r.product}||${r.brand}`] = r.price })
+    rowsD1.forEach(r => { mapD1[`${r.city}||${r.product}||${r.brand}`] = r.price })
+    rowsD2.forEach(r => { mapD2[`${r.city}||${r.product}||${r.brand}`] = r.price })
+
+    // Find all unique City + Product pairs on Day D (or across days)
+    const pairMap = {}
+    const processRows = (rows) => {
+      rows.forEach(r => {
+        const key = `${r.city}||${r.product}`
+        if (!pairMap[key]) {
+          pairMap[key] = { city: r.city, product: r.product, brands: new Set() }
         }
-      }
-      return map[prod]
+        pairMap[key].brands.add(r.brand)
+      })
     }
+    processRows(rowsD)
+    processRows(rowsD1)
 
-    instaDayD.forEach(r => {
-      const e = getProdEntry(r.product)
-      if (r.mrp) e.mrps.push(r.mrp)
-      if (r.gem) e.gemPrices.push(r.gem)
-      if (r.jivo) e.jivoPrices.push(r.jivo)
-      if (r.mrGold) e.mrGoldPrices.push(r.mrGold)
-      if (r.fortune) e.fortunePrices.push(r.fortune)
-      if (r.goldwinner) e.goldwinnerPrices.push(r.goldwinner)
-      if (r.idhayam) e.idhayamPrices.push(r.idhayam)
-      if (r.city) e.cityCount.add(r.city)
+    const list = []
+    for (const [key, info] of Object.entries(pairMap)) {
+      const city = info.city
+      const product = info.product
 
-      const av = (r.availability || '').toLowerCase()
-      if (av.includes('avail')) e.availabilities.Available++
-      else if (av.includes('out') || av.includes('stock')) e.availabilities.OutOfStock++
-      else if (av.includes('miss')) e.availabilities.Missing++
-    })
+      if (selectedCity !== 'All' && city !== selectedCity) continue
+      if (selectedProduct !== 'All' && product !== selectedProduct) continue
 
-    blinkitDayD.forEach(r => {
-      const e = getProdEntry(r.product)
-      if (r.gem) e.gemPrices.push(r.gem)
-      if (r.jivo) e.jivoPrices.push(r.jivo)
-      if (r.mrGold) e.mrGoldPrices.push(r.mrGold)
-      if (r.fortune) e.fortunePrices.push(r.fortune)
-      if (r.goldwinner) e.goldwinnerPrices.push(r.goldwinner)
-      if (r.idhayam) e.idhayamPrices.push(r.idhayam)
-      if (r.city) e.cityCount.add(r.city)
-    })
+      const gemD = mapD[`${city}||${product}||Gem`] ?? null
+      const gemD1 = mapD1[`${city}||${product}||Gem`] ?? null
+      const gemD2 = mapD2[`${city}||${product}||Gem`] ?? null
 
-    const avgOf = (arr) => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : null
+      const gemDoD = (gemD !== null && gemD1 !== null) ? (gemD - gemD1) : 0
+      const gem2Day = (gemD !== null && gemD2 !== null) ? (gemD - gemD2) : 0
 
-    return Object.values(map).map(e => {
-      const avgMrp = avgOf(e.mrps)
-      const avgGem = avgOf(e.gemPrices)
-      const avgJivo = avgOf(e.jivoPrices)
-      const avgMrGold = avgOf(e.mrGoldPrices)
-      const avgFortune = avgOf(e.fortunePrices)
-      const avgGoldwinner = avgOf(e.goldwinnerPrices)
-      const avgIdhayam = avgOf(e.idhayamPrices)
+      // Collect competitor prices on Day D
+      const compPricesD = []
+      const brandDetails = []
 
-      // Calculate Market Competitor Average (excluding Gem)
-      const compPrices = [avgJivo, avgMrGold, avgFortune, avgGoldwinner, avgIdhayam].filter(Boolean)
-      const marketAvg = compPrices.length ? Math.round(compPrices.reduce((s, v) => s + v, 0) / compPrices.length) : null
+      // Top known competitor brands in order
+      const topBrands = ['Jivo', 'Idhayam', 'Mr. Gold', 'VVD', 'Fortune', 'Gold winner', 'TATA', '24 Mantra', 'Dhara', 'Saffola', 'Gulab', 'Gemini', 'Farm SE', 'Pro nature']
+      const allBrandsPresent = [...new Set([...topBrands, ...Array.from(info.brands)])].filter(b => b !== 'Gem')
 
-      const discountOffMrp = (avgMrp && avgGem) ? Math.round(((avgMrp - avgGem) / avgMrp) * 100) : 0
-      const gemVsMarketDiff = (avgGem && marketAvg) ? Math.round(avgGem - marketAvg) : 0
-      const gemVsMarketPct = (avgGem && marketAvg) ? Number((((avgGem - marketAvg) / marketAvg) * 100).toFixed(1)) : 0
+      allBrandsPresent.forEach(b => {
+        const pD = mapD[`${city}||${product}||${b}`] ?? null
+        const pD1 = mapD1[`${city}||${product}||${b}`] ?? null
+        const pD2 = mapD2[`${city}||${product}||${b}`] ?? null
 
-      // Identify lowest price brand
-      const brandMap = { 'Gem': avgGem, 'Jivo': avgJivo, 'MR. Gold': avgMrGold, 'Fortune': avgFortune, 'Goldwinner': avgGoldwinner, 'Idhayam': avgIdhayam }
-      let lowestBrand = '—'
-      let lowestPrice = Infinity
-      Object.entries(brandMap).forEach(([b, p]) => {
-        if (p && p < lowestPrice) {
-          lowestPrice = p
-          lowestBrand = b
+        if (pD !== null || pD1 !== null) {
+          const doD = (pD !== null && pD1 !== null) ? (pD - pD1) : 0
+          if (pD !== null) compPricesD.push(pD)
+          brandDetails.push({
+            brand: b,
+            priceD: pD,
+            priceD1: pD1,
+            priceD2: pD2,
+            doD,
+          })
         }
       })
 
-      return {
-        product: e.product,
-        avgMrp,
-        discountOffMrp,
-        avgGem,
-        avgJivo,
-        avgMrGold,
-        avgFortune,
-        avgGoldwinner,
-        avgIdhayam,
-        marketAvg,
+      const compAvg = compPricesD.length ? Math.round((compPricesD.reduce((s, v) => s + v, 0) / compPricesD.length) * 10) / 10 : null
+      const lowestCompPrice = compPricesD.length ? Math.min(...compPricesD) : null
+      const lowestBrand = brandDetails.find(b => b.priceD === lowestCompPrice)?.brand || '—'
+
+      const gemVsMarketDiff = (gemD !== null && compAvg !== null) ? Math.round((gemD - compAvg) * 10) / 10 : null
+      const gemVsMarketPct = (gemD !== null && compAvg !== null && compAvg > 0) ? Math.round(((gemD - compAvg) / compAvg) * 1000) / 10 : null
+
+      const gemVsLowestDiff = (gemD !== null && lowestCompPrice !== null) ? Math.round((gemD - lowestCompPrice) * 10) / 10 : null
+
+      list.push({
+        id: key,
+        city,
+        product,
+        gemD,
+        gemD1,
+        gemD2,
+        gemDoD,
+        gem2Day,
+        compAvg,
+        lowestCompPrice,
+        lowestBrand,
         gemVsMarketDiff,
         gemVsMarketPct,
-        lowestBrand: lowestPrice < Infinity ? `${lowestBrand} (₹${lowestPrice})` : '—',
-        activeCities: e.cityCount.size,
-        availabilities: e.availabilities
-      }
-    }).sort((a, b) => (b.avgGem || 0) - (a.avgGem || 0))
-  }, [rawData, effectiveDayD, selectedCity])
+        gemVsLowestDiff,
+        brandDetails,
+        activeCompetitorsCount: compPricesD.length,
+        // Specific brand shortcuts for table columns
+        jivoD: mapD[`${city}||${product}||Jivo`] ?? null,
+        jivoD1: mapD1[`${city}||${product}||Jivo`] ?? null,
+        idhayamD: mapD[`${city}||${product}||Idhayam`] ?? null,
+        idhayamD1: mapD1[`${city}||${product}||Idhayam`] ?? null,
+        mrGoldD: mapD[`${city}||${product}||Mr. Gold`] ?? null,
+        mrGoldD1: mapD1[`${city}||${product}||Mr. Gold`] ?? null,
+        vvdD: mapD[`${city}||${product}||VVD`] ?? null,
+        vvdD1: mapD1[`${city}||${product}||VVD`] ?? null,
+        fortuneD: mapD[`${city}||${product}||Fortune`] ?? null,
+        fortuneD1: mapD1[`${city}||${product}||Fortune`] ?? null,
+        goldwinnerD: mapD[`${city}||${product}||Gold winner`] ?? null,
+        goldwinnerD1: mapD1[`${city}||${product}||Gold winner`] ?? null,
+      })
+    }
 
-  // ==================== 2. CITY-WISE PARITY MATRIX (SEPARATE INSTA & BLINKIT COLUMNS) ====================
-  const cityParityMatrix = useMemo(() => {
-    // Map items on Day D & Day D-1 by City + Product
+    return list.sort((a, b) => a.city.localeCompare(b.city) || a.product.localeCompare(b.product))
+  }, [competitorData, dayD, dayDMinus1, dayDMinus2, selectedCity, selectedProduct])
+
+  // =========================================================================
+  // 2. INSTAMART SKU AVAILABILITY TRACKER (DOD & LAST 3 DAYS)
+  // =========================================================================
+  const instaAvailabilityData = useMemo(() => {
+    // Map items by city + product + date
     const map = {}
-    const getEntry = (city, product) => {
-      const key = `${city}___${product}`
+    instaData.forEach(r => {
+      const key = `${r.city}||${r.product}`
       if (!map[key]) {
         map[key] = {
-          key,
-          city,
-          product,
-          formattedCity: formatCity(city),
-          instaDPrice: null,
-          instaPrevPrice: null,
-          instaAvailability: '—',
-          instaMrp: null,
-          blinkitDPrice: null,
-          blinkitPack: '',
-          jivo: null,
-          mrGold: null,
-          fortune: null,
-          goldwinner: null,
-          idhayam: null
+          city: r.city,
+          product: r.product,
+          byDate: {}
         }
       }
-      return map[key]
-    }
-
-    // Instamart Day D
-    rawData.insta.filter(r => r.date === effectiveDayD).forEach(r => {
-      const e = getEntry(r.city, r.product)
-      e.instaDPrice = r.gem
-      e.instaAvailability = r.availability
-      e.instaMrp = r.mrp
-      if (r.jivo) e.jivo = r.jivo
-      if (r.mrGold) e.mrGold = r.mrGold
-      if (r.fortune) e.fortune = r.fortune
-      if (r.goldwinner) e.goldwinner = r.goldwinner
-      if (r.idhayam) e.idhayam = r.idhayam
+      map[key].byDate[r.date] = r
     })
 
-    // Instamart Day D-1
-    rawData.insta.filter(r => r.date === effectiveDayPrev).forEach(r => {
-      const e = getEntry(r.city, r.product)
-      e.instaPrevPrice = r.gem
-    })
+    const list = []
+    for (const [key, item] of Object.entries(map)) {
+      if (selectedCity !== 'All' && item.city !== selectedCity) continue
+      if (selectedProduct !== 'All' && item.product !== selectedProduct) continue
 
-    // Blinkit Day D
-    rawData.blinkit.filter(r => r.date === effectiveDayD).forEach(r => {
-      const e = getEntry(r.city, r.product)
-      e.blinkitDPrice = r.gem
-      e.blinkitPack = r.gemPack
-      if (r.jivo) e.jivo = r.jivo
-      if (r.mrGold) e.mrGold = r.mrGold
-      if (r.fortune) e.fortune = r.fortune
-      if (r.goldwinner) e.goldwinner = r.goldwinner
-      if (r.idhayam) e.idhayam = r.idhayam
-    })
+      const d0 = item.byDate[instaD] || null
+      const d1 = item.byDate[instaD1] || null
+      const d2 = item.byDate[instaD2] || null
+      const d3 = item.byDate[instaD3] || null
 
-    return Object.values(map).map(e => {
-      const instaDelta = (e.instaDPrice !== null && e.instaPrevPrice !== null) ? Number((e.instaDPrice - e.instaPrevPrice).toFixed(1)) : 0
-      const platformGap = (e.instaDPrice !== null && e.blinkitDPrice !== null) ? Number((e.blinkitDPrice - e.instaDPrice).toFixed(1)) : null
+      const statusD0 = d0 ? d0.availability : 'Missing'
+      const statusD1 = d1 ? d1.availability : 'Missing'
+      const statusD2 = d2 ? d2.availability : 'Missing'
+      const statusD3 = d3 ? d3.availability : 'Missing'
 
-      const compPrices = [e.jivo, e.mrGold, e.fortune, e.goldwinner, e.idhayam].filter(Boolean)
-      const compAvg = compPrices.length ? Math.round(compPrices.reduce((s, v) => s + v, 0) / compPrices.length) : null
+      const isAvailD0 = statusD0.toLowerCase().includes('avail')
+      const isAvailD1 = statusD1.toLowerCase().includes('avail')
+      const isAvailD2 = statusD2.toLowerCase().includes('avail')
 
-      const hasHike = instaDelta > 1
-      const hasDrop = instaDelta < -1
-      const hasPlatformGap = platformGap !== null && Math.abs(platformGap) >= 2
-      const isOOS = e.instaAvailability.toLowerCase().includes('out') || e.instaAvailability.toLowerCase().includes('miss')
+      const isOosD0 = statusD0.toLowerCase().includes('out') || statusD0.toLowerCase().includes('stock')
+      const isOosD1 = statusD1.toLowerCase().includes('out') || statusD1.toLowerCase().includes('stock')
 
-      return {
-        ...e,
-        instaDelta,
-        platformGap,
-        compAvg,
-        hasHike,
-        hasDrop,
-        hasPlatformGap,
-        isOOS
+      // Classify Availability Shift
+      let shift = 'Stable Available'
+      let shiftColor = '#4ade80'
+      let shiftIcon = '✅'
+
+      if (isOosD0 && isAvailD1) {
+        shift = 'Newly Out of Stock'
+        shiftColor = '#f87171'
+        shiftIcon = '⛔'
+      } else if (isAvailD0 && isOosD1) {
+        shift = 'Restocked'
+        shiftColor = '#38bdf8'
+        shiftIcon = '🔄'
+      } else if (isOosD0 && isOosD1) {
+        shift = 'Persistently OOS'
+        shiftColor = '#f43f5e'
+        shiftIcon = '⚠️'
+      } else if (statusD0.toLowerCase().includes('miss')) {
+        shift = 'Missing / Delisted'
+        shiftColor = '#facc15'
+        shiftIcon = '❓'
+      } else if (!isAvailD0) {
+        shift = 'Out of Stock'
+        shiftColor = '#f87171'
+        shiftIcon = '⛔'
       }
-    }).sort((a, b) => a.city.localeCompare(b.city))
-  }, [rawData, effectiveDayD, effectiveDayPrev])
 
-  // Filtered City Parity Matrix
-  const filteredCityMatrix = useMemo(() => {
-    let list = cityParityMatrix
-    if (selectedCity !== 'All') list = list.filter(r => r.city === selectedCity)
-    if (selectedProduct !== 'All') list = list.filter(r => r.product === selectedProduct)
+      const mrp = d0?.mrp || d1?.mrp || null
+      const gemPriceD0 = d0?.gem || null
+      const gemPriceD1 = d1?.gem || null
+      const gemPriceD2 = d2?.gem || null
 
-    if (alertFilter === 'hikes') list = list.filter(r => r.hasHike)
-    else if (alertFilter === 'drops') list = list.filter(r => r.hasDrop)
-    else if (alertFilter === 'gaps') list = list.filter(r => r.hasPlatformGap)
-    else if (alertFilter === 'oos') list = list.filter(r => r.isOOS)
+      const priceDoD = (gemPriceD0 !== null && gemPriceD1 !== null) ? (gemPriceD0 - gemPriceD1) : 0
+      const discountPct = (mrp && gemPriceD0) ? Math.round(((mrp - gemPriceD0) / mrp) * 100) : null
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      list = list.filter(r => r.formattedCity.toLowerCase().includes(q) || r.product.toLowerCase().includes(q))
+      list.push({
+        id: key,
+        city: item.city,
+        product: item.product,
+        statusD0,
+        statusD1,
+        statusD2,
+        statusD3,
+        isAvailD0,
+        isOosD0,
+        shift,
+        shiftColor,
+        shiftIcon,
+        mrp,
+        gemPriceD0,
+        gemPriceD1,
+        gemPriceD2,
+        priceDoD,
+        discountPct,
+      })
     }
-    return list
-  }, [cityParityMatrix, selectedCity, selectedProduct, alertFilter, searchQuery])
 
-  // ==================== 3. 2-DAY PRICE MOVEMENT & ALERTS LOG ====================
-  const priceAlertsList = useMemo(() => {
-    return cityParityMatrix.filter(r => r.hasHike || r.hasDrop || r.hasPlatformGap || r.isOOS)
-  }, [cityParityMatrix])
-
-  // ==================== 4. EXECUTIVE STATS ====================
-  const executiveKPIs = useMemo(() => {
-    let totalHikes = 0
-    let totalDrops = 0
-    let totalGaps = 0
-    let totalOOS = 0
-
-    cityParityMatrix.forEach(r => {
-      if (r.hasHike) totalHikes++
-      if (r.hasDrop) totalDrops++
-      if (r.hasPlatformGap) totalGaps++
-      if (r.isOOS) totalOOS++
+    return list.sort((a, b) => {
+      // Show newly OOS and OOS first, then restocked, then alphabetical
+      const order = { 'Newly Out of Stock': 1, 'Persistently OOS': 2, 'Out of Stock': 3, 'Restocked': 4, 'Missing / Delisted': 5, 'Stable Available': 6 }
+      const diff = (order[a.shift] || 9) - (order[b.shift] || 9)
+      if (diff !== 0) return diff
+      return a.city.localeCompare(b.city) || a.product.localeCompare(b.product)
     })
+  }, [instaData, instaD, instaD1, instaD2, instaD3, selectedCity, selectedProduct])
 
-    const gemPrices = cityParityMatrix.map(r => r.instaDPrice || r.blinkitDPrice).filter(Boolean)
-    const avgGemPrice = gemPrices.length ? Math.round(gemPrices.reduce((s, p) => s + p, 0) / gemPrices.length) : 0
+  // =========================================================================
+  // 3. EXECUTIVE KPI CALCULATIONS
+  // =========================================================================
+  const executiveKPIs = useMemo(() => {
+    // 1. Gem Price KPIs (from Competitor Tracking)
+    const gemPricesD = competitorTrackingData.map(r => r.gemD).filter(p => p !== null)
+    const gemPricesD1 = competitorTrackingData.map(r => r.gemD1).filter(p => p !== null)
+    const gemPricesD2 = competitorTrackingData.map(r => r.gemD2).filter(p => p !== null)
 
-    const prevGemPrices = cityParityMatrix.map(r => r.instaPrevPrice).filter(Boolean)
-    const avgPrevGemPrice = prevGemPrices.length ? Math.round(prevGemPrices.reduce((s, p) => s + p, 0) / prevGemPrices.length) : 0
-    const avgGemDelta = avgPrevGemPrice > 0 ? (avgGemPrice - avgPrevGemPrice) : 0
+    const avgGemPrice = gemPricesD.length ? Math.round((gemPricesD.reduce((s, v) => s + v, 0) / gemPricesD.length) * 10) / 10 : 0
+    const avgGemPriceD1 = gemPricesD1.length ? Math.round((gemPricesD1.reduce((s, v) => s + v, 0) / gemPricesD1.length) * 10) / 10 : 0
+    const avgGemPriceD2 = gemPricesD2.length ? Math.round((gemPricesD2.reduce((s, v) => s + v, 0) / gemPricesD2.length) * 10) / 10 : 0
 
-    const totalAvailable = cityParityMatrix.filter(r => !r.isOOS).length
-    const availabilityRate = cityParityMatrix.length > 0 ? Math.round((totalAvailable / cityParityMatrix.length) * 100) : 100
+    const gemDoDDelta = avgGemPriceD1 > 0 ? Math.round((avgGemPrice - avgGemPriceD1) * 10) / 10 : 0
+    const gem2DayDelta = avgGemPriceD2 > 0 ? Math.round((avgGemPrice - avgGemPriceD2) * 10) / 10 : 0
+
+    // 2. Market Competitor Average
+    const marketAvgs = competitorTrackingData.map(r => r.compAvg).filter(p => p !== null)
+    const marketAvgPrice = marketAvgs.length ? Math.round((marketAvgs.reduce((s, v) => s + v, 0) / marketAvgs.length) * 10) / 10 : 0
+
+    const gemVsMarketDiff = (avgGemPrice && marketAvgPrice) ? Math.round((avgGemPrice - marketAvgPrice) * 10) / 10 : 0
+    const gemVsMarketPct = (avgGemPrice && marketAvgPrice) ? Math.round(((avgGemPrice - marketAvgPrice) / marketAvgPrice) * 1000) / 10 : 0
+
+    // 3. Instamart Availability KPIs (3-day DoD)
+    const totalInstaSKUs = instaAvailabilityData.length
+    const availCountD0 = instaAvailabilityData.filter(r => r.isAvailD0).length
+    const availCountD1 = instaAvailabilityData.filter(r => (r.statusD1 || '').toLowerCase().includes('avail')).length
+    const availCountD2 = instaAvailabilityData.filter(r => (r.statusD2 || '').toLowerCase().includes('avail')).length
+
+    const oosCountD0 = instaAvailabilityData.filter(r => r.isOosD0).length
+    const newlyOosCount = instaAvailabilityData.filter(r => r.shift === 'Newly Out of Stock').length
+    const restockedCount = instaAvailabilityData.filter(r => r.shift === 'Restocked').length
+    const missingCount = instaAvailabilityData.filter(r => r.statusD0.toLowerCase().includes('miss')).length
+
+    const availRateD0 = totalInstaSKUs > 0 ? Math.round((availCountD0 / totalInstaSKUs) * 1000) / 10 : 0
+    const availRateD1 = totalInstaSKUs > 0 ? Math.round((availCountD1 / totalInstaSKUs) * 1000) / 10 : 0
+    const availRateD2 = totalInstaSKUs > 0 ? Math.round((availCountD2 / totalInstaSKUs) * 1000) / 10 : 0
+
+    const availDoDDelta = Math.round((availRateD0 - availRateD1) * 10) / 10
 
     return {
-      totalHikes,
-      totalDrops,
-      totalGaps,
-      totalOOS,
       avgGemPrice,
-      avgPrevGemPrice,
-      avgGemDelta,
-      availabilityRate,
-      monitoredCities: new Set(cityParityMatrix.map(r => r.city)).size
+      avgGemPriceD1,
+      gemDoDDelta,
+      gem2DayDelta,
+      marketAvgPrice,
+      gemVsMarketDiff,
+      gemVsMarketPct,
+      totalInstaSKUs,
+      availCountD0,
+      availRateD0,
+      availRateD1,
+      availRateD2,
+      availDoDDelta,
+      oosCountD0,
+      newlyOosCount,
+      restockedCount,
+      missingCount,
+      activeCitiesCount: new Set(competitorTrackingData.map(r => r.city)).size,
     }
-  }, [cityParityMatrix])
+  }, [competitorTrackingData, instaAvailabilityData])
 
-  // Bar Chart Data for Competitor Comparison
-  const chartData = useMemo(() => {
-    return competitorBenchmarkData.map(r => ({
-      product: r.product.split('(')[0].trim(),
-      Gem: r.avgGem || 0,
-      Jivo: r.avgJivo || 0,
-      MRGold: r.avgMrGold || 0,
-      Fortune: r.avgFortune || 0,
-      Goldwinner: r.avgGoldwinner || 0,
-      Idhayam: r.avgIdhayam || 0,
-      MarketAvg: r.marketAvg || 0
-    }))
-  }, [competitorBenchmarkData])
+  // =========================================================================
+  // 4. PRICE ALERTS & STOCK SHIFTS
+  // =========================================================================
+  const alertsList = useMemo(() => {
+    const list = []
 
-  // CSV Exporters
-  const makeBenchmarkCSV = () => {
-    const headers = ['Product', 'MRP (₹)', 'Gem Avg Price (₹)', 'Discount off MRP %', 'Jivo (₹)', 'MR. Gold (₹)', 'Fortune (₹)', 'Goldwinner (₹)', 'Idhayam (₹)', 'Market Competitor Avg (₹)', 'Gem vs Market (₹)', 'Lowest Price Brand', 'Active Cities']
-    const lines = competitorBenchmarkData.map(r => [
-      csvEscape(r.product),
-      r.avgMrp || '—',
-      r.avgGem || '—',
-      `${r.discountOffMrp}%`,
-      r.avgJivo || '—',
-      r.avgMrGold || '—',
-      r.avgFortune || '—',
-      r.avgGoldwinner || '—',
-      r.avgIdhayam || '—',
-      r.marketAvg || '—',
-      r.gemVsMarketDiff,
-      csvEscape(r.lowestBrand),
-      r.activeCities
-    ].join(','))
-    return [headers.join(','), ...lines]
+    // 1. Competitor Price Shifts
+    competitorTrackingData.forEach(row => {
+      // Gem price shift
+      if (Math.abs(row.gemDoD) > 0.4) {
+        list.push({
+          type: row.gemDoD > 0 ? 'Gem Price Hike' : 'Gem Price Drop',
+          category: row.gemDoD > 0 ? 'hikes' : 'drops',
+          severity: row.gemDoD > 0 ? 'warning' : 'success',
+          city: row.city,
+          product: row.product,
+          brand: '💎 Gem',
+          currentPrice: row.gemD,
+          prevPrice: row.gemD1,
+          delta: row.gemDoD,
+          message: `Gem price shifted from ₹${row.gemD1} to ₹${row.gemD} (DoD: ${row.gemDoD > 0 ? '+' : ''}₹${row.gemDoD.toFixed(1)})`
+        })
+      }
+
+      // Competitor brand shifts
+      row.brandDetails.forEach(b => {
+        if (Math.abs(b.doD) > 0.4) {
+          list.push({
+            type: b.doD > 0 ? `${b.brand} Price Hike` : `${b.brand} Price Drop`,
+            category: b.doD > 0 ? 'hikes' : 'drops',
+            severity: b.doD > 0 ? 'info' : 'warning',
+            city: row.city,
+            product: row.product,
+            brand: b.brand,
+            currentPrice: b.priceD,
+            prevPrice: b.priceD1,
+            delta: b.doD,
+            message: `${b.brand} price shifted from ₹${b.priceD1} to ₹${b.priceD} (DoD: ${b.doD > 0 ? '+' : ''}₹${b.doD.toFixed(1)})`
+          })
+        }
+      })
+
+      // High Premium Alert (>+8% over market)
+      if (row.gemVsMarketPct !== null && row.gemVsMarketPct >= 8) {
+        list.push({
+          type: 'Gem High Premium Alert',
+          category: 'premium',
+          severity: 'danger',
+          city: row.city,
+          product: row.product,
+          brand: '💎 Gem vs Market',
+          currentPrice: row.gemD,
+          prevPrice: row.compAvg,
+          delta: row.gemVsMarketDiff,
+          message: `Gem is ₹${row.gemVsMarketDiff} (+${row.gemVsMarketPct}%) above market average (₹${row.compAvg}) in ${formatCity(row.city)}`
+        })
+      }
+    })
+
+    // 2. Instamart Stock Availability Shifts
+    instaAvailabilityData.forEach(row => {
+      if (row.shift === 'Newly Out of Stock') {
+        list.push({
+          type: 'Newly Out of Stock',
+          category: 'newly_oos',
+          severity: 'danger',
+          city: row.city,
+          product: row.product,
+          brand: 'Instamart',
+          currentPrice: row.gemPriceD0,
+          prevPrice: null,
+          delta: null,
+          message: `${row.product} in ${formatCity(row.city)} went Out of Stock on Instamart today!`
+        })
+      } else if (row.shift === 'Restocked') {
+        list.push({
+          type: 'Restocked on Instamart',
+          category: 'restocked',
+          severity: 'success',
+          city: row.city,
+          product: row.product,
+          brand: 'Instamart',
+          currentPrice: row.gemPriceD0,
+          prevPrice: null,
+          delta: null,
+          message: `${row.product} in ${formatCity(row.city)} is now back in stock on Instamart!`
+        })
+      }
+    })
+
+    if (alertFilter === 'All') return list
+    return list.filter(a => a.category === alertFilter)
+  }, [competitorTrackingData, instaAvailabilityData, alertFilter])
+
+  // =========================================================================
+  // 5. CSV EXPORTS
+  // =========================================================================
+  const exportCompetitorsCSV = () => {
+    const rows = ['Competitor Price Tracking (DoD & Last 2 Days)']
+    rows.push(`Primary Date (Day D): ${dayD}, Comparison Date (Day D-1): ${dayDMinus1}, 2-Day Prior (Day D-2): ${dayDMinus2}`)
+    rows.push('')
+    rows.push('City,Product,Gem Price (D),Gem Price (D-1),Gem DoD Delta,Gem 2-Day Delta,Market Competitor Avg,Gem vs Market Diff,Gem vs Market %,Lowest Competitor Brand,Lowest Price,Jivo (D),Idhayam (D),Mr. Gold (D),VVD (D),Fortune (D)')
+    competitorTrackingData.forEach(r => {
+      rows.push([
+        csvEscape(r.city),
+        csvEscape(r.product),
+        r.gemD || '—',
+        r.gemD1 || '—',
+        r.gemDoD || 0,
+        r.gem2Day || 0,
+        r.compAvg || '—',
+        r.gemVsMarketDiff || '—',
+        r.gemVsMarketPct ? `${r.gemVsMarketPct}%` : '—',
+        csvEscape(r.lowestBrand),
+        r.lowestCompPrice || '—',
+        r.jivoD || '—',
+        r.idhayamD || '—',
+        r.mrGoldD || '—',
+        r.vvdD || '—',
+        r.fortuneD || '—',
+      ].join(','))
+    })
+    return rows
   }
 
-  const makeCityMatrixCSV = () => {
-    const headers = ['City', 'Product', 'Availability', `⚡ Insta Day D (${effectiveDayD}) (₹)`, `⚡ Insta Day D-1 (${effectiveDayPrev}) (₹)`, '⚡ Insta Delta (₹)', `🟡 Blinkit Day D (${effectiveDayD}) (₹)`, '🟡 Blinkit Pack Type', '⚡ vs 🟡 Platform Gap (₹)', 'Jivo (₹)', 'MR. Gold (₹)', 'Fortune (₹)', 'Goldwinner (₹)', 'Idhayam (₹)', 'Competitor Benchmark Avg (₹)']
-    const lines = filteredCityMatrix.map(r => [
-      csvEscape(r.formattedCity),
-      csvEscape(r.product),
-      csvEscape(r.instaAvailability),
-      r.instaDPrice !== null ? r.instaDPrice : '—',
-      r.instaPrevPrice !== null ? r.instaPrevPrice : '—',
-      r.instaDelta,
-      r.blinkitDPrice !== null ? r.blinkitDPrice : '—',
-      csvEscape(r.blinkitPack),
-      r.platformGap !== null ? r.platformGap : '—',
-      r.jivo || '—',
-      r.mrGold || '—',
-      r.fortune || '—',
-      r.goldwinner || '—',
-      r.idhayam || '—',
-      r.compAvg || '—'
-    ].join(','))
-    return [headers.join(','), ...lines]
+  const exportInstaAvailabilityCSV = () => {
+    const rows = ['Instamart SKU Availability Tracker (DoD & Last 3 Days)']
+    rows.push(`Dates Tracked: ${instaD} (D), ${instaD1} (D-1), ${instaD2} (D-2), ${instaD3} (D-3)`)
+    rows.push('')
+    rows.push('City,Product,Status (D),Status (D-1),Status (D-2),Status (D-3),Stock Shift Classification,MRP (₹),Gem Price (D),Gem Price (D-1),Price DoD Delta,Discount % off MRP')
+    instaAvailabilityData.forEach(r => {
+      rows.push([
+        csvEscape(r.city),
+        csvEscape(r.product),
+        r.statusD0,
+        r.statusD1,
+        r.statusD2,
+        r.statusD3,
+        csvEscape(r.shift),
+        r.mrp || '—',
+        r.gemPriceD0 || '—',
+        r.gemPriceD1 || '—',
+        r.priceDoD || 0,
+        r.discountPct ? `${r.discountPct}%` : '—',
+      ].join(','))
+    })
+    return rows
   }
 
-  // Columns for City Parity Matrix (Separate Insta & Blinkit Columns)
-  const cityMatrixColumns = [
+  // =========================================================================
+  // 6. TABLE COLUMNS DEFINITIONS
+  // =========================================================================
+
+  // Competitor Tracking Columns
+  const competitorColumns = [
     {
-      key: 'formattedCity',
+      key: 'city',
       label: 'City',
-      render: r => <span style={{ fontWeight: 700, color: '#f8fafc' }}>🏙️ {r.formattedCity}</span>
+      accessor: r => r.city,
+      render: r => <span style={{ fontWeight: 700, color: '#f1f5f9' }}>{formatCity(r.city)}</span>
     },
     {
       key: 'product',
       label: 'Product',
-      render: r => <span style={{ fontWeight: 600, color: '#93c5fd' }}>{r.product}</span>
+      accessor: r => r.product,
+      render: r => <span style={{ color: '#38bdf8', fontWeight: 600 }}>{r.product}</span>
     },
     {
-      key: 'instaAvailability',
-      label: 'Availability',
-      render: r => <AvailabilityBadge status={r.instaAvailability} />
-    },
-    // Instamart Day D Price
-    {
-      key: 'instaDPrice',
-      label: `⚡ Insta Day D (₹)`,
+      key: 'gemD',
+      label: `💎 Gem (${formatShortDate(dayD)})`,
       align: 'right',
-      render: r => (
-        <span style={{ fontWeight: 700, color: r.instaDPrice ? '#fb923c' : '#64748b' }}>
-          {r.instaDPrice ? `₹${r.instaDPrice}` : '—'}
-        </span>
-      )
+      accessor: r => r.gemD,
+      render: r => <span style={{ fontWeight: 700, color: '#3b82f6', fontSize: 13 }}>{r.gemD ? `₹${r.gemD}` : '—'}</span>
     },
-    // Instamart 2-Day Price Action
     {
-      key: 'instaDelta',
-      label: `⚡ Insta Price Action`,
-      align: 'center',
-      render: r => <PriceDeltaBadge delta={r.instaDelta} priceD={r.instaDPrice} prevPrice={r.instaPrevPrice} />
-    },
-    // Blinkit Day D Price
-    {
-      key: 'blinkitDPrice',
-      label: `🟡 Blinkit Day D (₹)`,
+      key: 'gemD1',
+      label: `Gem (${formatShortDate(dayDMinus1)})`,
       align: 'right',
-      render: r => (
-        <div>
-          <span style={{ fontWeight: 700, color: r.blinkitDPrice ? '#facc15' : '#64748b' }}>
-            {r.blinkitDPrice ? `₹${r.blinkitDPrice}` : '—'}
-          </span>
-          {r.blinkitPack && <span style={{ fontSize: 10, color: '#94a3b8', display: 'block' }}>({r.blinkitPack})</span>}
-        </div>
-      )
+      accessor: r => r.gemD1,
+      render: r => <span style={{ color: '#94a3b8', fontSize: 12 }}>{r.gemD1 ? `₹${r.gemD1}` : '—'}</span>
     },
-    // Platform Price Gap
     {
-      key: 'platformGap',
-      label: `⚡ vs 🟡 Parity Gap`,
+      key: 'gemDoD',
+      label: 'Gem DoD Delta',
       align: 'center',
+      accessor: r => r.gemDoD,
+      render: r => <PriceDeltaBadge delta={r.gemDoD} priceD={r.gemD} prevPrice={r.gemD1} />
+    },
+    {
+      key: 'compAvg',
+      label: 'Market Avg',
+      align: 'right',
+      accessor: r => r.compAvg,
+      render: r => <span style={{ fontWeight: 600, color: '#e2e8f0' }}>{r.compAvg ? `₹${r.compAvg}` : '—'}</span>
+    },
+    {
+      key: 'gemVsMarket',
+      label: 'Gem vs Market',
+      align: 'center',
+      accessor: r => r.gemVsMarketDiff,
       render: r => {
-        if (r.platformGap === null) return <span style={{ color: '#64748b' }}>—</span>
-        if (r.platformGap === 0) return <span style={{ color: '#4ade80', fontSize: 11, fontWeight: 700 }}>✓ Parity</span>
+        if (r.gemVsMarketDiff === null) return <span style={{ color: '#64748b' }}>—</span>
+        const isPrem = r.gemVsMarketDiff > 0.5
+        const isDisc = r.gemVsMarketDiff < -0.5
         return (
           <span style={{
-            padding: '2px 7px',
+            padding: '2px 8px',
             borderRadius: 5,
             fontSize: 11,
             fontWeight: 700,
-            background: 'rgba(234, 179, 8, 0.15)',
-            color: '#facc15',
-            border: '1px solid rgba(234, 179, 8, 0.3)'
+            background: isPrem ? 'rgba(239, 68, 68, 0.15)' : isDisc ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+            color: isPrem ? '#f87171' : isDisc ? '#4ade80' : '#94a3b8',
+            border: `1px solid ${isPrem ? 'rgba(239, 68, 68, 0.3)' : isDisc ? 'rgba(34, 197, 94, 0.3)' : 'rgba(148, 163, 184, 0.3)'}`,
+            whiteSpace: 'nowrap'
           }}>
-            {r.platformGap > 0 ? `Blinkit +₹${r.platformGap}` : `Insta +₹${Math.abs(r.platformGap)}`}
+            {isPrem ? `+₹${r.gemVsMarketDiff} (+${r.gemVsMarketPct}%)` : isDisc ? `-₹${Math.abs(r.gemVsMarketDiff)} (${r.gemVsMarketPct}%)` : 'Parity'}
           </span>
         )
       }
     },
-    // Competitor Average
     {
-      key: 'compAvg',
-      label: `Competitor Avg`,
+      key: 'jivo',
+      label: 'Jivo',
       align: 'right',
-      render: r => <span style={{ color: '#c084fc', fontWeight: 600 }}>{r.compAvg ? `₹${r.compAvg}` : '—'}</span>
+      accessor: r => r.jivoD,
+      render: r => <span style={{ color: r.jivoD ? '#cbd5e1' : '#64748b' }}>{r.jivoD ? `₹${r.jivoD}` : '—'}</span>
     },
-    // Individual Competitor Prices Preview
     {
-      key: 'competitors',
-      label: 'Competitor Brand Prices',
-      render: r => {
-        const list = [
-          r.mrGold && `MR. Gold: ₹${r.mrGold}`,
-          r.fortune && `Fortune: ₹${r.fortune}`,
-          r.jivo && `Jivo: ₹${r.jivo}`,
-          r.idhayam && `Idhayam: ₹${r.idhayam}`,
-          r.goldwinner && `Goldwinner: ₹${r.goldwinner}`
-        ].filter(Boolean)
-        return list.length ? <span style={{ fontSize: 11, color: '#cbd5e1' }}>{list.join(' • ')}</span> : <span style={{ color: '#64748b', fontSize: 11 }}>No direct competitor price</span>
-      }
+      key: 'idhayam',
+      label: 'Idhayam',
+      align: 'right',
+      accessor: r => r.idhayamD,
+      render: r => <span style={{ color: r.idhayamD ? '#cbd5e1' : '#64748b' }}>{r.idhayamD ? `₹${r.idhayamD}` : '—'}</span>
+    },
+    {
+      key: 'mrGold',
+      label: 'Mr. Gold',
+      align: 'right',
+      accessor: r => r.mrGoldD,
+      render: r => <span style={{ color: r.mrGoldD ? '#cbd5e1' : '#64748b' }}>{r.mrGoldD ? `₹${r.mrGoldD}` : '—'}</span>
+    },
+    {
+      key: 'vvd',
+      label: 'VVD',
+      align: 'right',
+      accessor: r => r.vvdD,
+      render: r => <span style={{ color: r.vvdD ? '#cbd5e1' : '#64748b' }}>{r.vvdD ? `₹${r.vvdD}` : '—'}</span>
+    },
+    {
+      key: 'fortune',
+      label: 'Fortune',
+      align: 'right',
+      accessor: r => r.fortuneD,
+      render: r => <span style={{ color: r.fortuneD ? '#cbd5e1' : '#64748b' }}>{r.fortuneD ? `₹${r.fortuneD}` : '—'}</span>
+    },
+    {
+      key: 'lowest',
+      label: 'Lowest Competitor',
+      align: 'right',
+      accessor: r => r.lowestCompPrice,
+      render: r => r.lowestCompPrice ? (
+        <span style={{ fontSize: 11, color: '#facc15' }}>
+          <strong>{r.lowestBrand}:</strong> ₹{r.lowestCompPrice}
+        </span>
+      ) : <span style={{ color: '#64748b' }}>—</span>
     }
   ]
 
+  // Instamart Availability Columns
+  const instaColumns = [
+    {
+      key: 'city',
+      label: 'City',
+      accessor: r => r.city,
+      render: r => <span style={{ fontWeight: 700, color: '#f1f5f9' }}>{formatCity(r.city)}</span>
+    },
+    {
+      key: 'product',
+      label: 'SKU / Product',
+      accessor: r => r.product,
+      render: r => <span style={{ color: '#38bdf8', fontWeight: 600 }}>{r.product}</span>
+    },
+    {
+      key: 'statusD0',
+      label: `Status (${formatShortDate(instaD)})`,
+      align: 'center',
+      accessor: r => r.statusD0,
+      render: r => <AvailabilityPill status={r.statusD0} />
+    },
+    {
+      key: 'statusD1',
+      label: `Status (${formatShortDate(instaD1)})`,
+      align: 'center',
+      accessor: r => r.statusD1,
+      render: r => <AvailabilityPill status={r.statusD1} />
+    },
+    {
+      key: 'statusD2',
+      label: `Status (${formatShortDate(instaD2)})`,
+      align: 'center',
+      accessor: r => r.statusD2,
+      render: r => <AvailabilityPill status={r.statusD2} />
+    },
+    {
+      key: 'shift',
+      label: 'Stock Shift Classification',
+      align: 'center',
+      accessor: r => r.shift,
+      render: r => (
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '3px 8px',
+          borderRadius: 6,
+          fontSize: 11,
+          fontWeight: 700,
+          background: `${r.shiftColor}20`,
+          color: r.shiftColor,
+          border: `1px solid ${r.shiftColor}40`,
+          whiteSpace: 'nowrap'
+        }}>
+          {r.shiftIcon} {r.shift}
+        </span>
+      )
+    },
+    {
+      key: 'mrp',
+      label: 'MRP (₹)',
+      align: 'right',
+      accessor: r => r.mrp,
+      render: r => <span style={{ color: '#94a3b8' }}>{r.mrp ? `₹${r.mrp}` : '—'}</span>
+    },
+    {
+      key: 'gemPriceD0',
+      label: `Gem Price (${formatShortDate(instaD)})`,
+      align: 'right',
+      accessor: r => r.gemPriceD0,
+      render: r => <span style={{ fontWeight: 700, color: '#22c55e' }}>{r.gemPriceD0 ? `₹${r.gemPriceD0}` : '—'}</span>
+    },
+    {
+      key: 'priceDoD',
+      label: 'Price DoD Delta',
+      align: 'center',
+      accessor: r => r.priceDoD,
+      render: r => <PriceDeltaBadge delta={r.priceDoD} priceD={r.gemPriceD0} prevPrice={r.gemPriceD1} />
+    },
+    {
+      key: 'discountPct',
+      label: 'Discount %',
+      align: 'right',
+      accessor: r => r.discountPct,
+      render: r => r.discountPct !== null ? (
+        <span style={{ fontWeight: 600, color: '#c084fc' }}>{r.discountPct}% off</span>
+      ) : <span style={{ color: '#64748b' }}>—</span>
+    }
+  ]
+
+  // Filtered rows for Search
+  const filteredCompetitorRows = useMemo(() => {
+    if (!searchQuery.trim()) return competitorTrackingData
+    const q = searchQuery.toLowerCase()
+    return competitorTrackingData.filter(r => r.city.toLowerCase().includes(q) || r.product.toLowerCase().includes(q))
+  }, [competitorTrackingData, searchQuery])
+
+  const filteredInstaRows = useMemo(() => {
+    if (!searchQuery.trim()) return instaAvailabilityData
+    const q = searchQuery.toLowerCase()
+    return instaAvailabilityData.filter(r => r.city.toLowerCase().includes(q) || r.product.toLowerCase().includes(q) || r.shift.toLowerCase().includes(q))
+  }, [instaAvailabilityData, searchQuery])
+
   return (
     <>
-      {/* Header */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+      {/* HEADER SECTION */}
+      <header>
         <div>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, fontSize: 24, fontWeight: 700, color: '#f8fafc' }}>
-            <span>🏷️ Competitor Price &amp; Parity Intelligence</span>
-          </h1>
-          <div className="date" style={{ color: '#94a3b8', fontSize: 13, marginTop: 4 }}>
-            Direct competitor benchmarking (<strong>Gem</strong> vs <strong>Jivo, MR. Gold, Fortune, Goldwinner, Idhayam</strong>) across <strong>Instamart</strong> &amp; <strong>Blinkit</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 24 }}>🔍</span>
+            <h1 style={{ margin: 0 }}>Stock &amp; Price Parity Intelligence</h1>
+          </div>
+          <div className="date" style={{ marginTop: 4 }}>
+            Day-on-Day (DoD) Competitor Price Tracking &amp; Instamart 3-Day Availability Monitor • Source: Google Sheets
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {/* Date Selector Pill */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e293b', padding: '4px 8px', borderRadius: 8, border: '1px solid #334155' }}>
+            <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>PRIMARY DATE:</span>
+            <select
+              value={dayD}
+              onChange={e => setSelectedDate(e.target.value)}
+              style={{
+                background: '#0f172a',
+                color: '#38bdf8',
+                border: '1px solid #38bdf8',
+                borderRadius: 6,
+                padding: '4px 8px',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              {compDates.map(d => (
+                <option key={d} value={d}>{formatPrettyDate(d)} (Day D)</option>
+              ))}
+            </select>
+          </div>
+
           <button
             onClick={loadData}
             disabled={isRefreshing}
             style={{
+              padding: '6px 14px',
+              borderRadius: 8,
               background: 'rgba(59, 130, 246, 0.15)',
               border: '1px solid rgba(59, 130, 246, 0.3)',
-              borderRadius: 8,
-              color: '#3b82f6',
-              padding: '8px 16px',
+              color: '#38bdf8',
               fontSize: 12,
               fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
+              cursor: isRefreshing ? 'wait' : 'pointer',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
-              opacity: isRefreshing ? 0.6 : 1
+              gap: 6
             }}
           >
-            ↻ {isRefreshing ? 'Refreshing Parity Feeds...' : 'Refresh Parity Feeds'}
+            {isRefreshing ? '🔄 Refreshing...' : '🔄 Refresh Data'}
           </button>
+
+          <a
+            href={`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/edit?usp=sharing`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 12px',
+              borderRadius: 8,
+              background: 'rgba(34, 197, 94, 0.15)',
+              border: '1px solid rgba(34, 197, 94, 0.3)',
+              color: '#4ade80',
+              fontSize: 12,
+              fontWeight: 600,
+              textDecoration: 'none'
+            }}
+          >
+            📊 Source Sheet
+          </a>
+
           <ProfileSection />
         </div>
       </header>
 
-      {/* 2-Day Price Alert Banner */}
-      {(executiveKPIs.totalHikes > 0 || executiveKPIs.totalDrops > 0 || executiveKPIs.totalGaps > 0 || executiveKPIs.totalOOS > 0) && (
-        <div style={{
-          background: 'rgba(15, 23, 42, 0.95)',
-          border: '1px solid #334155',
-          borderRadius: 12,
-          padding: '12px 18px',
-          marginBottom: 18,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 12
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 16 }}>🚨 <strong>2-Day Price &amp; Stock Alerts:</strong></span>
-            {executiveKPIs.totalHikes > 0 && (
-              <span style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: 12, fontWeight: 700, border: '1px solid rgba(239, 68, 68, 0.4)' }}>
-                ▲ {executiveKPIs.totalHikes} Price Hikes
-              </span>
-            )}
-            {executiveKPIs.totalDrops > 0 && (
-              <span style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', fontSize: 12, fontWeight: 700, border: '1px solid rgba(34, 197, 94, 0.4)' }}>
-                ▼ {executiveKPIs.totalDrops} Price Drops / Discounts
-              </span>
-            )}
-            {executiveKPIs.totalGaps > 0 && (
-              <span style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(234, 179, 8, 0.2)', color: '#facc15', fontSize: 12, fontWeight: 700, border: '1px solid rgba(234, 179, 8, 0.4)' }}>
-                ⚡🟡 {executiveKPIs.totalGaps} Platform Parity Gaps
-              </span>
-            )}
-            {executiveKPIs.totalOOS > 0 && (
-              <span style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', fontSize: 12, fontWeight: 600 }}>
-                ⛔ {executiveKPIs.totalOOS} Out of Stock / Missing
-              </span>
-            )}
+      {/* TOP EXECUTIVE KPI CARDS */}
+      <div className="stats-grid" style={{ marginTop: 16, marginBottom: 20 }}>
+        {/* Card 1: Gem Average Price */}
+        <div className="stat-card">
+          <div className="stat-header">
+            <div className="stat-label">💎 Gem Avg Price (Day D)</div>
+            <div className="stat-icon" style={{ background: '#3b82f626', color: '#3b82f6' }}>💰</div>
           </div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>
-            Comparing {formatPrettyDate(effectiveDayD)} vs {formatPrettyDate(effectiveDayPrev)}
-          </div>
-        </div>
-      )}
-
-      {/* Primary KPI Grid */}
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14, marginBottom: 20 }}>
-        {/* Gem Average Selling Price */}
-        <div className="stat-card" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16 }}>
-          <div className="stat-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <div className="stat-label" style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>💎 Gem Avg Selling Price</div>
-            <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', padding: '6px 10px', borderRadius: 8, fontSize: 14 }}>💎</div>
-          </div>
-          <div className="stat-value" style={{ fontSize: 22, fontWeight: 700, color: '#60a5fa' }}>
-            ₹{executiveKPIs.avgGemPrice}
-          </div>
-          <div style={{ fontSize: 11, color: executiveKPIs.avgGemDelta > 0 ? '#f87171' : executiveKPIs.avgGemDelta < 0 ? '#4ade80' : '#94a3b8', marginTop: 6 }}>
-            {executiveKPIs.avgGemDelta > 0 ? `▲ +₹${executiveKPIs.avgGemDelta} vs Day D-1` : executiveKPIs.avgGemDelta < 0 ? `▼ -₹${Math.abs(executiveKPIs.avgGemDelta)} vs Day D-1` : '━ Stable across days'}
+          <div className="stat-value">₹{executiveKPIs.avgGemPrice}</div>
+          <div style={{ fontSize: 11, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <PriceDeltaBadge delta={executiveKPIs.gemDoDDelta} priceD={executiveKPIs.avgGemPrice} prevPrice={executiveKPIs.avgGemPriceD1} />
+            <span style={{ color: '#94a3b8' }}>vs {formatShortDate(dayDMinus1)}</span>
+            {executiveKPIs.gem2DayDelta !== 0 && (
+              <span style={{ color: '#64748b', fontSize: 10 }}>• 2-Day: {executiveKPIs.gem2DayDelta > 0 ? '+' : ''}₹{executiveKPIs.gem2DayDelta} vs {formatShortDate(dayDMinus2)}</span>
+            )}
           </div>
         </div>
 
-        {/* Monitored Cities */}
-        <div className="stat-card" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16 }}>
-          <div className="stat-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <div className="stat-label" style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>🏙️ Monitored Cities</div>
-            <div className="stat-icon" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', padding: '6px 10px', borderRadius: 8, fontSize: 14 }}>🏙️</div>
+        {/* Card 2: Competitor Market Average Price */}
+        <div className="stat-card">
+          <div className="stat-header">
+            <div className="stat-label">🏷️ Competitor Market Avg</div>
+            <div className="stat-icon" style={{ background: '#eab30826', color: '#eab308' }}>⚖️</div>
           </div>
-          <div className="stat-value" style={{ fontSize: 22, fontWeight: 700, color: '#c084fc' }}>
-            {executiveKPIs.monitoredCities} Cities
+          <div className="stat-value">₹{executiveKPIs.marketAvgPrice}</div>
+          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
+            Average across {executiveKPIs.activeCitiesCount} active markets
+          </div>
+        </div>
+
+        {/* Card 3: Gem vs Market Gap */}
+        <div className="stat-card">
+          <div className="stat-header">
+            <div className="stat-label">📊 Gem vs Market Parity</div>
+            <div className="stat-icon" style={{ background: executiveKPIs.gemVsMarketDiff > 0 ? '#ef444426' : '#22c55e26', color: executiveKPIs.gemVsMarketDiff > 0 ? '#f87171' : '#22c55e' }}>🎯</div>
+          </div>
+          <div className="stat-value" style={{ color: executiveKPIs.gemVsMarketDiff > 0 ? '#f87171' : '#4ade80' }}>
+            {executiveKPIs.gemVsMarketDiff > 0 ? `+₹${executiveKPIs.gemVsMarketDiff}` : `-₹${Math.abs(executiveKPIs.gemVsMarketDiff)}`}
+          </div>
+          <div style={{ fontSize: 11, marginTop: 6 }}>
+            <span style={{ color: executiveKPIs.gemVsMarketDiff > 0 ? '#f87171' : '#4ade80', fontWeight: 700 }}>
+              {executiveKPIs.gemVsMarketDiff > 0 ? `▲ +${executiveKPIs.gemVsMarketPct}% Premium` : `▼ ${executiveKPIs.gemVsMarketPct}% Discount`}
+            </span>
+            <span style={{ color: '#94a3b8' }}> vs competitor brands</span>
+          </div>
+        </div>
+
+        {/* Card 4: Instamart Availability Rate */}
+        <div className="stat-card">
+          <div className="stat-header">
+            <div className="stat-label">📦 Instamart Availability</div>
+            <div className="stat-icon" style={{ background: '#22c55e26', color: '#22c55e' }}>🛒</div>
+          </div>
+          <div className="stat-value" style={{ color: executiveKPIs.availRateD0 >= 80 ? '#22c55e' : executiveKPIs.availRateD0 >= 60 ? '#eab308' : '#ef4444' }}>
+            {executiveKPIs.availRateD0}%
           </div>
           <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
-            TN, KA, TS, MH, AP regions
+            {executiveKPIs.availCountD0} / {executiveKPIs.totalInstaSKUs} SKUs Available • 3-Day: {executiveKPIs.availRateD2}% → {executiveKPIs.availRateD1}% → <strong style={{ color: '#f1f5f9' }}>{executiveKPIs.availRateD0}%</strong>
           </div>
         </div>
 
-        {/* Stock Availability */}
-        <div className="stat-card" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16 }}>
-          <div className="stat-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <div className="stat-label" style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>📦 Overall Availability</div>
-            <div className="stat-icon" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', padding: '6px 10px', borderRadius: 8, fontSize: 14 }}>✅</div>
+        {/* Card 5: Instamart Out of Stock */}
+        <div className="stat-card">
+          <div className="stat-header">
+            <div className="stat-label">⛔ Instamart OOS SKUs</div>
+            <div className="stat-icon" style={{ background: '#ef444426', color: '#ef4444' }}>🚨</div>
           </div>
-          <div className="stat-value" style={{ fontSize: 22, fontWeight: 700, color: '#4ade80' }}>
-            {executiveKPIs.availabilityRate}% In Stock
-          </div>
-          <div style={{ fontSize: 11, color: executiveKPIs.totalOOS > 0 ? '#f87171' : '#4ade80', marginTop: 6 }}>
-            {executiveKPIs.totalOOS > 0 ? `⚠️ ${executiveKPIs.totalOOS} out of stock locations` : '✓ 100% stock availability'}
-          </div>
-        </div>
-
-        {/* Competitor Brands Tracked */}
-        <div className="stat-card" style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16 }}>
-          <div className="stat-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <div className="stat-label" style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>🎯 Competitor Brands</div>
-            <div className="stat-icon" style={{ background: 'rgba(234, 179, 8, 0.15)', color: '#facc15', padding: '6px 10px', borderRadius: 8, fontSize: 14 }}>🎯</div>
-          </div>
-          <div className="stat-value" style={{ fontSize: 17, fontWeight: 700, color: '#facc15', marginTop: 3 }}>
-            5 Benchmark Brands
-          </div>
-          <div style={{ fontSize: 11, color: '#cbd5e1', marginTop: 6 }}>
-            Jivo • MR. Gold • Fortune • Goldwinner • Idhayam
+          <div className="stat-value" style={{ color: '#f87171' }}>{executiveKPIs.oosCountD0}</div>
+          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6, display: 'flex', gap: 6, alignItems: 'center' }}>
+            {executiveKPIs.newlyOosCount > 0 ? (
+              <span style={{ color: '#f87171', fontWeight: 700 }}>▲ {executiveKPIs.newlyOosCount} newly OOS</span>
+            ) : (
+              <span style={{ color: '#4ade80' }}>✓ No newly OOS</span>
+            )}
+            <span>• {executiveKPIs.restockedCount} Restocked</span>
           </div>
         </div>
       </div>
 
-      {/* Subnavigation Tabs & Date Selectors */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: '#1e293b', padding: '10px 14px', borderRadius: 10, border: '1px solid #334155' }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {/* FILTER CONTROLS & SUB-TABS BAR */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 12,
+        background: '#1e293b',
+        padding: '12px 16px',
+        borderRadius: '12px 12px 0 0',
+        border: '1px solid #334155',
+        borderBottom: 'none'
+      }}>
+        {/* Navigation Tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {[
-            { id: 'benchmarking', label: '🏆 Competitor Benchmarking Matrix' },
-            { id: 'city_matrix', label: '🏙️ City-Wise Parity (Separate Insta & Blinkit Columns)' },
-            { id: 'alerts_2day', label: `🚨 2-Day Price Shifts (${priceAlertsList.length})` },
-            { id: 'chart', label: '📊 Visual Price Positioning Chart' }
+            { id: 'competitors', label: `📊 Competitor Price Tracking (${filteredCompetitorRows.length})` },
+            { id: 'insta_avail', label: `📦 Instamart 3-Day Availability (${filteredInstaRows.length})` },
+            { id: 'alerts', label: `⚡ Price & Stock Alerts (${alertsList.length})` },
+            { id: 'trends', label: '📈 Visual Trends & Charts' }
           ].map(t => (
             <button
               key={t.id}
               onClick={() => setActiveSubTab(t.id)}
               style={{
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: '1px solid ' + (activeSubTab === t.id ? '#3b82f6' : '#334155'),
                 background: activeSubTab === t.id ? '#3b82f6' : '#0f172a',
                 color: activeSubTab === t.id ? '#ffffff' : '#94a3b8',
-                border: `1px solid ${activeSubTab === t.id ? '#60a5fa' : '#334155'}`,
-                borderRadius: 8,
-                padding: '6px 14px',
                 fontSize: 12,
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease'
               }}
@@ -856,261 +1157,270 @@ export default function StockTab() {
           ))}
         </div>
 
-        {/* Date Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#94a3b8' }}>
-          <span>Day D:</span>
-          <select
-            value={effectiveDayD}
-            onChange={e => setDayD(e.target.value)}
-            style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, color: '#f1f5f9', padding: '4px 8px', fontSize: 11 }}
-          >
-            {instaDates.map(d => <option key={d} value={d}>{formatPrettyDate(d)}</option>)}
-          </select>
+        {/* Global Filters */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* City Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>CITY:</span>
+            <select
+              value={selectedCity}
+              onChange={e => setSelectedCity(e.target.value)}
+              style={{
+                background: '#0f172a',
+                color: '#f1f5f9',
+                border: '1px solid #334155',
+                borderRadius: 6,
+                padding: '4px 8px',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              {allCities.map(c => (
+                <option key={c} value={c}>{formatCity(c)}</option>
+              ))}
+            </select>
+          </div>
 
-          <span>vs D-1:</span>
-          <select
-            value={effectiveDayPrev}
-            onChange={e => setDayPrev(e.target.value)}
-            style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, color: '#f1f5f9', padding: '4px 8px', fontSize: 11 }}
-          >
-            {instaDates.map(d => <option key={d} value={d}>{formatPrettyDate(d)}</option>)}
-          </select>
+          {/* Product Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>PRODUCT:</span>
+            <select
+              value={selectedProduct}
+              onChange={e => setSelectedProduct(e.target.value)}
+              style={{
+                background: '#0f172a',
+                color: '#f1f5f9',
+                border: '1px solid #334155',
+                borderRadius: 6,
+                padding: '4px 8px',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              <option value="All">All Products</option>
+              {activeSubTab === 'competitors'
+                ? allCompProducts.filter(p => p !== 'All').map(p => <option key={p} value={p}>{p}</option>)
+                : allInstaProducts.filter(p => p !== 'All').map(p => <option key={p} value={p}>{p}</option>)
+              }
+            </select>
+          </div>
+
+          {/* Search Box */}
+          <input
+            type="text"
+            placeholder="Search city, SKU..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              background: '#0f172a',
+              border: '1px solid #334155',
+              borderRadius: 6,
+              color: '#f1f5f9',
+              padding: '4px 10px',
+              fontSize: 12,
+              width: 150
+            }}
+          />
+
+          {/* Export CSV Button */}
+          {activeSubTab === 'competitors' && (
+            <CSVButton makeRows={exportCompetitorsCSV} filename={`competitor_price_tracking_${dayD}.csv`} />
+          )}
+          {activeSubTab === 'insta_avail' && (
+            <CSVButton makeRows={exportInstaAvailabilityCSV} filename={`instamart_availability_tracking_${instaD}.csv`} />
+          )}
         </div>
       </div>
 
-      {error && (
-        <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', padding: 14, borderRadius: 8, color: '#ef4444', marginBottom: 20 }}>
-          Failed to load Parity data: {error} — <a href="#" onClick={e => { e.preventDefault(); loadData() }} style={{ color: '#60a5fa', textDecoration: 'underline' }}>Retry</a>
-        </div>
-      )}
+      {/* CONTENT AREA BASED ON SUB-TAB */}
+      <div style={{
+        background: '#1e293b',
+        borderRadius: '0 0 12px 12px',
+        border: '1px solid #334155',
+        overflow: 'hidden',
+        marginBottom: 24,
+        padding: activeSubTab === 'trends' ? 20 : 0
+      }}>
+        {/* SUB-TAB 1: COMPETITOR PRICE TRACKING */}
+        {activeSubTab === 'competitors' && (
+          <div>
+            <div style={{ padding: '12px 16px', background: 'rgba(15, 23, 42, 0.6)', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                Comparing <strong>💎 Gem</strong> vs <strong>Jivo, Idhayam, Mr. Gold, VVD, Fortune, Gold winner, etc.</strong> across <strong>{filteredCompetitorRows.length}</strong> city-product pairs • <strong>Day D ({formatPrettyDate(dayD)})</strong> vs <strong>Day D-1 ({formatPrettyDate(dayDMinus1)})</strong> vs <strong>Day D-2 ({formatPrettyDate(dayDMinus2)})</strong>
+              </div>
+            </div>
+            <DataTable
+              columns={competitorColumns}
+              rows={filteredCompetitorRows}
+              pageSize={15}
+              filename={`competitor_prices_${dayD}.csv`}
+              emptyMessage="No competitor records matching the selected filters"
+            />
+          </div>
+        )}
 
-      {loading ? (
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 40, textAlign: 'center', color: '#94a3b8' }}>
-          <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
-          <div>Loading and synchronizing Parity competitor pricing feeds...</div>
-        </div>
-      ) : (
-        <>
-          {/* TAB 1: COMPETITOR BENCHMARKING MATRIX */}
-          {activeSubTab === 'benchmarking' && (
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18, marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+        {/* SUB-TAB 2: INSTAMART 3-DAY AVAILABILITY TRACKER */}
+        {activeSubTab === 'insta_avail' && (
+          <div>
+            <div style={{ padding: '12px 16px', background: 'rgba(15, 23, 42, 0.6)', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                Tracking <strong>{filteredInstaRows.length}</strong> SKUs across <strong>25 cities</strong> on Instamart • Multi-Day Window: <strong>{formatPrettyDate(instaD3)} (D-3) → {formatPrettyDate(instaD2)} (D-2) → {formatPrettyDate(instaD1)} (D-1) → {formatPrettyDate(instaD)} (Day D)</strong>
+              </div>
+              <div style={{ display: 'flex', gap: 8, fontSize: 11 }}>
+                <span style={{ color: '#4ade80' }}>● {executiveKPIs.availCountD0} Available</span>
+                <span style={{ color: '#f87171' }}>● {executiveKPIs.oosCountD0} OOS</span>
+                <span style={{ color: '#facc15' }}>● {executiveKPIs.missingCount} Missing</span>
+              </div>
+            </div>
+            <DataTable
+              columns={instaColumns}
+              rows={filteredInstaRows}
+              pageSize={15}
+              filename={`instamart_availability_${instaD}.csv`}
+              emptyMessage="No Instamart records matching the selected filters"
+            />
+          </div>
+        )}
+
+        {/* SUB-TAB 3: ALERTS & STOCK SHIFTS */}
+        {activeSubTab === 'alerts' && (
+          <div style={{ padding: 20 }}>
+            {/* Filter Pills */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+              {[
+                { id: 'All', label: `All Alerts (${alertsList.length})` },
+                { id: 'hikes', label: '🚀 Price Hikes' },
+                { id: 'drops', label: '📉 Price Drops' },
+                { id: 'newly_oos', label: '⛔ Newly Out of Stock' },
+                { id: 'restocked', label: '🔄 Restocked SKUs' },
+                { id: 'premium', label: '⚠️ High Premium vs Market' },
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setAlertFilter(f.id)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: 6,
+                    border: '1px solid ' + (alertFilter === f.id ? '#3b82f6' : '#334155'),
+                    background: alertFilter === f.id ? '#3b82f6' : '#0f172a',
+                    color: alertFilter === f.id ? '#ffffff' : '#94a3b8',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {alertsList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9' }}>No Alerts in this Category</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>All tracked prices and stock statuses are stable.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
+                {alertsList.map((alert, idx) => {
+                  const borderCol = alert.severity === 'danger' ? '#ef4444' : alert.severity === 'warning' ? '#eab308' : alert.severity === 'success' ? '#22c55e' : '#3b82f6'
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        background: '#0f172a',
+                        border: `1px solid ${borderCol}50`,
+                        borderLeft: `4px solid ${borderCol}`,
+                        borderRadius: 8,
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: borderCol }}>{alert.type}</span>
+                        <span style={{ fontSize: 11, color: '#94a3b8' }}>{formatCity(alert.city)}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{alert.product}</div>
+                      <div style={{ fontSize: 12, color: '#94a3b8' }}>{alert.message}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SUB-TAB 4: VISUAL TRENDS & CHARTS */}
+        {activeSubTab === 'trends' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {/* Chart 1: Price Comparison by City */}
+            <div style={{ background: '#0f172a', padding: 16, borderRadius: 8, border: '1px solid #334155' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>
-                    Gem Price vs Competitor Brands (Jivo, MR. Gold, Fortune, Goldwinner, Idhayam)
-                  </h3>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                    Aggregated pricing on <strong>{formatPrettyDate(effectiveDayD)}</strong>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <select
-                    value={selectedCity}
-                    onChange={e => setSelectedCity(e.target.value)}
-                    style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, color: '#f8fafc', padding: '5px 10px', fontSize: 12 }}
-                  >
-                    {allCities.map(c => <option key={c} value={c}>{c === 'All' ? 'All Cities' : formatCity(c)}</option>)}
-                  </select>
-                  <CSVButton makeRows={makeBenchmarkCSV} filename={`competitor_benchmark_${effectiveDayD}.csv`} />
+                  <h3 style={{ margin: 0, fontSize: 15, color: '#f1f5f9' }}>Pet 1 L Price Comparison by City (Gem vs Competitors)</h3>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>Day D ({formatPrettyDate(dayD)}) benchmark across major markets</div>
                 </div>
               </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #334155', color: '#94a3b8', textAlign: 'left', background: '#0f172a' }}>
-                      <th style={{ padding: '10px 8px' }}>Product</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>MRP</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#60a5fa' }}>💎 Gem Price</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#fb923c' }}>Jivo</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#facc15' }}>MR. Gold</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#34d399' }}>Fortune</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#c084fc' }}>Goldwinner</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#f472b6' }}>Idhayam</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right', color: '#38bdf8' }}>Market Avg</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'center' }}>Gem vs Market</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left' }}>Best Market Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {competitorBenchmarkData.map((r, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.4)' }}>
-                        <td style={{ padding: '10px 8px', fontWeight: 700, color: '#f8fafc' }}>{r.product}</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', color: '#94a3b8' }}>{r.avgMrp ? `₹${r.avgMrp}` : '—'}</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 700, color: '#60a5fa', fontSize: 13 }}>
-                          {r.avgGem ? `₹${r.avgGem}` : '—'}
-                          {r.discountOffMrp > 0 && <span style={{ display: 'block', fontSize: 10, color: '#4ade80' }}>(-{r.discountOffMrp}% off)</span>}
-                        </td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', color: r.avgJivo ? '#cbd5e1' : '#64748b' }}>{r.avgJivo ? `₹${r.avgJivo}` : '—'}</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', color: r.avgMrGold ? '#cbd5e1' : '#64748b' }}>{r.avgMrGold ? `₹${r.avgMrGold}` : '—'}</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', color: r.avgFortune ? '#cbd5e1' : '#64748b' }}>{r.avgFortune ? `₹${r.avgFortune}` : '—'}</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', color: r.avgGoldwinner ? '#cbd5e1' : '#64748b' }}>{r.avgGoldwinner ? `₹${r.avgGoldwinner}` : '—'}</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', color: r.avgIdhayam ? '#cbd5e1' : '#64748b' }}>{r.avgIdhayam ? `₹${r.avgIdhayam}` : '—'}</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>{r.marketAvg ? `₹${r.marketAvg}` : '—'}</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                          {r.marketAvg && r.avgGem ? (
-                            <span style={{
-                              padding: '3px 8px',
-                              borderRadius: 6,
-                              fontSize: 11,
-                              fontWeight: 700,
-                              background: r.gemVsMarketDiff > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
-                              color: r.gemVsMarketDiff > 0 ? '#f87171' : '#4ade80'
-                            }}>
-                              {r.gemVsMarketDiff > 0 ? `+₹${r.gemVsMarketDiff} (${r.gemVsMarketPct}% Prem.)` : r.gemVsMarketDiff < 0 ? `-₹${Math.abs(r.gemVsMarketDiff)} (${Math.abs(r.gemVsMarketPct)}% Disc.)` : 'Parity'}
-                            </span>
-                          ) : <span style={{ color: '#64748b' }}>—</span>}
-                        </td>
-                        <td style={{ padding: '10px 8px', color: '#4ade80', fontWeight: 600 }}>{r.lowestBrand}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: CITY-WISE PARITY MATRIX (SEPARATE INSTA & BLINKIT COLUMNS) */}
-          {activeSubTab === 'city_matrix' && (
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18, marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>
-                    City-Wise Pricing Matrix (Separate Instamart &amp; Blinkit Columns)
-                  </h3>
-                  {/* Alert Filters */}
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {[
-                      { id: 'All', label: 'All Records' },
-                      { id: 'hikes', label: '▲ Price Hikes' },
-                      { id: 'drops', label: '▼ Price Drops' },
-                      { id: 'gaps', label: '⚡🟡 Parity Gaps' },
-                      { id: 'oos', label: '⛔ Out of Stock' }
-                    ].map(f => (
-                      <button
-                        key={f.id}
-                        onClick={() => setAlertFilter(f.id)}
-                        style={{
-                          background: alertFilter === f.id ? '#334155' : 'rgba(15, 23, 42, 0.6)',
-                          color: alertFilter === f.id ? '#60a5fa' : '#94a3b8',
-                          border: `1px solid ${alertFilter === f.id ? '#60a5fa' : '#334155'}`,
-                          borderRadius: 6,
-                          padding: '3px 9px',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <select
-                    value={selectedCity}
-                    onChange={e => setSelectedCity(e.target.value)}
-                    style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, color: '#f8fafc', padding: '5px 10px', fontSize: 12 }}
-                  >
-                    {allCities.map(c => <option key={c} value={c}>{c === 'All' ? 'All Cities' : formatCity(c)}</option>)}
-                  </select>
-
-                  <select
-                    value={selectedProduct}
-                    onChange={e => setSelectedProduct(e.target.value)}
-                    style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, color: '#f8fafc', padding: '5px 10px', fontSize: 12 }}
-                  >
-                    {allProducts.map(p => <option key={p} value={p}>{p === 'All' ? 'All Products' : p}</option>)}
-                  </select>
-
-                  <input
-                    type="text"
-                    placeholder="Search city or product..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    style={{
-                      background: '#0f172a',
-                      border: '1px solid #334155',
-                      borderRadius: 6,
-                      color: '#f8fafc',
-                      padding: '5px 12px',
-                      fontSize: 12,
-                      outline: 'none',
-                      width: 170
-                    }}
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={competitorTrackingData.filter(r => r.product === 'Pet 1 L' && r.gemD !== null).slice(0, 10)}
+                  margin={{ top: 10, right: 10, left: -10, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="city" stroke="#64748b" tick={{ fontSize: 11 }} tickFormatter={formatCity} angle={-25} textAnchor="end" />
+                  <YAxis stroke="#64748b" tick={{ fontSize: 11 }} domain={['auto', 'auto']} tickFormatter={v => `₹${v}`} />
+                  <ReTooltip
+                    contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }}
+                    formatter={(val, name) => [`₹${val}`, name]}
                   />
-                  <CSVButton makeRows={makeCityMatrixCSV} filename={`city_parity_matrix_${effectiveDayD}.csv`} />
+                  <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8' }} />
+                  <Bar dataKey="gemD" name="💎 Gem" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="jivoD" name="Jivo" fill="#a855f7" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="compAvg" name="Market Avg" fill="#eab308" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Chart 2: Instamart City Availability Heatmap / Bar */}
+            <div style={{ background: '#0f172a', padding: 16, borderRadius: 8, border: '1px solid #334155' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 15, color: '#f1f5f9' }}>Instamart SKUs Available vs Out of Stock by City</h3>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>Stock health across top active cities on Instamart ({formatPrettyDate(instaD)})</div>
                 </div>
               </div>
-
-              <DataTable
-                columns={cityMatrixColumns}
-                rows={filteredCityMatrix}
-                pageSize={15}
-                emptyMessage="No city records match the selected filters."
-              />
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={(() => {
+                    const cityMap = {}
+                    instaAvailabilityData.forEach(r => {
+                      if (!cityMap[r.city]) cityMap[r.city] = { city: r.city, available: 0, oos: 0, missing: 0 }
+                      if (r.isAvailD0) cityMap[r.city].available += 1
+                      else if (r.isOosD0) cityMap[r.city].oos += 1
+                      else cityMap[r.city].missing += 1
+                    })
+                    return Object.values(cityMap).sort((a, b) => b.available - a.available).slice(0, 12)
+                  })()}
+                  margin={{ top: 10, right: 10, left: -10, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="city" stroke="#64748b" tick={{ fontSize: 11 }} tickFormatter={formatCity} angle={-25} textAnchor="end" />
+                  <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                  <ReTooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }} />
+                  <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8' }} />
+                  <Bar dataKey="available" name="✓ Available" fill="#22c55e" stackId="a" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="oos" name="⛔ Out of Stock" fill="#ef4444" stackId="a" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="missing" name="⚠️ Missing" fill="#eab308" stackId="a" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          )}
-
-          {/* TAB 3: 2-DAY PRICE SHIFTS LOG */}
-          {activeSubTab === 'alerts_2day' && (
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 18, marginBottom: 20 }}>
-              <div style={{ marginBottom: 14 }}>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>
-                  2-Day Price Shifts &amp; Parity Anomalies Log ({formatPrettyDate(effectiveDayD)} vs {formatPrettyDate(effectiveDayPrev)})
-                </h3>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                  List of all products and locations where prices increased, dropped, or diverged across platforms
-                </div>
-              </div>
-
-              <DataTable
-                columns={cityMatrixColumns}
-                rows={priceAlertsList}
-                pageSize={15}
-                emptyMessage="No price anomalies or shifts detected for this 2-day comparison period."
-              />
-            </div>
-          )}
-
-          {/* TAB 4: VISUAL PRICE POSITIONING CHART */}
-          {activeSubTab === 'chart' && (
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-              <div style={{ marginBottom: 14 }}>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f8fafc' }}>
-                  Price Comparison: Gem vs Jivo, MR. Gold, Fortune, Goldwinner, Idhayam
-                </h3>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                  Side-by-side product price positioning (₹/unit)
-                </div>
-              </div>
-
-              <div style={{ width: '100%', height: 380 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="product" stroke="#94a3b8" fontSize={11} />
-                    <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={v => `₹${v}`} />
-                    <ReTooltip
-                      contentStyle={{ background: '#0f172a', borderColor: '#334155', borderRadius: 8, color: '#f8fafc' }}
-                      formatter={(val, name) => [`₹${val}`, name]}
-                    />
-                    <Legend wrapperStyle={{ paddingTop: 10, fontSize: 12 }} />
-                    <Bar dataKey="Gem" fill="#3b82f6" name="💎 Gem's Gold" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="MRGold" fill="#eab308" name="MR. Gold" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Fortune" fill="#10b981" name="Fortune" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Jivo" fill="#f97316" name="Jivo" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Idhayam" fill="#ec4899" name="Idhayam" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Goldwinner" fill="#a855f7" name="Goldwinner" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+          </div>
+        )}
+      </div>
     </>
   )
 }
