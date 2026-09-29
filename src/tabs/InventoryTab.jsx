@@ -294,9 +294,6 @@ export default function InventoryTab({ data }) {
         }
       }
 
-      const unitTonnage = tonnage
-      const totalRowTonnage = (unitTonnage > 0 && qty > 0) ? Math.round(unitTonnage * qty * 100) / 100 : (unitTonnage || 0)
-
       list.push({
         sno: sno++,
         date: date || '—',
@@ -304,12 +301,11 @@ export default function InventoryTab({ data }) {
         invoice: invoice || '—',
         product: product || '—',
         cost: cost || (qty > 0 && value > 0 ? Math.round(value / qty) : 0),
-        unitTonnage: unitTonnage || 0,
-        tonnage: totalRowTonnage,
+        tonnage: tonnage || 0,
         qty: qty || 0,
         box: box || 0,
         value: value || 0,
-        ratePerKg: totalRowTonnage > 0 ? Math.round((value / totalRowTonnage) * 100) / 100 : 0,
+        ratePerKg: tonnage > 0 ? Math.round((value / tonnage) * 100) / 100 : 0,
         raw: r,
       })
     }
@@ -317,69 +313,134 @@ export default function InventoryTab({ data }) {
   }, [data, selectedMonths])
 
   const purchaseMetrics = useMemo(() => {
-    let totalTonnage = 0
-    let totalValue = 0
     let totalQty = 0
     let totalBoxes = 0
-    const invoices = new Set()
-    const entities = new Map()
-    const products = new Map()
+    const invoiceTonnageMap = {}
+    const invoiceValueMap = {}
+    const invoiceEntityMap = {}
+    const invoiceQtyMap = {}
+    const invoiceLinesMap = {}
+
+    const standaloneRows = []
 
     for (const r of purchaseRows) {
-      totalTonnage += r.tonnage
-      totalValue += r.value
-      totalQty += r.qty
-      totalBoxes += r.box
+      totalQty += num(r.qty)
+      totalBoxes += num(r.box)
 
-      if (r.invoice && r.invoice !== '—') invoices.add(r.invoice)
+      const inv = r.invoice && r.invoice !== '—' ? String(r.invoice).trim() : null
+      const tonG = num(r.tonnage)
+      const valJ = num(r.value)
 
-      const ent = r.entity
-      if (!entities.has(ent)) {
-        entities.set(ent, { entity: ent, tonnage: 0, value: 0, qty: 0, boxes: 0, invoices: new Set() })
+      if (inv) {
+        if (!invoiceTonnageMap[inv] || tonG > invoiceTonnageMap[inv]) {
+          invoiceTonnageMap[inv] = tonG
+        }
+        if (!invoiceValueMap[inv] || valJ > invoiceValueMap[inv]) {
+          invoiceValueMap[inv] = valJ
+        }
+        invoiceEntityMap[inv] = r.entity
+        invoiceQtyMap[inv] = (invoiceQtyMap[inv] || 0) + num(r.qty)
+        if (!invoiceLinesMap[inv]) invoiceLinesMap[inv] = []
+        invoiceLinesMap[inv].push(r)
+      } else {
+        standaloneRows.push(r)
       }
-      const eData = entities.get(ent)
-      eData.tonnage += r.tonnage
-      eData.value += r.value
-      eData.qty += r.qty
-      eData.boxes += r.box
-      if (r.invoice && r.invoice !== '—') eData.invoices.add(r.invoice)
-
-      const prod = r.product
-      if (!products.has(prod)) {
-        products.set(prod, { product: prod, tonnage: 0, value: 0, qty: 0, boxes: 0, lines: 0 })
-      }
-      const pData = products.get(prod)
-      pData.tonnage += r.tonnage
-      pData.value += r.value
-      pData.qty += r.qty
-      pData.boxes += r.box
-      pData.lines += 1
     }
 
-    const entityList = [...entities.values()]
-      .map(e => ({
-        ...e,
-        invoiceCount: e.invoices.size,
-        avgRate: e.tonnage ? Math.round((e.value / e.tonnage) * 100) / 100 : 0,
-      }))
-      .sort((a, b) => b.tonnage - a.tonnage)
+    const uniqueInvoices = Object.keys(invoiceTonnageMap)
+    const uniqueInvoiceTonnageSum = uniqueInvoices.reduce((s, inv) => s + (invoiceTonnageMap[inv] || 0), 0)
+    const uniqueInvoiceValueSum = uniqueInvoices.reduce((s, inv) => s + (invoiceValueMap[inv] || 0), 0)
 
-    const productList = [...products.values()]
-      .map(p => ({
-        ...p,
-        avgRate: p.tonnage ? Math.round((p.value / p.tonnage) * 100) / 100 : 0,
-      }))
-      .sort((a, b) => b.tonnage - a.tonnage)
+    const standaloneTonnageSum = standaloneRows.reduce((s, r) => s + num(r.tonnage), 0)
+    const standaloneValueSum = standaloneRows.reduce((s, r) => s + num(r.value), 0)
+
+    const totalTonnage = uniqueInvoiceTonnageSum + standaloneTonnageSum
+    const totalValue = uniqueInvoiceValueSum + standaloneValueSum
+
+    // Entity-wise aggregation based on unique invoices
+    const entityMap = {}
+    uniqueInvoices.forEach(inv => {
+      const ent = invoiceEntityMap[inv] || 'General / Direct'
+      if (!entityMap[ent]) {
+        entityMap[ent] = { entity: ent, tonnage: 0, value: 0, qty: 0, boxes: 0, invoices: new Set() }
+      }
+      entityMap[ent].tonnage += invoiceTonnageMap[inv] || 0
+      entityMap[ent].value += invoiceValueMap[inv] || 0
+      entityMap[ent].qty += invoiceQtyMap[inv] || 0
+      entityMap[ent].invoices.add(inv)
+      const lines = invoiceLinesMap[inv] || []
+      lines.forEach(l => { entityMap[ent].boxes += num(l.box) })
+    })
+
+    standaloneRows.forEach(r => {
+      const ent = r.entity || 'General / Direct'
+      if (!entityMap[ent]) {
+        entityMap[ent] = { entity: ent, tonnage: 0, value: 0, qty: 0, boxes: 0, invoices: new Set() }
+      }
+      entityMap[ent].tonnage += num(r.tonnage)
+      entityMap[ent].value += num(r.value)
+      entityMap[ent].qty += num(r.qty)
+      entityMap[ent].boxes += num(r.box)
+    })
+
+    const entityList = Object.values(entityMap).map(e => ({
+      ...e,
+      tonnage: Math.round(e.tonnage * 100) / 100,
+      value: Math.round(e.value * 100) / 100,
+      invoiceCount: e.invoices.size,
+      avgRate: e.tonnage > 0 ? Math.round((e.value / e.tonnage) * 100) / 100 : 0,
+    })).sort((a, b) => b.tonnage - a.tonnage)
+
+    // Product-wise aggregation
+    const productMap = {}
+    uniqueInvoices.forEach(inv => {
+      const invTon = invoiceTonnageMap[inv] || 0
+      const invVal = invoiceValueMap[inv] || 0
+      const lines = invoiceLinesMap[inv] || []
+      const invTotalQty = lines.reduce((s, l) => s + num(l.qty), 0)
+
+      lines.forEach(l => {
+        const prod = l.product || 'General Product'
+        if (!productMap[prod]) {
+          productMap[prod] = { product: prod, tonnage: 0, value: 0, qty: 0, boxes: 0, lines: 0 }
+        }
+        const share = invTotalQty > 0 ? (num(l.qty) / invTotalQty) : (1 / lines.length)
+        productMap[prod].tonnage += invTon * share
+        productMap[prod].value += invVal * share
+        productMap[prod].qty += num(l.qty)
+        productMap[prod].boxes += num(l.box)
+        productMap[prod].lines += 1
+      })
+    })
+
+    standaloneRows.forEach(r => {
+      const prod = r.product || 'General Product'
+      if (!productMap[prod]) {
+        productMap[prod] = { product: prod, tonnage: 0, value: 0, qty: 0, boxes: 0, lines: 0 }
+      }
+      productMap[prod].tonnage += num(r.tonnage)
+      productMap[prod].value += num(r.value)
+      productMap[prod].qty += num(r.qty)
+      productMap[prod].boxes += num(r.box)
+      productMap[prod].lines += 1
+    })
+
+    const productList = Object.values(productMap).map(p => ({
+      ...p,
+      tonnage: Math.round(p.tonnage * 100) / 100,
+      value: Math.round(p.value * 100) / 100,
+      avgRate: p.tonnage > 0 ? Math.round((p.value / p.tonnage) * 100) / 100 : 0,
+    })).sort((a, b) => b.tonnage - a.tonnage)
 
     return {
       lines: purchaseRows.length,
-      tonnage: Math.round(totalTonnage),
-      value: Math.round(totalValue),
+      tonnage: Math.round(totalTonnage * 100) / 100,
+      value: Math.round(totalValue * 100) / 100,
       qty: Math.round(totalQty),
       boxes: Math.round(totalBoxes),
-      uniqueInvoices: invoices.size,
-      uniqueEntities: entities.size,
-      avgRatePerKg: totalTonnage ? Math.round((totalValue / totalTonnage) * 100) / 100 : 0,
+      uniqueInvoices: uniqueInvoices.length,
+      uniqueEntities: Object.keys(entityMap).length,
+      avgRatePerKg: totalTonnage > 0 ? Math.round((totalValue / totalTonnage) * 100) / 100 : 0,
       entities: entityList,
       products: productList,
     }
@@ -388,7 +449,7 @@ export default function InventoryTab({ data }) {
   const purchaseCSVRows = () => {
     const rows = ['Purchase Details (Columns B to J)']
     rows.push('')
-    rows.push('S.No,Purchase Date(MM-DD-YYYY),Purchase Entity,Purchase Invoice Number,Purchase Products,Purchase Cost,Unit Tonnage(KG),Purchase QTY,Total Tonnage(KG) [G*H],Purchase Box,Purchase Values,Rate / KG (₹)')
+    rows.push('S.No,Purchase Date(MM-DD-YYYY),Purchase Entity,Purchase Invoice Number,Purchase Products,Purchase Cost,Purchase Tonnage(KG),Purchase QTY,Purchase Box,Purchase Values,Rate / KG (₹)')
     purchaseRows.forEach(r => {
       rows.push([
         r.sno,
@@ -397,16 +458,15 @@ export default function InventoryTab({ data }) {
         csvEscape(r.invoice),
         csvEscape(r.product),
         r.cost,
-        r.unitTonnage,
-        r.qty,
         r.tonnage,
+        r.qty,
         r.box,
         r.value,
         r.ratePerKg,
       ].join(','))
     })
     rows.push('')
-    rows.push(`TOTAL,,${purchaseMetrics.uniqueEntities} Entities,${purchaseMetrics.uniqueInvoices} Invoices,,${purchaseMetrics.tonnage},${purchaseMetrics.qty},${purchaseMetrics.boxes},${purchaseMetrics.value},${purchaseMetrics.avgRatePerKg}`)
+    rows.push(`TOTAL (Unique Invoices),,${purchaseMetrics.uniqueEntities} Entities,${purchaseMetrics.uniqueInvoices} Unique Invoices,,${purchaseMetrics.tonnage},${purchaseMetrics.qty},${purchaseMetrics.boxes},${purchaseMetrics.value},${purchaseMetrics.avgRatePerKg}`)
     return rows
   }
 
@@ -450,11 +510,11 @@ export default function InventoryTab({ data }) {
       render: r => r.cost ? '₹' + Number(r.cost).toLocaleString() : '—',
     },
     {
-      key: 'unitTonnage',
-      label: 'Unit Tonnage (G)',
+      key: 'tonnage',
+      label: 'Purchase Tonnage KG (G)',
       align: 'right',
-      accessor: r => r.unitTonnage,
-      render: r => r.unitTonnage ? Number(r.unitTonnage).toFixed(2) + ' KG' : '—',
+      accessor: r => r.tonnage,
+      render: r => <span style={{ fontWeight: 600, color: '#f97316' }}>{r.tonnage ? Number(r.tonnage).toLocaleString() + ' KG' : '—'}</span>,
     },
     {
       key: 'qty',
@@ -462,13 +522,6 @@ export default function InventoryTab({ data }) {
       align: 'right',
       accessor: r => r.qty,
       render: r => r.qty ? Number(r.qty).toLocaleString() : '—',
-    },
-    {
-      key: 'tonnage',
-      label: 'Total Tonnage KG (G × H)',
-      align: 'right',
-      accessor: r => r.tonnage,
-      render: r => <span style={{ fontWeight: 700, color: '#f97316' }}>{r.tonnage ? Number(r.tonnage).toLocaleString() + ' KG' : '—'}</span>,
     },
     {
       key: 'box',
@@ -699,16 +752,16 @@ export default function InventoryTab({ data }) {
             label="Total Purchase Value"
             icon="💰"
             color="#22c55e"
-            value={'₹' + purchaseMetrics.value.toLocaleString()}
-            change={`Col J • ${purchaseMetrics.lines} Line Items`}
+            value={'₹' + Math.round(purchaseMetrics.value).toLocaleString()}
+            change={`Sum of Col J across ${purchaseMetrics.uniqueInvoices} Unique Invoices`}
             changeColor="#22c55e"
           />
           <StatCard
             label="Total Purchase Tonnage"
             icon="⚖️"
             color="#f97316"
-            value={purchaseMetrics.tonnage.toLocaleString() + ' KG'}
-            change={`Col G (Unit Tonnage) × Col H (QTY)`}
+            value={Math.round(purchaseMetrics.tonnage).toLocaleString() + ' KG'}
+            change={`Sum of Col G across ${purchaseMetrics.uniqueInvoices} Unique Invoices`}
             changeColor="#38bdf8"
           />
           <StatCard
@@ -716,7 +769,7 @@ export default function InventoryTab({ data }) {
             icon="🧴"
             color="#3b82f6"
             value={purchaseMetrics.qty.toLocaleString() + ' Units'}
-            change={`Col H Quantity`}
+            change={`Col H Quantity Sum`}
             changeColor="#3b82f6"
           />
           <StatCard
@@ -724,7 +777,7 @@ export default function InventoryTab({ data }) {
             icon="🎯"
             color="#a855f7"
             value={'₹' + purchaseMetrics.avgRatePerKg.toFixed(2) + ' / KG'}
-            change={`Total Spend ÷ Total KG`}
+            change={`Total Value ÷ Total Tonnage`}
             changeColor="#a855f7"
           />
           <StatCard
