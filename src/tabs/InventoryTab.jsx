@@ -3,6 +3,7 @@ import {
   num, parseMMDDDate, csvEscape, MONTH_NAMES, productSummary,
   getPurchaseDate, getPurchaseEntity, getPurchaseInvoiceNo, getPurchaseProduct,
   getPurchaseCost, getPurchaseTonnage, getPurchaseQty, getPurchaseBox, getPurchaseValue,
+  isGemEdibleEntity,
 } from '../lib/utils'
 import { CSVButton, ProfileSection, StatCard } from '../components/ui'
 import { DataTable } from '../components/DataTable'
@@ -47,6 +48,7 @@ const matchOilLabel = (product) => {
 
 export default function InventoryTab({ data }) {
   const [purchaseSubView, setPurchaseSubView] = useState('lines') // 'lines', 'entity', 'product'
+  const [purchaseEntityFilter, setPurchaseEntityFilter] = useState('gem') // 'gem' = Gem Edible Oils Only, 'all' = All Entities
   const [selectedMonths, setSelectedMonths] = useState(() => {
     const now = new Date()
     return new Set([now.getFullYear() * 12 + now.getMonth()])
@@ -312,6 +314,13 @@ export default function InventoryTab({ data }) {
     return list
   }, [data, selectedMonths])
 
+  const displayedPurchaseRows = useMemo(() => {
+    if (purchaseEntityFilter === 'gem') {
+      return purchaseRows.filter(r => isGemEdibleEntity(r.entity))
+    }
+    return purchaseRows
+  }, [purchaseRows, purchaseEntityFilter])
+
   const purchaseMetrics = useMemo(() => {
     let totalTonnage = 0
     let totalQty = 0
@@ -324,7 +333,7 @@ export default function InventoryTab({ data }) {
     const entityMap = {}
     const productMap = {}
 
-    for (const r of purchaseRows) {
+    for (const r of displayedPurchaseRows) {
       const tonG = num(r.tonnage)
       const valJ = num(r.value)
       const qtyH = num(r.qty)
@@ -428,7 +437,7 @@ export default function InventoryTab({ data }) {
     })).sort((a, b) => b.tonnage - a.tonnage)
 
     return {
-      lines: purchaseRows.length,
+      lines: displayedPurchaseRows.length,
       tonnage: Math.round(totalTonnage * 100) / 100,
       value: Math.round(totalValue * 100) / 100,
       qty: Math.round(totalQty),
@@ -439,15 +448,15 @@ export default function InventoryTab({ data }) {
       entities: entityList,
       products: productList,
     }
-  }, [purchaseRows])
+  }, [displayedPurchaseRows])
 
   const purchaseCSVRows = () => {
     const rows = ['Purchase Details (Columns B to J)']
     rows.push('')
     rows.push('S.No,Purchase Date(MM-DD-YYYY),Purchase Entity,Purchase Invoice Number,Purchase Products,Purchase Cost,Purchase Tonnage(KG),Purchase QTY,Purchase Box,Purchase Values,Rate / KG (₹)')
-    purchaseRows.forEach(r => {
+    displayedPurchaseRows.forEach((r, idx) => {
       rows.push([
-        r.sno,
+        idx + 1,
         csvEscape(r.date),
         csvEscape(r.entity),
         csvEscape(r.invoice),
@@ -717,6 +726,40 @@ export default function InventoryTab({ data }) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#0f172a', padding: '3px 6px', borderRadius: 8, border: '1px solid #334155' }}>
+              <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, paddingLeft: 4 }}>ENTITY:</span>
+              <button
+                onClick={() => setPurchaseEntityFilter('gem')}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: '1px solid ' + (purchaseEntityFilter === 'gem' ? '#22c55e' : 'transparent'),
+                  background: purchaseEntityFilter === 'gem' ? 'rgba(34,197,94,0.18)' : 'transparent',
+                  color: purchaseEntityFilter === 'gem' ? '#22c55e' : '#94a3b8',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                💎 Gem Edible Oils
+              </button>
+              <button
+                onClick={() => setPurchaseEntityFilter('all')}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: '1px solid ' + (purchaseEntityFilter === 'all' ? '#3b82f6' : 'transparent'),
+                  background: purchaseEntityFilter === 'all' ? 'rgba(59,130,246,0.18)' : 'transparent',
+                  color: purchaseEntityFilter === 'all' ? '#38bdf8' : '#94a3b8',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                🏢 All Entities
+              </button>
+            </div>
+
             <a
               href="https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/edit?gid=1664329820#gid=1664329820"
               target="_blank"
@@ -748,7 +791,7 @@ export default function InventoryTab({ data }) {
             icon="💰"
             color="#22c55e"
             value={'₹' + Math.round(purchaseMetrics.value).toLocaleString()}
-            change={`Sum of Col J across ${purchaseMetrics.uniqueInvoices} Unique Invoices`}
+            change={`Unique Invoices • ${purchaseEntityFilter === 'gem' ? 'Gem Edible Oils' : 'All Entities'}`}
             changeColor="#22c55e"
           />
           <StatCard
@@ -756,7 +799,7 @@ export default function InventoryTab({ data }) {
             icon="⚖️"
             color="#f97316"
             value={Math.round(purchaseMetrics.tonnage).toLocaleString() + ' KG'}
-            change={`Sum of Col G across ${purchaseMetrics.uniqueInvoices} Unique Invoices`}
+            change={`Col G Sum • ${purchaseEntityFilter === 'gem' ? 'Gem Edible Oils' : 'All Entities'}`}
             changeColor="#38bdf8"
           />
           <StatCard
@@ -788,7 +831,7 @@ export default function InventoryTab({ data }) {
             icon="🏢"
             color="#eab308"
             value={purchaseMetrics.uniqueEntities.toLocaleString()}
-            change={`Col C Suppliers / Vendors`}
+            change={purchaseEntityFilter === 'gem' ? 'Gem Edible Oils Pvt Ltd' : `${purchaseMetrics.uniqueEntities} Suppliers`}
             changeColor="#eab308"
           />
         </div>
@@ -809,7 +852,7 @@ export default function InventoryTab({ data }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Purchase View:</span>
             {[
-              { id: 'lines', label: `📑 Detailed Invoices (${purchaseRows.length})` },
+              { id: 'lines', label: `📑 Detailed Invoices (${displayedPurchaseRows.length})` },
               { id: 'entity', label: `🏢 By Entity (${purchaseMetrics.entities.length})` },
               { id: 'product', label: `🧴 By Product (${purchaseMetrics.products.length})` },
             ].map(t => (
@@ -833,7 +876,7 @@ export default function InventoryTab({ data }) {
           </div>
 
           <div style={{ fontSize: 12, color: '#94a3b8' }}>
-            Showing {purchaseSubView === 'lines' ? `${purchaseRows.length} line items` : purchaseSubView === 'entity' ? `${purchaseMetrics.entities.length} entities` : `${purchaseMetrics.products.length} products`}
+            Showing {purchaseSubView === 'lines' ? `${displayedPurchaseRows.length} line items` : purchaseSubView === 'entity' ? `${purchaseMetrics.entities.length} entities` : `${purchaseMetrics.products.length} products`}
           </div>
         </div>
 
@@ -848,7 +891,7 @@ export default function InventoryTab({ data }) {
           {purchaseSubView === 'lines' && (
             <DataTable
               columns={purchaseColumns}
-              rows={purchaseRows}
+              rows={displayedPurchaseRows}
               pageSize={15}
               filename="purchase_detailed_records.csv"
               emptyMessage="No purchase records found in the selected period"

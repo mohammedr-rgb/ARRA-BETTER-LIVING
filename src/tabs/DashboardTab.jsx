@@ -7,6 +7,7 @@ import {
   num, parseDate, parseMMDDDate, uniqueByPO, sumPOField, sumField, csvEscape, MONTH_NAMES,
   getPurchaseDate, getPurchaseEntity, getPurchaseInvoiceNo, getPurchaseProduct,
   getPurchaseTonnage, getPurchaseQty, getPurchaseBox, getPurchaseValue,
+  isGemEdibleEntity,
 } from '../lib/utils'
 import { Tooltip, TooltipRow, StatCard, StatusPill, CSVButton, ProfileSection, ChartEmpty } from '../components/ui'
 import { DataTable } from '../components/DataTable'
@@ -79,12 +80,15 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
     const productMap = {}
 
     for (const r of purchasePeriodData) {
+      const ent = (getPurchaseEntity(r) || '').trim() || 'General / Direct'
+      // Consider only Gem Edible Oils Private Limited for purchase calculations
+      if (!isGemEdibleEntity(ent)) continue
+
       const tonG = getPurchaseTonnage(r)
       const valJ = getPurchaseValue(r)
       const qty = getPurchaseQty(r)
       const box = getPurchaseBox(r)
       const inv = (getPurchaseInvoiceNo(r) || '').trim()
-      const ent = (getPurchaseEntity(r) || '').trim() || 'General / Direct'
       const prod = (getPurchaseProduct(r) || '').trim() || 'General Product'
 
       totalTonnage += tonG

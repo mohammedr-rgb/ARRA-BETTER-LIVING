@@ -178,6 +178,21 @@ export function getPurchaseEntity(row) {
   ]) || ''
 }
 
+export function isGemEdibleEntity(entity) {
+  if (!entity) return false
+  const s = String(entity).toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim()
+  return (
+    s.includes('gem edible') ||
+    s.includes('gem edible oils') ||
+    s.includes('gem edible oils private limited') ||
+    s.includes('gem edible oils pvt ltd') ||
+    s.includes('gems gold') ||
+    s.includes('gem gold') ||
+    s === 'gem' ||
+    s.startsWith('gem ')
+  )
+}
+
 export function getPurchaseInvoiceNo(row) {
   return getFieldCI(row, [
     'Purchase Invoice Number',
