@@ -198,17 +198,20 @@ export default function FinanceTab() {
     const totalPaymentsReceived = grandRow ? num(grandRow['Total Payment Received']) : dataRows.reduce((s, r) => s + num(r['Total Payment Received']), 0)
     const totalOutstanding = grandRow ? num(grandRow['Outstanding']) : dataRows.reduce((s, r) => s + num(r['Outstanding']), 0)
     const totalOverdue = grandRow ? num(grandRow['Total Over Due']) : dataRows.reduce((s, r) => s + num(r['Total Over Due']), 0)
+    const totalNotDue = grandRow ? num(grandRow['Total Not Due']) : dataRows.reduce((s, r) => s + num(r['Total Not Due']), 0)
     const totalCreditNotes = grandRow ? num(grandRow['Total Credit Note']) : dataRows.reduce((s, r) => s + num(r['Total Credit Note']), 0)
     const totalDebitNotes = grandRow ? num(grandRow['Total Debit Note']) : dataRows.reduce((s, r) => s + num(r['Total Debit Note']), 0)
     const totalGRN = grandRow ? num(grandRow['Total GRN Value']) : dataRows.reduce((s, r) => s + num(r['Total GRN Value']), 0)
+    const totalGrnNotReceived = num(grandRow?.['GRN NOT RECEIVED']) || dataRows.reduce((s, r) => s + num(r['GRN NOT RECEIVED']), 0)
 
     const stats = [
       { label: 'Total Invoiced Value', icon: '🧾', color: '#3b82f6', value: '₹' + Math.round(totalInvoiced).toLocaleString() },
       { label: 'Payments Received', icon: '✅', color: '#22c55e', value: '₹' + Math.round(totalPaymentsReceived).toLocaleString() },
       { label: 'Total Outstanding', icon: '⏳', color: '#eab308', value: '₹' + Math.round(totalOutstanding).toLocaleString() },
       { label: 'Total Overdue', icon: '🔴', color: '#ef4444', value: '₹' + Math.round(totalOverdue).toLocaleString() },
-      { label: 'Credit / Debit Notes', icon: '➖', color: '#a855f7', value: `₹${(totalCreditNotes / 100000).toFixed(1)}L / ₹${(totalDebitNotes / 100000).toFixed(1)}L` },
+      { label: 'GRN Not Received', icon: '⚠️', color: '#f59e0b', value: '₹' + Math.round(totalGrnNotReceived).toLocaleString() },
       { label: 'Verified GRN Value', icon: '📦', color: '#06b6d4', value: '₹' + Math.round(totalGRN).toLocaleString() },
+      { label: 'Credit / Debit Notes', icon: '➖', color: '#a855f7', value: `₹${(totalCreditNotes / 100000).toFixed(1)}L / ₹${(totalDebitNotes / 100000).toFixed(1)}L` },
     ]
 
     // Chart Data comparing Invoiced vs Received vs Outstanding
@@ -217,9 +220,10 @@ export default function FinanceTab() {
       Invoiced: Math.round(num(r['Total Invoice Value'])),
       Received: Math.round(num(r['Total Payment Received'])),
       Outstanding: Math.round(num(r['Outstanding'])),
+      'GRN Not Received': Math.round(num(r['GRN NOT RECEIVED'])),
     }))
 
-    return { stats, summaryRows: dataRows, grandRow, monthlyRows, chartData }
+    return { stats, summaryRows: dataRows, grandRow, monthlyRows, chartData, totalGrnNotReceived }
   }, [activeSubTab, cache.cumulative])
 
   // ==========================================
@@ -660,7 +664,7 @@ export default function FinanceTab() {
               <div className="orders-title">📊 Entity &amp; Platform Cumulative Accounts Statement</div>
               <CSVButton
                 makeRows={() => {
-                  const head = 'Platform / Entity,Purchase,Total Invoiced,Credit Notes,Debit Notes,GRN Value,Overdue,Not Due,Payment Received,Outstanding'
+                  const head = 'Platform / Entity,Purchase,Total Invoiced,Credit Notes,Debit Notes,GRN Value,Overdue,Not Due,GRN Not Received,Payment Received,Outstanding'
                   const rows = cumulativeData.summaryRows.map(r => [
                     csvEscape(r['Source Sheet']),
                     num(r['PURCHASE']),
@@ -670,6 +674,7 @@ export default function FinanceTab() {
                     num(r['Total GRN Value']),
                     num(r['Total Over Due']),
                     num(r['Total Not Due']),
+                    num(r['GRN NOT RECEIVED']),
                     num(r['Total Payment Received']),
                     num(r['Outstanding'])
                   ].join(','))
@@ -688,6 +693,7 @@ export default function FinanceTab() {
                   <th style={{ textAlign: 'right' }}>GRN Value (₹)</th>
                   <th style={{ textAlign: 'right' }}>Overdue (₹)</th>
                   <th style={{ textAlign: 'right' }}>Not Due (₹)</th>
+                  <th style={{ textAlign: 'right' }}>GRN Not Received (₹)</th>
                   <th style={{ textAlign: 'right' }}>Received (₹)</th>
                   <th style={{ textAlign: 'right' }}>Outstanding (₹)</th>
                 </tr>
@@ -702,6 +708,7 @@ export default function FinanceTab() {
                     <td style={{ textAlign: 'right', color: '#06b6d4' }}>₹{num(row['Total GRN Value']).toLocaleString()}</td>
                     <td style={{ textAlign: 'right', color: num(row['Total Over Due']) ? '#ef4444' : '#64748b', fontWeight: 600 }}>{num(row['Total Over Due']) ? '₹' + num(row['Total Over Due']).toLocaleString() : '₹0'}</td>
                     <td style={{ textAlign: 'right', color: '#22c55e' }}>{num(row['Total Not Due']) ? '₹' + num(row['Total Not Due']).toLocaleString() : '—'}</td>
+                    <td style={{ textAlign: 'right', color: num(row['GRN NOT RECEIVED']) ? '#f59e0b' : '#64748b', fontWeight: 600 }}>{num(row['GRN NOT RECEIVED']) ? '₹' + num(row['GRN NOT RECEIVED']).toLocaleString() : '—'}</td>
                     <td style={{ textAlign: 'right', color: '#22c55e', fontWeight: 600 }}>₹{num(row['Total Payment Received']).toLocaleString()}</td>
                     <td style={{ textAlign: 'right', color: '#fbbf24', fontWeight: 700 }}>₹{num(row['Outstanding']).toLocaleString()}</td>
                   </tr>
@@ -715,6 +722,7 @@ export default function FinanceTab() {
                     <td style={{ textAlign: 'right', color: '#06b6d4', borderTop: '2px solid #334155' }}>₹{num(cumulativeData.grandRow['Total GRN Value']).toLocaleString()}</td>
                     <td style={{ textAlign: 'right', color: '#ef4444', borderTop: '2px solid #334155' }}>₹{num(cumulativeData.grandRow['Total Over Due']).toLocaleString()}</td>
                     <td style={{ textAlign: 'right', color: '#22c55e', borderTop: '2px solid #334155' }}>₹{num(cumulativeData.grandRow['Total Not Due']).toLocaleString()}</td>
+                    <td style={{ textAlign: 'right', color: '#f59e0b', borderTop: '2px solid #334155' }}>₹{Math.round(cumulativeData.totalGrnNotReceived).toLocaleString()}</td>
                     <td style={{ textAlign: 'right', color: '#22c55e', borderTop: '2px solid #334155' }}>₹{num(cumulativeData.grandRow['Total Payment Received']).toLocaleString()}</td>
                     <td style={{ textAlign: 'right', color: '#fbbf24', borderTop: '2px solid #334155', fontSize: 14 }}>₹{num(cumulativeData.grandRow['Outstanding']).toLocaleString()}</td>
                   </tr>
