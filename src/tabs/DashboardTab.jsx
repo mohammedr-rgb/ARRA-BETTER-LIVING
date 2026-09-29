@@ -67,15 +67,16 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
   }, [data, selectedMonths])
 
   const purchaseSummary = useMemo(() => {
+    let totalTonnage = 0
     let totalQty = 0
     let totalBoxes = 0
-    const invoiceTonnageMap = {}
     const invoiceValueMap = {}
     const invoiceEntityMap = {}
-    const invoiceQtyMap = {}
     const invoiceLinesMap = {}
-
     const standaloneRows = []
+
+    const entityMap = {}
+    const productMap = {}
 
     for (const r of purchasePeriodData) {
       const tonG = getPurchaseTonnage(r)
@@ -86,100 +87,90 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
       const ent = (getPurchaseEntity(r) || '').trim() || 'General / Direct'
       const prod = (getPurchaseProduct(r) || '').trim() || 'General Product'
 
+      totalTonnage += tonG
       totalQty += qty
       totalBoxes += box
 
       const rowObj = { tonG, valJ, qty, box, inv, ent, prod }
 
+      // Entity stats
+      if (!entityMap[ent]) {
+        entityMap[ent] = { entity: ent, tonnage: 0, value: 0, qty: 0, boxes: 0, invoices: new Set() }
+      }
+      entityMap[ent].tonnage += tonG
+      entityMap[ent].qty += qty
+      entityMap[ent].boxes += box
+
+      // Product stats
+      if (!productMap[prod]) {
+        productMap[prod] = { product: prod, tonnage: 0, value: 0, qty: 0, boxes: 0, lines: 0 }
+      }
+      productMap[prod].tonnage += tonG
+      productMap[prod].qty += qty
+      productMap[prod].boxes += box
+      productMap[prod].lines += 1
+
       if (inv) {
-        if (!invoiceTonnageMap[inv] || tonG > invoiceTonnageMap[inv]) {
-          invoiceTonnageMap[inv] = tonG
-        }
         if (!invoiceValueMap[inv] || valJ > invoiceValueMap[inv]) {
           invoiceValueMap[inv] = valJ
         }
         invoiceEntityMap[inv] = ent
-        invoiceQtyMap[inv] = (invoiceQtyMap[inv] || 0) + qty
         if (!invoiceLinesMap[inv]) invoiceLinesMap[inv] = []
         invoiceLinesMap[inv].push(rowObj)
+        entityMap[ent].invoices.add(inv)
       } else {
         standaloneRows.push(rowObj)
       }
     }
 
-    const uniqueInvoices = Object.keys(invoiceTonnageMap)
-    const uniqueInvoiceTonnageSum = uniqueInvoices.reduce((s, inv) => s + (invoiceTonnageMap[inv] || 0), 0)
+    const uniqueInvoices = Object.keys(invoiceValueMap)
     const uniqueInvoiceValueSum = uniqueInvoices.reduce((s, inv) => s + (invoiceValueMap[inv] || 0), 0)
-
-    const standaloneTonnageSum = standaloneRows.reduce((s, r) => s + r.tonG, 0)
     const standaloneValueSum = standaloneRows.reduce((s, r) => s + r.valJ, 0)
-
-    const totalTonnage = uniqueInvoiceTonnageSum + standaloneTonnageSum
     const totalValue = uniqueInvoiceValueSum + standaloneValueSum
 
-    // Entities
-    const entityMap = {}
+    // Assign invoice values to entities
     uniqueInvoices.forEach(inv => {
       const ent = invoiceEntityMap[inv] || 'General / Direct'
-      if (!entityMap[ent]) {
-        entityMap[ent] = { entity: ent, tonnage: 0, value: 0, qty: 0, boxes: 0, invoices: new Set() }
+      if (entityMap[ent]) {
+        entityMap[ent].value += invoiceValueMap[inv] || 0
       }
-      entityMap[ent].tonnage += invoiceTonnageMap[inv] || 0
-      entityMap[ent].value += invoiceValueMap[inv] || 0
-      entityMap[ent].qty += invoiceQtyMap[inv] || 0
-      entityMap[ent].invoices.add(inv)
-      const lines = invoiceLinesMap[inv] || []
-      lines.forEach(l => { entityMap[ent].boxes += l.box })
     })
-
     standaloneRows.forEach(r => {
       const ent = r.ent || 'General / Direct'
-      if (!entityMap[ent]) {
-        entityMap[ent] = { entity: ent, tonnage: 0, value: 0, qty: 0, boxes: 0, invoices: new Set() }
+      if (entityMap[ent]) {
+        entityMap[ent].value += r.valJ
       }
-      entityMap[ent].tonnage += r.tonG
-      entityMap[ent].value += r.valJ
-      entityMap[ent].qty += r.qty
-      entityMap[ent].boxes += r.box
+    })
+
+    // Assign invoice values to products based on tonnage share
+    uniqueInvoices.forEach(inv => {
+      const invVal = invoiceValueMap[inv] || 0
+      const lines = invoiceLinesMap[inv] || []
+      const invTotalTonnage = lines.reduce((s, l) => s + l.tonG, 0)
+      const invTotalQty = lines.reduce((s, l) => s + l.qty, 0)
+
+      lines.forEach(l => {
+        const prod = l.prod || 'General Product'
+        if (productMap[prod]) {
+          const share = invTotalTonnage > 0
+            ? (l.tonG / invTotalTonnage)
+            : invTotalQty > 0
+            ? (l.qty / invTotalQty)
+            : (1 / lines.length)
+          productMap[prod].value += invVal * share
+        }
+      })
+    })
+    standaloneRows.forEach(r => {
+      const prod = r.prod || 'General Product'
+      if (productMap[prod]) {
+        productMap[prod].value += r.valJ
+      }
     })
 
     const entityList = Object.values(entityMap)
       .map(e => ({ ...e, invoiceCount: e.invoices.size }))
       .sort((a, b) => b.tonnage - a.tonnage)
-
-    // Products
-    const productMap = {}
-    uniqueInvoices.forEach(inv => {
-      const invTon = invoiceTonnageMap[inv] || 0
-      const invVal = invoiceValueMap[inv] || 0
-      const lines = invoiceLinesMap[inv] || []
-      const invTotalQty = lines.reduce((s, l) => s + l.qty, 0)
-
-      lines.forEach(l => {
-        const prod = l.prod || 'General Product'
-        if (!productMap[prod]) {
-          productMap[prod] = { product: prod, tonnage: 0, value: 0, qty: 0, boxes: 0, lines: 0 }
-        }
-        const share = invTotalQty > 0 ? (l.qty / invTotalQty) : (1 / lines.length)
-        productMap[prod].tonnage += invTon * share
-        productMap[prod].value += invVal * share
-        productMap[prod].qty += l.qty
-        productMap[prod].boxes += l.box
-        productMap[prod].lines += 1
-      })
-    })
-
-    standaloneRows.forEach(r => {
-      const prod = r.prod || 'General Product'
-      if (!productMap[prod]) {
-        productMap[prod] = { product: prod, tonnage: 0, value: 0, qty: 0, boxes: 0, lines: 0 }
-      }
-      productMap[prod].tonnage += r.tonG
-      productMap[prod].value += r.valJ
-      productMap[prod].qty += r.qty
-      productMap[prod].boxes += r.box
-      productMap[prod].lines += 1
-    })
 
     const productList = Object.values(productMap)
       .sort((a, b) => b.tonnage - a.tonnage)
