@@ -139,7 +139,7 @@ function Dashboard({ authUser, onLogout }) {
 
     const token = getAuthToken() || ''
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 12000)
+    const timeoutId = setTimeout(() => controller.abort(), 60000) // 60s timeout for Apps Script
 
     let success = false
     let lastErrMsg = ''
@@ -231,8 +231,8 @@ function Dashboard({ authUser, onLogout }) {
 
     // If completely empty and failed
     if (!data.length) {
-      setError(lastErrMsg || 'Failed to fetch dashboard data. Please re-authenticate or upload a CSV file.')
-      toast('Failed to load data', 'error')
+      setError(lastErrMsg || 'Orders dataset is currently unavailable.')
+      if (isManual) toast('Failed to load data', 'error')
     }
   }, [data.length, persistData])
 
@@ -244,7 +244,7 @@ function Dashboard({ authUser, onLogout }) {
   useEffect(() => {
     if (autoRefresh === 0) return
     const interval = setInterval(() => {
-      loadData()
+      loadData(false)
     }, autoRefresh * 60 * 1000)
     return () => clearInterval(interval)
   }, [autoRefresh, loadData])
@@ -329,87 +329,88 @@ function Dashboard({ authUser, onLogout }) {
       .map(x => x.r)
   }, [filteredData])
 
-  if (loading) {
-    return (
-      <div className="main-content">
-        <DashboardSkeleton />
-      </div>
-    )
-  }
-
-  if (error && !data.length) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', width: '100%', background: '#0f172a', padding: 24, textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-        <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Failed to load dashboard data</div>
-        <div style={{ color: '#ef4444', fontSize: 14, marginBottom: 24, maxWidth: 520, wordBreak: 'break-word', background: 'rgba(239, 68, 68, 0.1)', padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(239, 68, 68, 0.25)' }}>
-          {error}
+  const renderOrderDataTab = (renderFn) => {
+    if (loading && !data.length) {
+      return (
+        <div style={{ padding: 24 }}>
+          <DashboardSkeleton />
         </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 480 }}>
-          <button onClick={() => loadData(true)} style={{ background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            ↻ Retry Connection
-          </button>
-          <button onClick={onLogout} style={{ background: '#475569', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            🔑 Sign In Again
-          </button>
-          <button onClick={() => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.csv';
-            input.onchange = async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              try {
-                const parsed = await loadCSVFromFile(file);
-                const text = await file.text();
-                persistData(text, parsed, 'upload');
-                toast(`Loaded ${parsed.length} rows from ${file.name}`, 'success');
-              } catch (err) {
-                toast(`Failed to parse CSV: ${err?.message || 'invalid format'}`, 'error');
-              }
-            };
-            input.click();
-          }} style={{ background: '#059669', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            📂 Load CSV File
-          </button>
+      )
+    }
+    if (error && !data.length) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', padding: 24, textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+          <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Orders Data Unavailable</div>
+          <div style={{ color: '#ef4444', fontSize: 14, marginBottom: 24, maxWidth: 520, background: 'rgba(239, 68, 68, 0.1)', padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+            {error}
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 480 }}>
+            <button onClick={() => loadData(true)} style={{ background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              ↻ Retry Live Fetch
+            </button>
+            <button onClick={onLogout} style={{ background: '#475569', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              🔑 Sign In Again
+            </button>
+            <button onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.csv';
+              input.onchange = async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const parsed = await loadCSVFromFile(file);
+                  const text = await file.text();
+                  persistData(text, parsed, 'upload');
+                  toast(`Loaded ${parsed.length} rows from ${file.name}`, 'success');
+                } catch (err) {
+                  toast(`Failed to parse CSV: ${err?.message || 'invalid format'}`, 'error');
+                }
+              };
+              input.click();
+            }} style={{ background: '#059669', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              📂 Load CSV File
+            </button>
+          </div>
         </div>
-      </div>
-    )
-  }
-
-  if (!data.length) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', width: '100%', background: '#0f172a', padding: 24, textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
-        <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>No data available</div>
-        <div style={{ color: '#94a3b8', fontSize: 14, marginBottom: 24, maxWidth: 460 }}>The source sheet returned no rows or is currently inaccessible. Try refreshing or upload a CSV file.</div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button onClick={() => loadData(true)} style={{ background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-            ↻ Refresh Data
-          </button>
-          <button onClick={() => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.csv';
-            input.onchange = async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              try {
-                const parsed = await loadCSVFromFile(file);
-                const text = await file.text();
-                persistData(text, parsed, 'upload');
-                toast(`Loaded ${parsed.length} rows from ${file.name}`, 'success');
-              } catch (err) {
-                toast(`Failed to parse CSV: ${err?.message || 'invalid format'}`, 'error');
-              }
-            };
-            input.click();
-          }} style={{ background: '#059669', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-            📂 Load CSV File
-          </button>
+      )
+    }
+    if (!data.length) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', padding: 24, textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
+          <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>No data available</div>
+          <div style={{ color: '#94a3b8', fontSize: 14, marginBottom: 24, maxWidth: 460 }}>The source sheet returned no rows or is currently inaccessible. Try refreshing or upload a CSV file.</div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button onClick={() => loadData(true)} style={{ background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              ↻ Refresh Data
+            </button>
+            <button onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.csv';
+              input.onchange = async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const parsed = await loadCSVFromFile(file);
+                  const text = await file.text();
+                  persistData(text, parsed, 'upload');
+                  toast(`Loaded ${parsed.length} rows from ${file.name}`, 'success');
+                } catch (err) {
+                  toast(`Failed to parse CSV: ${err?.message || 'invalid format'}`, 'error');
+                }
+              };
+              input.click();
+            }} style={{ background: '#059669', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              📂 Load CSV File
+            </button>
+          </div>
         </div>
-      </div>
-    )
+      )
+    }
+    return renderFn()
   }
 
   const closeNav = () => setMobileMenu(false)
@@ -430,7 +431,6 @@ function Dashboard({ authUser, onLogout }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <UserBadge user={authUser} logout={onLogout} />
           </div>
-
         </div>
         <div style={{ padding: '8px 16px 4px' }}>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Platform Filter</div>
@@ -512,7 +512,7 @@ function Dashboard({ authUser, onLogout }) {
             {lastUpdated ? <>Last updated<br />{lastUpdated.toLocaleString()}</> : 'Last updated: —'}
             {dataSource === 'cached' && <div style={{ marginTop: 6, color: '#f59e0b' }}>⚡ Offline (cached data)</div>}
             {dataSource === 'fallback' && <div style={{ marginTop: 6, color: '#f59e0b' }}>⚠ direct sheet (backend empty)</div>}
-            <div style={{ marginTop: 6, color: '#475569' }}>build v2sheet-3</div>
+            <div style={{ marginTop: 6, color: '#475569' }}>build v2sheet-4</div>
           </div>
         </div>
       </aside>
@@ -521,7 +521,7 @@ function Dashboard({ authUser, onLogout }) {
         <div className="main-content">
           {dataSource === 'cached' && (
             <div style={{ background: 'rgba(245, 158, 11, 0.12)', borderBottom: '1px solid rgba(245, 158, 11, 0.3)', color: '#fbbf24', padding: '8px 16px', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-              <div>⚡ <strong>Offline / Cached Mode:</strong> Showing local saved data from {lastUpdated ? lastUpdated.toLocaleString() : 'previous session'}.</div>
+              <div>⚡ <strong>Offline / Cached Mode:</strong> Showing local saved orders data from {lastUpdated ? lastUpdated.toLocaleString() : 'previous session'}.</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => loadData(true)} style={{ background: '#d97706', border: 'none', borderRadius: 4, color: '#fff', padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>↻ Live Refresh</button>
                 <button onClick={onLogout} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, color: '#f1f5f9', padding: '3px 10px', fontSize: 11, cursor: 'pointer' }}>🔑 Re-Sign In</button>
@@ -535,16 +535,22 @@ function Dashboard({ authUser, onLogout }) {
           ) : (
             <div key={tab} className="tab-pane">
               <ErrorBoundary key="dashboard">
-                {tab === 'dashboard' && <DashboardTab data={filteredData} allData={data} metrics={metrics} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} onSearchOpen={openPOInNewTab} />}
+                {tab === 'dashboard' && renderOrderDataTab(() => (
+                  <DashboardTab data={filteredData} allData={data} metrics={metrics} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} onSearchOpen={openPOInNewTab} />
+                ))}
               </ErrorBoundary>
               <ErrorBoundary key="orders">
-                {tab === 'orders' && <OrdersTab data={filteredData} platformFilter={globalPlatform} onOpenPO={openPO} />}
+                {tab === 'orders' && renderOrderDataTab(() => (
+                  <OrdersTab data={filteredData} platformFilter={globalPlatform} onOpenPO={openPO} />
+                ))}
               </ErrorBoundary>
               <ErrorBoundary key="sales">
                 {tab === 'sales' && <SalesTab />}
               </ErrorBoundary>
               <ErrorBoundary key="inventory">
-                {tab === 'inventory' && <InventoryTab data={filteredData} />}
+                {tab === 'inventory' && renderOrderDataTab(() => (
+                  <InventoryTab data={filteredData} />
+                ))}
               </ErrorBoundary>
               <ErrorBoundary key="stock">
                 {tab === 'stock' && <StockTab data={filteredData} onOpenPO={openPO} />}
@@ -556,7 +562,9 @@ function Dashboard({ authUser, onLogout }) {
                 {tab === 'dispatch' && <DispatchTab data={filteredData} onOpenPO={openPO} />}
               </ErrorBoundary>
               <ErrorBoundary key="reports">
-                {tab === 'reports' && <ReportsTab data={filteredData} platformFilter={globalPlatform} />}
+                {tab === 'reports' && renderOrderDataTab(() => (
+                  <ReportsTab data={filteredData} platformFilter={globalPlatform} />
+                ))}
               </ErrorBoundary>
               <ErrorBoundary key="finance">
                 {tab === 'finance' && <FinanceTab data={filteredData} onOpenPO={openPO} />}
