@@ -23,14 +23,44 @@ import { CommandPalette } from './components/CommandPalette'
 const API_URL = 'https://script.google.com/macros/s/AKfycbyTPATdTTq6ZOUHDyG37foHyVZgTfIfCBxjTSxs3vbbECkeAHUTTUrrOttSpKKCOVqMjA/exec'
 const FALLBACK_SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
 
+const STORAGE_KEY_CSV = 'arra_cached_raw_csv_v2'
+const STORAGE_KEY_TIME = 'arra_cached_time_v2'
+
 function Dashboard({ authUser, onLogout }) {
-  const [data, setData] = useState([])
-  const [rawCSV, setRawCSV] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(() => {
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY_CSV)
+      if (cached) {
+        const parsed = parseCSV(cached)
+        if (parsed.length > 0) return parsed
+      }
+    } catch {
+      // ignore
+    }
+    return []
+  })
+  const [rawCSV, setRawCSV] = useState(() => {
+    try { return localStorage.getItem(STORAGE_KEY_CSV) || '' } catch { return '' }
+  })
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY_CSV)
+      return !cached
+    } catch { return true }
+  })
   const [error, setError] = useState(null)
-  const [lastUpdated, setLastUpdated] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(() => {
+    try {
+      const t = localStorage.getItem(STORAGE_KEY_TIME)
+      return t ? new Date(t) : null
+    } catch { return null }
+  })
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [dataSource, setDataSource] = useState(null)
+  const [dataSource, setDataSource] = useState(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_CSV) ? 'cached' : null
+    } catch { return null }
+  })
   const [tab, setTab] = useState(() => {
     const params = new URLSearchParams(window.location.search)
     return params.get('tab') || 'dashboard'
@@ -86,80 +116,128 @@ function Dashboard({ authUser, onLogout }) {
     window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
   }, [])
 
-  const loadData = useCallback(() => {
-    setIsRefreshing(true)
+  const persistData = useCallback((csvText, parsed, source) => {
+    setRawCSV(csvText)
+    setData(parsed)
+    const now = new Date()
+    setLastUpdated(now)
+    setDataSource(source)
     setError(null)
+    setLoading(false)
+    setIsRefreshing(false)
+    try {
+      localStorage.setItem(STORAGE_KEY_CSV, csvText)
+      localStorage.setItem(STORAGE_KEY_TIME, now.toISOString())
+    } catch (e) {
+      console.warn('LocalStorage save error', e)
+    }
+  }, [])
 
-    const fallback = () => fetch(FALLBACK_SHEET_URL)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`)
-        return r.text()
-      })
-      .then(fbText => {
-        const fbParsed = parseCSV(fbText)
-        if (fbParsed.length === 0) throw new Error('Source sheet returned no rows')
-        setRawCSV(fbText)
-        setData(fbParsed)
-        setLastUpdated(new Date())
-        setDataSource('fallback')
-        setLoading(false)
-        setIsRefreshing(false)
-        if (data.length) toast(`Refreshed from direct sheet (${fbParsed.length} rows)`, 'warn')
-      })
+  const loadData = useCallback(async (isManual = false) => {
+    setIsRefreshing(true)
+    if (!data.length) setError(null)
 
-    if (!API_URL) {
-      fallback().catch(e => { setLoading(false); setIsRefreshing(false); setError(e.message || 'Failed to load data') })
-      return
+    const token = getAuthToken() || ''
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 12000)
+
+    let success = false
+    let lastErrMsg = ''
+
+    // Tier 1: Try Apps Script API
+    if (API_URL) {
+      try {
+        const res = await fetch(`${API_URL}?token=${encodeURIComponent(token)}`, {
+          signal: controller.signal
+        })
+        clearTimeout(timeoutId)
+        if (res.ok) {
+          const text = await res.text()
+          if (/^__ERROR_(401|403)__/.test(text)) {
+            lastErrMsg = 'Session expired — re-authentication required.'
+          } else if (text.startsWith('__ERROR_')) {
+            lastErrMsg = text.split('\n').slice(1).join('\n') || 'Backend error'
+          } else if (text.trim().toLowerCase().startsWith('<!doctype')) {
+            lastErrMsg = 'Google Apps Script sign-in required.'
+          } else if (!text.trim().startsWith('{')) {
+            const parsed = parseCSV(text)
+            if (parsed.length > 0) {
+              persistData(text, parsed, 'backend')
+              success = true
+              if (isManual) toast(`Data refreshed (${parsed.length} rows)`, 'success')
+              return
+            }
+          }
+        } else {
+          lastErrMsg = `HTTP ${res.status} ${res.statusText}`
+        }
+      } catch (err) {
+        clearTimeout(timeoutId)
+        lastErrMsg = err.name === 'AbortError' ? 'Request timed out' : (err.message || 'Network error')
+      }
     }
 
-    fetch(`${API_URL}?token=${encodeURIComponent(getAuthToken() || '')}`)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`)
-        return r.text()
-      })
-      .then(text => {
-        if (/^__ERROR_(401|403)__/.test(text)) {
-          forceReauth()
-          throw new Error('Session expired — signing you in again.')
+    // Tier 2: Try Direct Sheet Fallbacks
+    const fallbackUrls = [
+      'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/gviz/tq?tqx=out:csv&gid=1664329820',
+      FALLBACK_SHEET_URL
+    ]
+
+    for (const url of fallbackUrls) {
+      if (success) break
+      try {
+        const fbRes = await fetch(url)
+        if (fbRes.ok) {
+          const fbText = await fbRes.text()
+          if (!fbText.trim().toLowerCase().startsWith('<!doctype')) {
+            const fbParsed = parseCSV(fbText)
+            if (fbParsed.length > 0) {
+              persistData(fbText, fbParsed, 'fallback')
+              success = true
+              if (isManual) toast(`Loaded from direct sheet (${fbParsed.length} rows)`, 'warn')
+              return
+            }
+          }
         }
-        if (text.startsWith('__ERROR_')) {
-          throw new Error(text.split('\n').slice(1).join('\n') || 'Backend error')
-        }
-        if (text.trim().toLowerCase().startsWith('<!doctype')) {
-          throw new Error('Backend returned a Google sign-in page. Check the Apps Script deployment access (must allow the app to call it with a token).')
-        }
-        if (text.trim().startsWith('{')) {
-          throw new Error('Backend returned an unexpected response: ' + text.trim().slice(0, 120))
-        }
-        const parsed = parseCSV(text)
-        if (parsed.length === 0) throw new Error('__BACKEND_EMPTY__')
-        setRawCSV(text)
-        setData(parsed)
-        setLastUpdated(new Date())
-        setDataSource('backend')
-        setLoading(false)
-        setIsRefreshing(false)
-        if (data.length) toast(`Data refreshed (${parsed.length} rows)`, 'success')
-      })
-      .catch(err => {
-        // Backend failed (HTTP error, auth page, or empty) — fall back to the direct sheet export.
-        if (err.message === 'Source sheet returned no rows') {
-          setLoading(false)
-          setIsRefreshing(false)
-          setError(err.message)
+      } catch {
+        // Continue to next fallback
+      }
+    }
+
+    // Tier 3: Check Local Storage Cache
+    setIsRefreshing(false)
+    setLoading(false)
+
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY_CSV)
+      if (cached) {
+        const parsed = parseCSV(cached)
+        if (parsed.length > 0) {
+          if (!data.length) {
+            setRawCSV(cached)
+            setData(parsed)
+            setDataSource('cached')
+            const t = localStorage.getItem(STORAGE_KEY_TIME)
+            if (t) setLastUpdated(new Date(t))
+          }
+          setError(null)
+          if (isManual) toast(`Live fetch failed (${lastErrMsg || 'network'}). Showing cached data.`, 'warn')
           return
         }
-        fallback().catch(fbErr => {
-          setLoading(false)
-          setIsRefreshing(false)
-          setError(fbErr.message || 'Failed to load data')
-          toast('Failed to load data', 'error')
-        })
-      })
-  }, [data.length])
+      }
+    } catch {
+      // ignore
+    }
+
+    // If completely empty and failed
+    if (!data.length) {
+      setError(lastErrMsg || 'Failed to fetch dashboard data. Please re-authenticate or upload a CSV file.')
+      toast('Failed to load data', 'error')
+    }
+  }, [data.length, persistData])
 
   useEffect(() => {
-    loadData()
+    loadData(false)
   }, [loadData])
 
   // Auto-refresh effect
@@ -261,26 +339,75 @@ function Dashboard({ authUser, onLogout }) {
 
   if (error && !data.length) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: '#0f172a', padding: 24, textAlign: 'center' }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-        <div style={{ color: '#f1f5f9', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Failed to load dashboard data</div>
-        <div style={{ color: '#ef4444', fontSize: 13, marginBottom: 24, maxWidth: 480, wordBreak: 'break-word' }}>{error}</div>
-        <button onClick={loadData} style={{ background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-          ↻ Retry
-        </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', width: '100%', background: '#0f172a', padding: 24, textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+        <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Failed to load dashboard data</div>
+        <div style={{ color: '#ef4444', fontSize: 14, marginBottom: 24, maxWidth: 520, wordBreak: 'break-word', background: 'rgba(239, 68, 68, 0.1)', padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+          {error}
+        </div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 480 }}>
+          <button onClick={() => loadData(true)} style={{ background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            ↻ Retry Connection
+          </button>
+          <button onClick={onLogout} style={{ background: '#475569', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            🔑 Sign In Again
+          </button>
+          <button onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+            input.onchange = async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const parsed = await loadCSVFromFile(file);
+                const text = await file.text();
+                persistData(text, parsed, 'upload');
+                toast(`Loaded ${parsed.length} rows from ${file.name}`, 'success');
+              } catch (err) {
+                toast(`Failed to parse CSV: ${err?.message || 'invalid format'}`, 'error');
+              }
+            };
+            input.click();
+          }} style={{ background: '#059669', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            📂 Load CSV File
+          </button>
+        </div>
       </div>
     )
   }
 
   if (!data.length) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', background: '#0f172a', padding: 24, textAlign: 'center' }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>📭</div>
-        <div style={{ color: '#f1f5f9', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>No data available</div>
-        <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 24 }}>The source sheet returned no rows. Try refreshing.</div>
-        <button onClick={loadData} style={{ background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-          ↻ Refresh
-        </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', width: '100%', background: '#0f172a', padding: 24, textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
+        <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>No data available</div>
+        <div style={{ color: '#94a3b8', fontSize: 14, marginBottom: 24, maxWidth: 460 }}>The source sheet returned no rows or is currently inaccessible. Try refreshing or upload a CSV file.</div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <button onClick={() => loadData(true)} style={{ background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            ↻ Refresh Data
+          </button>
+          <button onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+            input.onchange = async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const parsed = await loadCSVFromFile(file);
+                const text = await file.text();
+                persistData(text, parsed, 'upload');
+                toast(`Loaded ${parsed.length} rows from ${file.name}`, 'success');
+              } catch (err) {
+                toast(`Failed to parse CSV: ${err?.message || 'invalid format'}`, 'error');
+              }
+            };
+            input.click();
+          }} style={{ background: '#059669', border: 'none', borderRadius: 8, color: '#fff', padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            📂 Load CSV File
+          </button>
+        </div>
       </div>
     )
   }
@@ -366,10 +493,8 @@ function Dashboard({ authUser, onLogout }) {
               if (!file) return;
               try {
                 const parsed = await loadCSVFromFile(file);
-                setRawCSV('');
-                setData(parsed);
-                setLastUpdated(new Date());
-                setLoading(false);
+                const text = await file.text();
+                persistData(text, parsed, 'upload');
                 toast(`Loaded ${parsed.length} rows from ${file.name}`, 'success');
               } catch (err) {
                 setError('Failed to parse CSV file');
@@ -380,19 +505,29 @@ function Dashboard({ authUser, onLogout }) {
           }} style={{ width: '100%', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
             📂 Load CSV File
           </button>
-          <button onClick={loadData} disabled={isRefreshing} style={{ width: '100%', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: isRefreshing ? 0.6 : 1 }}>
+          <button onClick={() => loadData(true)} disabled={isRefreshing} style={{ width: '100%', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: isRefreshing ? 0.6 : 1 }}>
             ↻ {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
           </button>
           <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, textAlign: 'center', lineHeight: 1.5 }}>
             {lastUpdated ? <>Last updated<br />{lastUpdated.toLocaleString()}</> : 'Last updated: —'}
-            {dataSource === 'fallback' && <div style={{ marginTop: 6, color: '#f59e0b' }}>⚠ loaded from direct sheet (backend empty)</div>}
-            <div style={{ marginTop: 6, color: '#475569' }}>build v2sheet-2</div>
+            {dataSource === 'cached' && <div style={{ marginTop: 6, color: '#f59e0b' }}>⚡ Offline (cached data)</div>}
+            {dataSource === 'fallback' && <div style={{ marginTop: 6, color: '#f59e0b' }}>⚠ direct sheet (backend empty)</div>}
+            <div style={{ marginTop: 6, color: '#475569' }}>build v2sheet-3</div>
           </div>
         </div>
       </aside>
 
       <UserContext.Provider value={{ userEmail, setUserEmail }}>
         <div className="main-content">
+          {dataSource === 'cached' && (
+            <div style={{ background: 'rgba(245, 158, 11, 0.12)', borderBottom: '1px solid rgba(245, 158, 11, 0.3)', color: '#fbbf24', padding: '8px 16px', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+              <div>⚡ <strong>Offline / Cached Mode:</strong> Showing local saved data from {lastUpdated ? lastUpdated.toLocaleString() : 'previous session'}.</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => loadData(true)} style={{ background: '#d97706', border: 'none', borderRadius: 4, color: '#fff', padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>↻ Live Refresh</button>
+                <button onClick={onLogout} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, color: '#f1f5f9', padding: '3px 10px', fontSize: 11, cursor: 'pointer' }}>🔑 Re-Sign In</button>
+              </div>
+            </div>
+          )}
           {viewPO ? (
             <ErrorBoundary>
               <PODetailsPage po={viewPO} data={data} onBack={closePO} />
