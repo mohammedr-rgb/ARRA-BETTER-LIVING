@@ -157,62 +157,7 @@ body {
 }
 
 .sidebar .logo.brand-logo-banner:hover .brand-logo-banner-img {
-  transform: scale(1.015);
-}
-
-/* Positioned letter wave overlay directly over the Better Living section of the logo */
-.better-living-overlay {
-  position: absolute;
-  left: 47%;
-  top: 61%;
-  width: 32%;
-  height: 18%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.bl-char {
-  display: inline-block;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  font-size: 7.5px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  color: #fef08a;
-  animation: letterWave 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  transform-origin: center bottom;
-}
-
-.sidebar .logo.brand-logo-banner:hover .bl-char {
-  animation-duration: 1.5s;
-}
-
-.bl-space {
-  display: inline-block;
-  width: 3px;
-}
-
-@keyframes letterWave {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-    color: #fef08a;
-    text-shadow: 0 0 3px rgba(234, 179, 8, 0.4);
-  }
-  25% {
-    transform: translateY(-2.5px) scale(1.15);
-    color: #ffffff;
-    text-shadow: 0 0 8px rgba(251, 191, 36, 1), 0 0 14px rgba(245, 158, 11, 0.8), 0 0 20px rgba(234, 179, 8, 0.6);
-  }
-  50% {
-    transform: translateY(0.5px) scale(0.97);
-    color: #fde047;
-    text-shadow: 0 0 4px rgba(234, 179, 8, 0.4);
-  }
-  75% {
-    transform: translateY(0) scale(1);
-    color: #fef08a;
-  }
+  transform: scale(1.02);
 }
 
 @keyframes logoGlowPulse {

@@ -429,17 +429,6 @@ function Dashboard({ authUser, onLogout }) {
         <button className="menu-close" onClick={closeNav}>✕</button>
         <div className="logo brand-logo-banner">
           <img src={aaraLogo} alt="AARA Better Living" className="brand-logo-banner-img" />
-          <div className="better-living-overlay">
-            {"BETTER LIVING".split("").map((ch, idx) => (
-              <span
-                key={idx}
-                className={ch === " " ? "bl-space" : "bl-char"}
-                style={{ animationDelay: `${idx * 0.1}s` }}
-              >
-                {ch === " " ? "\u00A0" : ch}
-              </span>
-            ))}
-          </div>
         </div>
         <div style={{ padding: '8px 16px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
