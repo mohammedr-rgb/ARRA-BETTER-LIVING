@@ -73,9 +73,9 @@ export function AuthGate({ children }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       height: '100vh', width: '100%', background: '#0f172a', padding: 24, textAlign: 'center', gap: 16,
     }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color: '#f1f5f9' }}>
-        <span style={{ background: 'linear-gradient(135deg, #a855f7, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          ARRA BETTER LIVING
+      <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+        <span style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          AARA BETTER LIVING
         </span>
       </div>
       <div style={{ color: '#94a3b8', fontSize: 14, marginBottom: 8 }}>

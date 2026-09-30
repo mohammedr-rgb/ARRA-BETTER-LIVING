@@ -87,7 +87,7 @@ export function BoardReport({ data, metrics }) {
   
   const generateReport = () => {
     const lines = []
-    lines.push('=== ARRA BETTER LIVING - PERFORMANCE REPORT ===')
+    lines.push('=== AARA BETTER LIVING - PERFORMANCE REPORT ===')
     lines.push(`Generated: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`)
     lines.push('')
     
@@ -144,7 +144,7 @@ export function BoardReport({ data, metrics }) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `ARRA_Performance_Report_${new Date().toISOString().split('T')[0]}.txt`
+    a.download = `AARA_Performance_Report_${new Date().toISOString().split('T')[0]}.txt`
     a.click()
     URL.revokeObjectURL(url)
   }

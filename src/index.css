@@ -104,28 +104,37 @@ body {
 
 .sidebar .logo {
   flex-shrink: 0;
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 40px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Georgia', 'Times New Roman', serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  padding: 8px 12px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
 }
 
 .sidebar .logo .brand-gradient {
-  background: linear-gradient(135deg, #a855f7, #3b82f6);
+  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-weight: 800;
+  letter-spacing: 0.8px;
 }
 
 .sidebar .logo .brand-icon {
-  font-size: 20px;
-  background: linear-gradient(135deg, #a855f7, #3b82f6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 15px;
+  color: #38bdf8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.7));
 }
 
 .sidebar > * {
