@@ -147,9 +147,12 @@ function getFieldCI(row, candidates) {
   }
   for (const c of candidates) {
     const normC = String(c).toLowerCase().replace(/\s+/g, ' ').replace(/[()_-]/g, '').trim()
+    if (normC.length < 4) continue
     for (const k of keys) {
       const normK = String(k).toLowerCase().replace(/\s+/g, ' ').replace(/[()_-]/g, '').trim()
-      if (normK.includes(normC) || normC.includes(normK)) {
+      // Only match if column header in sheet is specific and contains the candidate
+      // Never match if candidate is specific (e.g. 'purchasetonnage') and column key is generic ('tonnage')
+      if (normK.includes(normC)) {
         if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
           return row[k]
         }
@@ -174,7 +177,7 @@ export function getPurchaseEntity(row) {
     'Purchase Entity',
     'Purchase entity',
     'Purchase Vendor',
-    'Entity'
+    'Purchase Supplier'
   ]) || ''
 }
 

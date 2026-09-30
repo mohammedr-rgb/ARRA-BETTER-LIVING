@@ -48,7 +48,7 @@ const matchOilLabel = (product) => {
 
 export default function InventoryTab({ data }) {
   const [purchaseSubView, setPurchaseSubView] = useState('lines') // 'lines', 'entity', 'product'
-  const [purchaseEntityFilter, setPurchaseEntityFilter] = useState('gem') // 'gem' = Gem Edible Oils Only, 'all' = All Entities
+  const [purchaseEntityFilter, setPurchaseEntityFilter] = useState('all') // 'all' = All Entities, 'gem' = Gem Edible Oils Only
   const [selectedMonths, setSelectedMonths] = useState(() => {
     const now = new Date()
     return new Set([now.getFullYear() * 12 + now.getMonth()])
@@ -289,9 +289,9 @@ export default function InventoryTab({ data }) {
       const hasAny = Boolean(date || entity || invoice || product || cost > 0 || tonnage > 0 || qty > 0 || box > 0 || value > 0)
       if (!hasAny) continue
 
-      if (selectedMonths.size > 0) {
-        const d = parseMMDDDate(date) || parseMMDDDate(r['Invoice Date (MM-DD-YYYY)'])
-        if (!d || !selectedMonths.has(d.getFullYear() * 12 + d.getMonth())) {
+      if (selectedMonths.size > 0 && date) {
+        const d = parseMMDDDate(date)
+        if (d && !selectedMonths.has(d.getFullYear() * 12 + d.getMonth())) {
           continue
         }
       }
