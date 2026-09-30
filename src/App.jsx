@@ -19,6 +19,7 @@ import SalesTab from './tabs/SalesTab'
 import { PODetailsPage } from './components/PODetailsPage'
 import { AuthGate, UserBadge } from './components/AuthGate'
 import { CommandPalette } from './components/CommandPalette'
+import aaraLogo from './assets/aara_logo.png'
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyTPATdTTq6ZOUHDyG37foHyVZgTfIfCBxjTSxs3vbbECkeAHUTTUrrOttSpKKCOVqMjA/exec'
 const FALLBACK_SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
@@ -426,7 +427,9 @@ function Dashboard({ authUser, onLogout }) {
       <button className="menu-toggle" onClick={() => setMobileMenu(v => !v)}>☰</button>
       <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
         <button className="menu-close" onClick={closeNav}>✕</button>
-        <div className="logo"><span className="brand-icon">✦</span> <span className="brand-gradient">AARA BETTER LIVING</span></div>
+        <div className="logo">
+          <img src={aaraLogo} alt="AARA Better Living" className="brand-logo-img" />
+        </div>
         <div style={{ padding: '8px 16px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <UserBadge user={authUser} logout={onLogout} />

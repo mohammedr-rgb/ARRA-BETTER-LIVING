@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   GOOGLE_CLIENT_ID, ALLOWED_DOMAIN, SESSION_KEY, decodeJwt, useAuth,
 } from '../lib/auth'
+import aaraLogo from '../assets/aara_logo.png'
 
 export function AuthGate({ children }) {
   const { user, setUser, logout } = useAuth()
@@ -73,10 +74,8 @@ export function AuthGate({ children }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       height: '100vh', width: '100%', background: '#0f172a', padding: 24, textAlign: 'center', gap: 16,
     }}>
-      <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-        <span style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          AARA BETTER LIVING
-        </span>
+      <div style={{ marginBottom: 4 }}>
+        <img src={aaraLogo} alt="AARA Better Living" style={{ maxWidth: 280, width: '100%', height: 'auto', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }} />
       </div>
       <div style={{ color: '#94a3b8', fontSize: 14, marginBottom: 8 }}>
         Sign in with your {ALLOWED_DOMAIN ? `@${ALLOWED_DOMAIN}` : 'Google'} account to continue
