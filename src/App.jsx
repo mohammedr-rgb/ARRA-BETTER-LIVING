@@ -427,27 +427,18 @@ function Dashboard({ authUser, onLogout }) {
       <button className="menu-toggle" onClick={() => setMobileMenu(v => !v)}>☰</button>
       <aside className={`sidebar ${mobileMenu ? 'mobile-open' : ''}`}>
         <button className="menu-close" onClick={closeNav}>✕</button>
-        <div className="logo brand-animated-logo">
-          <div className="brand-emblem-box">
-            <img src={aaraLogo} alt="AARA Emblem" className="brand-emblem-crop" />
-          </div>
-          <div className="brand-text-block">
-            <div className="brand-title-aara">AARA</div>
-            <div className="brand-tagline-animated">
-              <span className="tagline-bar left-bar" />
-              <span className="tagline-letters">
-                {"BETTER LIVING".split("").map((ch, idx) => (
-                  <span
-                    key={idx}
-                    className={ch === " " ? "tagline-space" : "tagline-char"}
-                    style={{ animationDelay: `${idx * 0.1}s` }}
-                  >
-                    {ch === " " ? "\u00A0" : ch}
-                  </span>
-                ))}
+        <div className="logo brand-logo-banner">
+          <img src={aaraLogo} alt="AARA Better Living" className="brand-logo-banner-img" />
+          <div className="better-living-overlay">
+            {"BETTER LIVING".split("").map((ch, idx) => (
+              <span
+                key={idx}
+                className={ch === " " ? "bl-space" : "bl-char"}
+                style={{ animationDelay: `${idx * 0.1}s` }}
+              >
+                {ch === " " ? "\u00A0" : ch}
               </span>
-              <span className="tagline-bar right-bar" />
-            </div>
+            ))}
           </div>
         </div>
         <div style={{ padding: '8px 16px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
