@@ -109,15 +109,16 @@ body {
   margin-bottom: 20px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 8px 10px;
+  justify-content: flex-start;
+  padding: 8px 12px;
   border-radius: 12px;
-  background: radial-gradient(circle at 30% 50%, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95));
+  background: radial-gradient(circle at 20% 50%, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.98));
   border: 1px solid rgba(56, 189, 248, 0.25);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 10px rgba(56, 189, 248, 0.1);
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   animation: logoGlowPulse 5s ease-in-out infinite;
   cursor: pointer;
+  user-select: none;
 }
 
 /* Light sheen / shimmer sweeping across the logo */
@@ -131,9 +132,9 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.03) 25%,
-    rgba(255, 255, 255, 0.35) 50%,
-    rgba(255, 255, 255, 0.03) 75%,
+    rgba(255, 255, 255, 0.02) 25%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.02) 75%,
     transparent 100%
   );
   transform: rotate(25deg);
@@ -147,21 +148,122 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 20px rgba(245, 158, 11, 0.35), 0 0 30px rgba(56, 189, 248, 0.2);
 }
 
-.sidebar .logo .brand-logo-img {
-  width: 100%;
-  max-width: 215px;
-  height: auto;
-  display: block;
-  object-fit: contain;
-  border-radius: 6px;
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.35s ease;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+.brand-emblem-box {
+  width: 54px;
+  height: 52px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+
+.brand-emblem-crop {
+  position: absolute;
+  top: 50%;
+  left: 4%;
+  transform: translateY(-50%);
+  height: 96%;
+  width: auto;
+  max-width: none;
+  filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.4));
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   animation: logoFloat 4s ease-in-out infinite;
 }
 
-.sidebar .logo:hover .brand-logo-img {
-  transform: scale(1.03);
-  filter: drop-shadow(0 4px 14px rgba(245, 158, 11, 0.45)) drop-shadow(0 0 10px rgba(56, 189, 248, 0.35));
+.sidebar .logo:hover .brand-emblem-crop {
+  transform: translateY(-50%) scale(1.08);
+  filter: drop-shadow(0 4px 14px rgba(245, 158, 11, 0.65)) drop-shadow(0 0 10px rgba(56, 189, 248, 0.4));
+}
+
+.brand-text-block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+  padding-left: 8px;
+}
+
+.brand-title-aara {
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  line-height: 1.05;
+  background: linear-gradient(180deg, #ffffff 15%, #fef08a 65%, #eab308 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  text-transform: uppercase;
+}
+
+.brand-tagline-animated {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.tagline-bar {
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.9), rgba(234, 179, 8, 0.1));
+  border-radius: 1px;
+}
+
+.tagline-bar.left-bar {
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.1), rgba(234, 179, 8, 0.9));
+}
+
+.tagline-letters {
+  display: inline-flex;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  white-space: nowrap;
+}
+
+.tagline-char {
+  display: inline-block;
+  color: #fef08a;
+  animation: letterWave 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-origin: bottom center;
+}
+
+.sidebar .logo:hover .tagline-char {
+  animation-duration: 1.6s;
+}
+
+.tagline-space {
+  display: inline-block;
+  width: 3.5px;
+}
+
+@keyframes letterWave {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    color: #fef08a;
+    text-shadow: 0 0 3px rgba(234, 179, 8, 0.3);
+  }
+  25% {
+    transform: translateY(-3px) scale(1.18);
+    color: #ffffff;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 1), 0 0 16px rgba(245, 158, 11, 0.8), 0 0 22px rgba(234, 179, 8, 0.5);
+  }
+  50% {
+    transform: translateY(0.6px) scale(0.96);
+    color: #fde047;
+    text-shadow: 0 0 4px rgba(234, 179, 8, 0.4);
+  }
+  75% {
+    transform: translateY(0) scale(1);
+    color: #fef08a;
+  }
 }
 
 @keyframes logoGlowPulse {
@@ -170,8 +272,8 @@ body {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 12px rgba(56, 189, 248, 0.12);
   }
   50% {
-    border-color: rgba(245, 158, 11, 0.4);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), 0 0 18px rgba(245, 158, 11, 0.22), 0 0 24px rgba(56, 189, 248, 0.15);
+    border-color: rgba(245, 158, 11, 0.45);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), 0 0 18px rgba(245, 158, 11, 0.25), 0 0 24px rgba(56, 189, 248, 0.18);
   }
 }
 
@@ -195,10 +297,10 @@ body {
 
 @keyframes logoFloat {
   0%, 100% {
-    transform: translateY(0);
+    transform: translateY(-50%);
   }
   50% {
-    transform: translateY(-1.5px);
+    transform: translateY(calc(-50% - 2px));
   }
 }
 
