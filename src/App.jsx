@@ -19,7 +19,7 @@ import SalesTab from './tabs/SalesTab'
 import { PODetailsPage } from './components/PODetailsPage'
 import { AuthGate, UserBadge } from './components/AuthGate'
 import { CommandPalette } from './components/CommandPalette'
-import aaraLogo from './assets/aara_logo.png'
+import aaraLogo from './assets/aara_logo_clean.png'
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyTPATdTTq6ZOUHDyG37foHyVZgTfIfCBxjTSxs3vbbECkeAHUTTUrrOttSpKKCOVqMjA/exec'
 const FALLBACK_SHEET_URL = 'https://docs.google.com/spreadsheets/d/14riCGmsLkuomzSETNSITLulbWyl7hono2U4NMRowpdI/export?format=csv&gid=1664329820'
@@ -429,6 +429,21 @@ function Dashboard({ authUser, onLogout }) {
         <button className="menu-close" onClick={closeNav}>✕</button>
         <div className="logo brand-logo-banner">
           <img src={aaraLogo} alt="AARA Better Living" className="brand-logo-banner-img" />
+          <div className="better-living-animated-container">
+            <span className="bl-line bl-line-left" />
+            <div className="bl-letters-wrap">
+              {"BETTER LIVING".split("").map((ch, idx) => (
+                <span
+                  key={idx}
+                  className={ch === " " ? "bl-space" : "bl-char"}
+                  style={{ animationDelay: `${idx * 0.1}s` }}
+                >
+                  {ch === " " ? "\u00A0" : ch}
+                </span>
+              ))}
+            </div>
+            <span className="bl-line bl-line-right" />
+          </div>
         </div>
         <div style={{ padding: '8px 16px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
