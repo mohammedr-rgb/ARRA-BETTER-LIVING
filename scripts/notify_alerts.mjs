@@ -2,8 +2,9 @@
  * Instant Alert Notification Dispatcher for Instamart Monitor Agent
  * 
  * Supports:
+ * - WhatsApp API (CallMeBot free personal/group WhatsApp gateway)
  * - Telegram Bot API (Markdown formatted messages with emojis)
- * - Generic Webhooks (Discord, Slack, Make, Zapier, WhatsApp Business API)
+ * - Generic Webhooks (Discord, Slack, Make, Zapier, WhatsApp Business Cloud API)
  */
 
 export async function sendAlertNotifications(alerts, summary) {
@@ -14,23 +15,50 @@ export async function sendAlertNotifications(alerts, summary) {
 
   console.log(`\n🔔 Dispatching ${alerts.length} Instant Alert Notifications...`);
 
+  const nowIST = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  // 1. WhatsApp Dispatch (via CallMeBot Free WhatsApp Gateway)
+  const whatsappPhone = process.env.WHATSAPP_PHONE;
+  const whatsappApiKey = process.env.WHATSAPP_APIKEY;
+
+  if (whatsappPhone && whatsappApiKey) {
+    try {
+      let waMessage = `🚨 *GEM'S GOLD Instamart Alerts*\n📅 ${nowIST}\n\n`;
+      alerts.slice(0, 8).forEach((alert, idx) => {
+        waMessage += `${idx + 1}. *${alert.type}* [${alert.city}]\n${alert.message}\n\n`;
+      });
+      if (summary) {
+        waMessage += `📊 *Active:* ${summary.totalInStock}/${summary.totalMonitoredPairs} SKUs In-Stock • Avg 1L: ₹${summary.avgBottle1LPrice}`;
+      }
+
+      const cleanPhone = whatsappPhone.replace(/[^0-9]/g, '');
+      const waUrl = `https://api.callmebot.com/whatsapp.php?phone=${cleanPhone}&text=${encodeURIComponent(waMessage)}&apikey=${encodeURIComponent(whatsappApiKey)}`;
+      
+      const res = await fetch(waUrl);
+      if (res.ok) {
+        console.log(`✅ WhatsApp alert successfully sent to +${cleanPhone}!`);
+      } else {
+        console.warn('⚠️ WhatsApp dispatch response status:', res.status);
+      }
+    } catch (err) {
+      console.error('❌ Error sending WhatsApp notification:', err.message);
+    }
+  }
+
+  // 2. Telegram Dispatch
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
   const telegramChatId = process.env.TELEGRAM_CHAT_ID;
-  const genericWebhookUrl = process.env.ALERT_WEBHOOK_URL;
 
-  // 1. Telegram Dispatch
   if (telegramToken && telegramChatId) {
     try {
-      const nowIST = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-      let message = `🚨 *GEM'S GOLD Instamart Price & Stock Alerts*\n📅 *${nowIST}*\n\n`;
-
+      let tgMessage = `🚨 *GEM'S GOLD Instamart Price & Stock Alerts*\n📅 *${nowIST}*\n\n`;
       alerts.slice(0, 10).forEach((alert, idx) => {
-        message += `${idx + 1}. *${alert.type}* [${alert.city}]\n`;
-        message += `👉 ${alert.message}\n\n`;
+        tgMessage += `${idx + 1}. *${alert.type}* [${alert.city}]\n`;
+        tgMessage += `👉 ${alert.message}\n\n`;
       });
 
       if (summary) {
-        message += `📊 *Summary:* ${summary.totalInStock}/${summary.totalMonitoredPairs} SKUs Active • Avg 1L: ₹${summary.avgBottle1LPrice}`;
+        tgMessage += `📊 *Summary:* ${summary.totalInStock}/${summary.totalMonitoredPairs} SKUs Active • Avg 1L: ₹${summary.avgBottle1LPrice}`;
       }
 
       const tgUrl = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
@@ -39,7 +67,7 @@ export async function sendAlertNotifications(alerts, summary) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: telegramChatId,
-          text: message,
+          text: tgMessage,
           parse_mode: 'Markdown'
         })
       });
@@ -55,7 +83,8 @@ export async function sendAlertNotifications(alerts, summary) {
     }
   }
 
-  // 2. Generic Webhook (Discord / Slack / Make / WhatsApp Webhook Gateway)
+  // 3. Generic Webhook (Discord / Slack / Make / Zapier / WhatsApp Cloud API)
+  const genericWebhookUrl = process.env.ALERT_WEBHOOK_URL;
   if (genericWebhookUrl) {
     try {
       const payload = {
@@ -82,7 +111,7 @@ export async function sendAlertNotifications(alerts, summary) {
     }
   }
 
-  if (!telegramToken && !genericWebhookUrl) {
-    console.log('ℹ️ Note: Set TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID or ALERT_WEBHOOK_URL in repository secrets to receive instant mobile notifications.');
+  if (!whatsappPhone && !telegramToken && !genericWebhookUrl) {
+    console.log('ℹ️ Tip: Set WHATSAPP_PHONE & WHATSAPP_APIKEY or TELEGRAM_BOT_TOKEN in repository secrets to receive instant mobile alerts.');
   }
 }
