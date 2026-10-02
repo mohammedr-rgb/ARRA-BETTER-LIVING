@@ -1481,6 +1481,14 @@ export default function StockTab() {
       key: 'marketComp',
       label: 'Market Competitors',
       align: 'left',
+      accessor: r => {
+        const comps = (liveAgentSnapshot?.records || []).filter(c => c.city === r.cityId && c.volumeMl === r.volumeMl && c.brand !== "GEM'S GOLD" && c.sellingPrice)
+        if (!comps.length) return '—'
+        const lowest = comps.reduce((min, c) => c.sellingPrice < min.sellingPrice ? c : min, comps[0])
+        const diff = r.sellingPrice && lowest.sellingPrice ? r.sellingPrice - lowest.sellingPrice : null
+        const status = diff !== null ? (diff < 0 ? `Gem ₹${Math.abs(diff)} cheaper` : diff === 0 ? 'Price Parity' : `Gem +₹${diff}`) : ''
+        return `${lowest.brand}: ₹${lowest.sellingPrice} (${status})`
+      },
       render: r => {
         const comps = (liveAgentSnapshot?.records || []).filter(c => c.city === r.cityId && c.volumeMl === r.volumeMl && c.brand !== "GEM'S GOLD" && c.sellingPrice)
         if (!comps.length) return <span style={{ color: '#64748b' }}>—</span>
@@ -1503,15 +1511,21 @@ export default function StockTab() {
   ]
 
   const exportGemsGoldCSV = () => {
-    const rows = ["GEM'S GOLD 25-City Instamart Price & Availability Matrix"]
+    const rows = ["GEM'S GOLD 25-City Instamart Price & Availability Matrix with Competitor Benchmarks"]
     rows.push(`Date: ${gemsSelectedDate || gemsGoldLive?.date || new Date().toISOString().split('T')[0]}`)
     rows.push('')
-    rows.push('Date,City,Area,SKU_ID,SKU_Name,Pack_Type,Volume_ML,MRP,Selling_Price,Price_Per_Liter,Discount,Stock_Status')
+    rows.push('Date,City,Area,Delivery_Time,SKU_ID,SKU_Name,Pack_Type,Volume_ML,MRP,Selling_Price,Price_Per_Liter,Discount,Stock_Status,Lowest_Competitor_Brand,Lowest_Competitor_Price,Price_Difference,Competitor_Parity_Status')
     filteredGemsRows.forEach(r => {
+      const comps = (liveAgentSnapshot?.records || []).filter(c => c.city === r.cityId && c.volumeMl === r.volumeMl && c.brand !== "GEM'S GOLD" && c.sellingPrice)
+      const lowest = comps.length ? comps.reduce((min, c) => c.sellingPrice < min.sellingPrice ? c : min, comps[0]) : null
+      const diff = (r.sellingPrice && lowest?.sellingPrice) ? r.sellingPrice - lowest.sellingPrice : ''
+      const parityStatus = diff !== '' ? (diff < 0 ? `Gem ₹${Math.abs(diff)} Cheaper` : diff === 0 ? 'Price Parity' : `Gem +₹${diff} Premium`) : 'N/A'
+
       rows.push([
         r.date,
-        r.cityName,
-        r.area,
+        csvEscape(r.cityName),
+        csvEscape(r.area),
+        csvEscape(r.deliveryMin || '9 MINS'),
         r.skuId,
         `"${r.skuName}"`,
         r.skuShortName,
@@ -1520,7 +1534,11 @@ export default function StockTab() {
         r.sellingPrice || '',
         r.pricePerLiter || '',
         `"${r.discount}"`,
-        `"${r.stockStatus}"`
+        `"${r.stockStatus}"`,
+        csvEscape(lowest?.brand || '—'),
+        lowest?.sellingPrice || '',
+        diff !== '' ? (diff > 0 ? `+${diff}` : `${diff}`) : '',
+        csvEscape(parityStatus)
       ].join(','))
     })
     return rows

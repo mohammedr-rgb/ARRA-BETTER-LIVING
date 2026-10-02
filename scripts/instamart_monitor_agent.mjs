@@ -345,26 +345,48 @@ export async function runInstamartMonitorAgent() {
   fs.writeFileSync(historyFile, JSON.stringify(historyData, null, 2), 'utf8');
   console.log(`✅ Saved Daily History: ${historyFile}`);
 
-  // 4. Update CSV
+  // 4. Update CSV with Competitor Benchmarks
   const matrixCsvFile = path.join(dataDir, 'instamart_gems_gold_25cities.csv');
-  const csvHeaders = ['Date', 'City', 'Area', 'Delivery_Time', 'SKU_ID', 'SKU_Name', 'Pack_Type', 'Volume_ML', 'MRP', 'Selling_Price', 'Price_Per_Liter', 'Discount', 'Stock_Status'];
-  const csvRows = Object.values(citySkuMatrix).map(r => [
-    r.date,
-    r.cityName,
-    r.area,
-    r.deliveryMin,
-    r.skuId,
-    `"${r.skuName}"`,
-    r.skuShortName,
-    r.volumeMl,
-    r.mrp || '',
-    r.sellingPrice || '',
-    r.pricePerLiter || '',
-    `"${r.discount}"`,
-    `"${r.stockStatus}"`
-  ]);
+  const marketSnapshotFile = path.join(dataDir, 'instamart_live_snapshot.json');
+  let marketRecords = [];
+  if (fs.existsSync(marketSnapshotFile)) {
+    try { marketRecords = JSON.parse(fs.readFileSync(marketSnapshotFile, 'utf8')).records || []; } catch {}
+  }
+
+  const csvHeaders = [
+    'Date', 'City', 'Area', 'Delivery_Time', 'SKU_ID', 'SKU_Name', 'Pack_Type', 'Volume_ML',
+    'MRP', 'Selling_Price', 'Price_Per_Liter', 'Discount', 'Stock_Status',
+    'Lowest_Competitor_Brand', 'Lowest_Competitor_Price', 'Price_Difference', 'Competitor_Parity_Status'
+  ];
+
+  const csvRows = Object.values(citySkuMatrix).map(r => {
+    const comps = marketRecords.filter(c => c.city === r.cityId && c.volumeMl === r.volumeMl && c.brand !== "GEM'S GOLD" && c.sellingPrice);
+    const lowest = comps.length ? comps.reduce((min, c) => c.sellingPrice < min.sellingPrice ? c : min, comps[0]) : null;
+    const diff = (r.sellingPrice && lowest?.sellingPrice) ? r.sellingPrice - lowest.sellingPrice : '';
+    const parityStatus = diff !== '' ? (diff < 0 ? `Gem ₹${Math.abs(diff)} Cheaper` : diff === 0 ? 'Parity' : `Gem +₹${diff} Premium`) : 'N/A';
+
+    return [
+      r.date,
+      `"${r.cityName}"`,
+      `"${r.area}"`,
+      `"${r.deliveryMin}"`,
+      r.skuId,
+      `"${r.skuName}"`,
+      r.skuShortName,
+      r.volumeMl,
+      r.mrp || '',
+      r.sellingPrice || '',
+      r.pricePerLiter || '',
+      `"${r.discount}"`,
+      `"${r.stockStatus}"`,
+      `"${lowest?.brand || '—'}"`,
+      lowest?.sellingPrice || '',
+      diff !== '' ? (diff > 0 ? `+${diff}` : `${diff}`) : '',
+      `"${parityStatus}"`
+    ];
+  });
   fs.writeFileSync(matrixCsvFile, [csvHeaders.join(','), ...csvRows.map(row => row.join(','))].join('\n'), 'utf8');
-  console.log(`✅ Exported CSV: ${matrixCsvFile}`);
+  console.log(`✅ Exported CSV with Competitor Benchmarks: ${matrixCsvFile}`);
 
   // 5. Dispatch Instant Webhook / Telegram Push Notifications
   await sendAlertNotifications(activeAlerts, summary);
