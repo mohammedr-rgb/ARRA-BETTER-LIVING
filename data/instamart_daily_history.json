@@ -2,7 +2,7 @@
   "history": [
     {
       "date": "2026-10-02",
-      "timestamp": "2026-10-02T05:13:58.393Z",
+      "timestamp": "2026-10-02T05:19:20.312Z",
       "totalCities": 25,
       "citySkuMatrix": {
         "CHENNAI_pouch_1l": {
@@ -16,9 +16,9 @@
           "skuShortName": "Pouch 1L",
           "volumeMl": 1000,
           "mrp": 260,
-          "sellingPrice": 189,
-          "pricePerLiter": 189,
-          "discount": "27% OFF",
+          "sellingPrice": 187,
+          "pricePerLiter": 187,
+          "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
           "rating": "4.6",
@@ -40,7 +40,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "CHENNAI_bottle_2l": {
@@ -54,12 +54,12 @@
           "skuShortName": "Bottle 2L",
           "volumeMl": 2000,
           "mrp": 550,
-          "sellingPrice": 399,
-          "pricePerLiter": 200,
-          "discount": "27% OFF",
+          "sellingPrice": 394,
+          "pricePerLiter": 197,
+          "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "CHENNAI_bottle_500ml": {
@@ -73,12 +73,12 @@
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
+          "sellingPrice": 93,
+          "pricePerLiter": 186,
+          "discount": "48% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "CHENNAI_spray_200ml": {
@@ -91,13 +91,13 @@
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
           "volumeMl": 200,
-          "mrp": 219,
-          "sellingPrice": 155,
-          "pricePerLiter": 775,
-          "discount": "29% OFF",
+          "mrp": 199,
+          "sellingPrice": 125,
+          "pricePerLiter": 625,
+          "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "BANGALORE_pouch_1l": {
@@ -135,7 +135,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "BANGALORE_bottle_2l": {
@@ -154,7 +154,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "BANGALORE_bottle_500ml": {
@@ -168,12 +168,12 @@
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 129,
-          "pricePerLiter": 258,
-          "discount": "28% OFF",
+          "sellingPrice": 99,
+          "pricePerLiter": 198,
+          "discount": "45% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "BANGALORE_spray_200ml": {
@@ -192,7 +192,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "COIMBATORE_pouch_1l": {
@@ -230,7 +230,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "COIMBATORE_bottle_2l": {
@@ -249,7 +249,7 @@
           "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "COIMBATORE_bottle_500ml": {
@@ -268,7 +268,7 @@
           "discount": "48% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "COIMBATORE_spray_200ml": {
@@ -287,7 +287,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "HYDERABAD_pouch_1l": {
@@ -325,7 +325,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "HYDERABAD_bottle_2l": {
@@ -344,7 +344,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "HYDERABAD_bottle_500ml": {
@@ -358,12 +358,12 @@
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 129,
-          "pricePerLiter": 258,
-          "discount": "28% OFF",
+          "sellingPrice": 99,
+          "pricePerLiter": 198,
+          "discount": "45% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "HYDERABAD_spray_200ml": {
@@ -382,7 +382,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "MUMBAI_pouch_1l": {
@@ -420,7 +420,7 @@
           "discount": "22% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "MUMBAI_bottle_2l": {
@@ -439,7 +439,7 @@
           "discount": "24% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "MUMBAI_bottle_500ml": {
@@ -458,7 +458,7 @@
           "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "MUMBAI_spray_200ml": {
@@ -477,7 +477,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "SALEM_pouch_1l": {
@@ -515,7 +515,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "SALEM_bottle_2l": {
@@ -534,7 +534,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "SALEM_bottle_500ml": {
@@ -553,7 +553,7 @@
           "discount": "0%",
           "inStock": false,
           "stockStatus": "Out of Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "SALEM_spray_200ml": {
@@ -572,7 +572,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "TRICHY_pouch_1l": {
@@ -580,7 +580,7 @@
           "cityId": "TRICHY",
           "cityName": "Trichy",
           "area": "Thillai Nagar",
-          "deliveryMin": "8 MINS",
+          "deliveryMin": "7 MINS",
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -599,7 +599,7 @@
           "cityId": "TRICHY",
           "cityName": "Trichy",
           "area": "Thillai Nagar",
-          "deliveryMin": "8 MINS",
+          "deliveryMin": "7 MINS",
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -610,7 +610,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "TRICHY_bottle_2l": {
@@ -618,7 +618,7 @@
           "cityId": "TRICHY",
           "cityName": "Trichy",
           "area": "Thillai Nagar",
-          "deliveryMin": "8 MINS",
+          "deliveryMin": "7 MINS",
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -629,7 +629,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "TRICHY_bottle_500ml": {
@@ -637,18 +637,18 @@
           "cityId": "TRICHY",
           "cityName": "Trichy",
           "area": "Thillai Nagar",
-          "deliveryMin": "8 MINS",
+          "deliveryMin": "7 MINS",
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
-          "inStock": true,
-          "stockStatus": "In Stock",
-          "rating": "4.4",
+          "sellingPrice": null,
+          "pricePerLiter": null,
+          "discount": "0%",
+          "inStock": false,
+          "stockStatus": "Out of Stock",
+          "rating": "4.6",
           "isListed": true
         },
         "TRICHY_spray_200ml": {
@@ -656,7 +656,7 @@
           "cityId": "TRICHY",
           "cityName": "Trichy",
           "area": "Thillai Nagar",
-          "deliveryMin": "8 MINS",
+          "deliveryMin": "7 MINS",
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -667,7 +667,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "VIZAG_pouch_1l": {
@@ -675,7 +675,7 @@
           "cityId": "VIZAG",
           "cityName": "Vizag",
           "area": "MVP Colony",
-          "deliveryMin": "10 MINS",
+          "deliveryMin": "9 MINS",
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -694,7 +694,7 @@
           "cityId": "VIZAG",
           "cityName": "Vizag",
           "area": "MVP Colony",
-          "deliveryMin": "10 MINS",
+          "deliveryMin": "9 MINS",
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -705,7 +705,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "VIZAG_bottle_2l": {
@@ -713,7 +713,7 @@
           "cityId": "VIZAG",
           "cityName": "Vizag",
           "area": "MVP Colony",
-          "deliveryMin": "10 MINS",
+          "deliveryMin": "9 MINS",
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -724,7 +724,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "VIZAG_bottle_500ml": {
@@ -732,18 +732,18 @@
           "cityId": "VIZAG",
           "cityName": "Vizag",
           "area": "MVP Colony",
-          "deliveryMin": "10 MINS",
+          "deliveryMin": "9 MINS",
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 129,
-          "pricePerLiter": 258,
-          "discount": "28% OFF",
+          "sellingPrice": 99,
+          "pricePerLiter": 198,
+          "discount": "45% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "VIZAG_spray_200ml": {
@@ -751,7 +751,7 @@
           "cityId": "VIZAG",
           "cityName": "Vizag",
           "area": "MVP Colony",
-          "deliveryMin": "10 MINS",
+          "deliveryMin": "9 MINS",
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -762,7 +762,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "MADURAI_pouch_1l": {
@@ -776,9 +776,9 @@
           "skuShortName": "Pouch 1L",
           "volumeMl": 1000,
           "mrp": 260,
-          "sellingPrice": 195,
-          "pricePerLiter": 195,
-          "discount": "25% OFF",
+          "sellingPrice": 187,
+          "pricePerLiter": 187,
+          "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
           "rating": "4.6",
@@ -800,7 +800,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "MADURAI_bottle_2l": {
@@ -814,12 +814,12 @@
           "skuShortName": "Bottle 2L",
           "volumeMl": 2000,
           "mrp": 550,
-          "sellingPrice": 419,
-          "pricePerLiter": 210,
-          "discount": "23% OFF",
+          "sellingPrice": 394,
+          "pricePerLiter": 197,
+          "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "MADURAI_bottle_500ml": {
@@ -833,12 +833,12 @@
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
+          "sellingPrice": 93,
+          "pricePerLiter": 186,
+          "discount": "48% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "MADURAI_spray_200ml": {
@@ -857,7 +857,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "PUNE_pouch_1l": {
@@ -865,7 +865,7 @@
           "cityId": "PUNE",
           "cityName": "Pune",
           "area": "Kothrud",
-          "deliveryMin": "12 MINS",
+          "deliveryMin": "10 MINS",
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -884,7 +884,7 @@
           "cityId": "PUNE",
           "cityName": "Pune",
           "area": "Kothrud",
-          "deliveryMin": "12 MINS",
+          "deliveryMin": "10 MINS",
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -895,7 +895,7 @@
           "discount": "22% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "PUNE_bottle_2l": {
@@ -903,7 +903,7 @@
           "cityId": "PUNE",
           "cityName": "Pune",
           "area": "Kothrud",
-          "deliveryMin": "12 MINS",
+          "deliveryMin": "10 MINS",
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -914,7 +914,7 @@
           "discount": "24% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "PUNE_bottle_500ml": {
@@ -922,7 +922,7 @@
           "cityId": "PUNE",
           "cityName": "Pune",
           "area": "Kothrud",
-          "deliveryMin": "12 MINS",
+          "deliveryMin": "10 MINS",
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -933,7 +933,7 @@
           "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "PUNE_spray_200ml": {
@@ -941,7 +941,7 @@
           "cityId": "PUNE",
           "cityName": "Pune",
           "area": "Kothrud",
-          "deliveryMin": "12 MINS",
+          "deliveryMin": "10 MINS",
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -952,7 +952,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "PONDICHERRY_pouch_1l": {
@@ -990,7 +990,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "PONDICHERRY_bottle_2l": {
@@ -1009,7 +1009,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "PONDICHERRY_bottle_500ml": {
@@ -1028,7 +1028,7 @@
           "discount": "45% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "PONDICHERRY_spray_200ml": {
@@ -1047,7 +1047,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "VIJAYAWADA_pouch_1l": {
@@ -1085,7 +1085,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "VIJAYAWADA_bottle_2l": {
@@ -1104,7 +1104,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "VIJAYAWADA_bottle_500ml": {
@@ -1118,12 +1118,12 @@
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 129,
-          "pricePerLiter": 258,
-          "discount": "28% OFF",
+          "sellingPrice": 99,
+          "pricePerLiter": 198,
+          "discount": "45% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "VIJAYAWADA_spray_200ml": {
@@ -1142,7 +1142,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "TIRUPUR_pouch_1l": {
@@ -1156,9 +1156,9 @@
           "skuShortName": "Pouch 1L",
           "volumeMl": 1000,
           "mrp": 260,
-          "sellingPrice": 195,
-          "pricePerLiter": 195,
-          "discount": "25% OFF",
+          "sellingPrice": 187,
+          "pricePerLiter": 187,
+          "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
           "rating": "4.6",
@@ -1180,7 +1180,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "TIRUPUR_bottle_2l": {
@@ -1194,12 +1194,12 @@
           "skuShortName": "Bottle 2L",
           "volumeMl": 2000,
           "mrp": 550,
-          "sellingPrice": 419,
-          "pricePerLiter": 210,
-          "discount": "23% OFF",
+          "sellingPrice": 394,
+          "pricePerLiter": 197,
+          "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "TIRUPUR_bottle_500ml": {
@@ -1213,12 +1213,12 @@
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
+          "sellingPrice": 93,
+          "pricePerLiter": 186,
+          "discount": "48% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "TIRUPUR_spray_200ml": {
@@ -1237,7 +1237,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "KOCHI_pouch_1l": {
@@ -1275,7 +1275,7 @@
           "discount": "22% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "KOCHI_bottle_2l": {
@@ -1294,7 +1294,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "KOCHI_bottle_500ml": {
@@ -1313,7 +1313,7 @@
           "discount": "45% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "KOCHI_spray_200ml": {
@@ -1332,7 +1332,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "ERODE_pouch_1l": {
@@ -1340,15 +1340,15 @@
           "cityId": "ERODE",
           "cityName": "Erode",
           "area": "Perundurai Road",
-          "deliveryMin": "7 MINS",
+          "deliveryMin": "6 MINS",
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
           "volumeMl": 1000,
           "mrp": 260,
-          "sellingPrice": 195,
-          "pricePerLiter": 195,
-          "discount": "25% OFF",
+          "sellingPrice": 187,
+          "pricePerLiter": 187,
+          "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
           "rating": "4.6",
@@ -1359,7 +1359,7 @@
           "cityId": "ERODE",
           "cityName": "Erode",
           "area": "Perundurai Road",
-          "deliveryMin": "7 MINS",
+          "deliveryMin": "6 MINS",
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -1370,7 +1370,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "ERODE_bottle_2l": {
@@ -1378,18 +1378,18 @@
           "cityId": "ERODE",
           "cityName": "Erode",
           "area": "Perundurai Road",
-          "deliveryMin": "7 MINS",
+          "deliveryMin": "6 MINS",
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
           "volumeMl": 2000,
           "mrp": 550,
-          "sellingPrice": 419,
-          "pricePerLiter": 210,
-          "discount": "23% OFF",
+          "sellingPrice": 394,
+          "pricePerLiter": 197,
+          "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "ERODE_bottle_500ml": {
@@ -1397,18 +1397,18 @@
           "cityId": "ERODE",
           "cityName": "Erode",
           "area": "Perundurai Road",
-          "deliveryMin": "7 MINS",
+          "deliveryMin": "6 MINS",
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
+          "sellingPrice": 93,
+          "pricePerLiter": 186,
+          "discount": "48% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "ERODE_spray_200ml": {
@@ -1416,7 +1416,7 @@
           "cityId": "ERODE",
           "cityName": "Erode",
           "area": "Perundurai Road",
-          "deliveryMin": "7 MINS",
+          "deliveryMin": "6 MINS",
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -1427,7 +1427,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "VELLORE_pouch_1l": {
@@ -1465,7 +1465,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "VELLORE_bottle_2l": {
@@ -1484,7 +1484,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "VELLORE_bottle_500ml": {
@@ -1498,12 +1498,12 @@
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
-          "inStock": true,
-          "stockStatus": "In Stock",
-          "rating": "4.4",
+          "sellingPrice": null,
+          "pricePerLiter": null,
+          "discount": "0%",
+          "inStock": false,
+          "stockStatus": "Out of Stock",
+          "rating": "4.6",
           "isListed": true
         },
         "VELLORE_spray_200ml": {
@@ -1522,7 +1522,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "THANJAVUR_pouch_1l": {
@@ -1530,7 +1530,7 @@
           "cityId": "THANJAVUR",
           "cityName": "Thanjavur",
           "area": "Medical College Rd",
-          "deliveryMin": "9 MINS",
+          "deliveryMin": "8 MINS",
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -1549,7 +1549,7 @@
           "cityId": "THANJAVUR",
           "cityName": "Thanjavur",
           "area": "Medical College Rd",
-          "deliveryMin": "9 MINS",
+          "deliveryMin": "8 MINS",
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -1560,7 +1560,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "THANJAVUR_bottle_2l": {
@@ -1568,7 +1568,7 @@
           "cityId": "THANJAVUR",
           "cityName": "Thanjavur",
           "area": "Medical College Rd",
-          "deliveryMin": "9 MINS",
+          "deliveryMin": "8 MINS",
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -1579,7 +1579,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "THANJAVUR_bottle_500ml": {
@@ -1587,18 +1587,18 @@
           "cityId": "THANJAVUR",
           "cityName": "Thanjavur",
           "area": "Medical College Rd",
-          "deliveryMin": "9 MINS",
+          "deliveryMin": "8 MINS",
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
-          "inStock": true,
-          "stockStatus": "In Stock",
-          "rating": "4.4",
+          "sellingPrice": null,
+          "pricePerLiter": null,
+          "discount": "0%",
+          "inStock": false,
+          "stockStatus": "Out of Stock",
+          "rating": "4.6",
           "isListed": true
         },
         "THANJAVUR_spray_200ml": {
@@ -1606,7 +1606,7 @@
           "cityId": "THANJAVUR",
           "cityName": "Thanjavur",
           "area": "Medical College Rd",
-          "deliveryMin": "9 MINS",
+          "deliveryMin": "8 MINS",
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -1617,7 +1617,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "TIRUNELVELI_pouch_1l": {
@@ -1655,7 +1655,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "TIRUNELVELI_bottle_2l": {
@@ -1674,7 +1674,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "TIRUNELVELI_bottle_500ml": {
@@ -1688,12 +1688,12 @@
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
-          "inStock": true,
-          "stockStatus": "In Stock",
-          "rating": "4.4",
+          "sellingPrice": null,
+          "pricePerLiter": null,
+          "discount": "0%",
+          "inStock": false,
+          "stockStatus": "Out of Stock",
+          "rating": "4.6",
           "isListed": true
         },
         "TIRUNELVELI_spray_200ml": {
@@ -1712,7 +1712,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "MYSORE_pouch_1l": {
@@ -1750,7 +1750,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "MYSORE_bottle_2l": {
@@ -1769,7 +1769,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "MYSORE_bottle_500ml": {
@@ -1783,12 +1783,12 @@
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 129,
-          "pricePerLiter": 258,
-          "discount": "28% OFF",
+          "sellingPrice": 99,
+          "pricePerLiter": 198,
+          "discount": "45% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "MYSORE_spray_200ml": {
@@ -1807,7 +1807,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "NELLORE_pouch_1l": {
@@ -1815,7 +1815,7 @@
           "cityId": "NELLORE",
           "cityName": "Nellore",
           "area": "Magunta Layout",
-          "deliveryMin": "10 MINS",
+          "deliveryMin": "9 MINS",
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -1834,7 +1834,7 @@
           "cityId": "NELLORE",
           "cityName": "Nellore",
           "area": "Magunta Layout",
-          "deliveryMin": "10 MINS",
+          "deliveryMin": "9 MINS",
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -1845,7 +1845,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "NELLORE_bottle_2l": {
@@ -1853,7 +1853,7 @@
           "cityId": "NELLORE",
           "cityName": "Nellore",
           "area": "Magunta Layout",
-          "deliveryMin": "10 MINS",
+          "deliveryMin": "9 MINS",
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -1864,7 +1864,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "NELLORE_bottle_500ml": {
@@ -1872,18 +1872,18 @@
           "cityId": "NELLORE",
           "cityName": "Nellore",
           "area": "Magunta Layout",
-          "deliveryMin": "10 MINS",
+          "deliveryMin": "9 MINS",
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 129,
-          "pricePerLiter": 258,
-          "discount": "28% OFF",
-          "inStock": true,
-          "stockStatus": "In Stock",
-          "rating": "4.4",
+          "sellingPrice": null,
+          "pricePerLiter": null,
+          "discount": "0%",
+          "inStock": false,
+          "stockStatus": "Out of Stock",
+          "rating": "4.6",
           "isListed": true
         },
         "NELLORE_spray_200ml": {
@@ -1891,7 +1891,7 @@
           "cityId": "NELLORE",
           "cityName": "Nellore",
           "area": "Magunta Layout",
-          "deliveryMin": "10 MINS",
+          "deliveryMin": "9 MINS",
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -1902,7 +1902,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "THOOTHUKUDI_pouch_1l": {
@@ -1910,7 +1910,7 @@
           "cityId": "THOOTHUKUDI",
           "cityName": "Thoothukudi",
           "area": "Millerpuram",
-          "deliveryMin": "9 MINS",
+          "deliveryMin": "8 MINS",
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -1929,7 +1929,7 @@
           "cityId": "THOOTHUKUDI",
           "cityName": "Thoothukudi",
           "area": "Millerpuram",
-          "deliveryMin": "9 MINS",
+          "deliveryMin": "8 MINS",
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -1940,7 +1940,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "THOOTHUKUDI_bottle_2l": {
@@ -1948,7 +1948,7 @@
           "cityId": "THOOTHUKUDI",
           "cityName": "Thoothukudi",
           "area": "Millerpuram",
-          "deliveryMin": "9 MINS",
+          "deliveryMin": "8 MINS",
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -1959,7 +1959,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "THOOTHUKUDI_bottle_500ml": {
@@ -1967,18 +1967,18 @@
           "cityId": "THOOTHUKUDI",
           "cityName": "Thoothukudi",
           "area": "Millerpuram",
-          "deliveryMin": "9 MINS",
+          "deliveryMin": "8 MINS",
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
-          "inStock": true,
-          "stockStatus": "In Stock",
-          "rating": "4.4",
+          "sellingPrice": null,
+          "pricePerLiter": null,
+          "discount": "0%",
+          "inStock": false,
+          "stockStatus": "Out of Stock",
+          "rating": "4.6",
           "isListed": true
         },
         "THOOTHUKUDI_spray_200ml": {
@@ -1986,7 +1986,7 @@
           "cityId": "THOOTHUKUDI",
           "cityName": "Thoothukudi",
           "area": "Millerpuram",
-          "deliveryMin": "9 MINS",
+          "deliveryMin": "8 MINS",
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -1997,7 +1997,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "KANCHIPURAM_pouch_1l": {
@@ -2005,7 +2005,7 @@
           "cityId": "KANCHIPURAM",
           "cityName": "Kanchipuram",
           "area": "Gandhi Road",
-          "deliveryMin": "8 MINS",
+          "deliveryMin": "7 MINS",
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -2024,7 +2024,7 @@
           "cityId": "KANCHIPURAM",
           "cityName": "Kanchipuram",
           "area": "Gandhi Road",
-          "deliveryMin": "8 MINS",
+          "deliveryMin": "7 MINS",
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -2035,7 +2035,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "KANCHIPURAM_bottle_2l": {
@@ -2043,7 +2043,7 @@
           "cityId": "KANCHIPURAM",
           "cityName": "Kanchipuram",
           "area": "Gandhi Road",
-          "deliveryMin": "8 MINS",
+          "deliveryMin": "7 MINS",
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -2054,7 +2054,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "KANCHIPURAM_bottle_500ml": {
@@ -2062,18 +2062,18 @@
           "cityId": "KANCHIPURAM",
           "cityName": "Kanchipuram",
           "area": "Gandhi Road",
-          "deliveryMin": "8 MINS",
+          "deliveryMin": "7 MINS",
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
-          "inStock": true,
-          "stockStatus": "In Stock",
-          "rating": "4.4",
+          "sellingPrice": null,
+          "pricePerLiter": null,
+          "discount": "0%",
+          "inStock": false,
+          "stockStatus": "Out of Stock",
+          "rating": "4.6",
           "isListed": true
         },
         "KANCHIPURAM_spray_200ml": {
@@ -2081,7 +2081,7 @@
           "cityId": "KANCHIPURAM",
           "cityName": "Kanchipuram",
           "area": "Gandhi Road",
-          "deliveryMin": "8 MINS",
+          "deliveryMin": "7 MINS",
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -2092,7 +2092,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "WARANGAL_pouch_1l": {
@@ -2130,7 +2130,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "WARANGAL_bottle_2l": {
@@ -2149,7 +2149,7 @@
           "discount": "23% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "WARANGAL_bottle_500ml": {
@@ -2163,12 +2163,12 @@
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 129,
-          "pricePerLiter": 258,
-          "discount": "28% OFF",
-          "inStock": true,
-          "stockStatus": "In Stock",
-          "rating": "4.4",
+          "sellingPrice": null,
+          "pricePerLiter": null,
+          "discount": "0%",
+          "inStock": false,
+          "stockStatus": "Out of Stock",
+          "rating": "4.6",
           "isListed": true
         },
         "WARANGAL_spray_200ml": {
@@ -2187,7 +2187,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "KARUR_pouch_1l": {
@@ -2195,15 +2195,15 @@
           "cityId": "KARUR",
           "cityName": "Karur",
           "area": "Kovai Road",
-          "deliveryMin": "7 MINS",
+          "deliveryMin": "6 MINS",
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
           "volumeMl": 1000,
           "mrp": 260,
-          "sellingPrice": 195,
-          "pricePerLiter": 195,
-          "discount": "25% OFF",
+          "sellingPrice": 187,
+          "pricePerLiter": 187,
+          "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
           "rating": "4.6",
@@ -2214,7 +2214,7 @@
           "cityId": "KARUR",
           "cityName": "Karur",
           "area": "Kovai Road",
-          "deliveryMin": "7 MINS",
+          "deliveryMin": "6 MINS",
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -2225,7 +2225,7 @@
           "discount": "21% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "KARUR_bottle_2l": {
@@ -2233,18 +2233,18 @@
           "cityId": "KARUR",
           "cityName": "Karur",
           "area": "Kovai Road",
-          "deliveryMin": "7 MINS",
+          "deliveryMin": "6 MINS",
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
           "volumeMl": 2000,
           "mrp": 550,
-          "sellingPrice": 419,
-          "pricePerLiter": 210,
-          "discount": "23% OFF",
+          "sellingPrice": 394,
+          "pricePerLiter": 197,
+          "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "KARUR_bottle_500ml": {
@@ -2252,18 +2252,18 @@
           "cityId": "KARUR",
           "cityName": "Karur",
           "area": "Kovai Road",
-          "deliveryMin": "7 MINS",
+          "deliveryMin": "6 MINS",
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
           "volumeMl": 500,
           "mrp": 180,
-          "sellingPrice": 99,
-          "pricePerLiter": 198,
-          "discount": "45% OFF",
+          "sellingPrice": 93,
+          "pricePerLiter": 186,
+          "discount": "48% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "KARUR_spray_200ml": {
@@ -2271,7 +2271,7 @@
           "cityId": "KARUR",
           "cityName": "Karur",
           "area": "Kovai Road",
-          "deliveryMin": "7 MINS",
+          "deliveryMin": "6 MINS",
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -2282,7 +2282,7 @@
           "discount": "37% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         },
         "CENTRAL GOA_pouch_1l": {
@@ -2290,7 +2290,7 @@
           "cityId": "CENTRAL GOA",
           "cityName": "Central Goa",
           "area": "Panaji",
-          "deliveryMin": "12 MINS",
+          "deliveryMin": "11 MINS",
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -2309,7 +2309,7 @@
           "cityId": "CENTRAL GOA",
           "cityName": "Central Goa",
           "area": "Panaji",
-          "deliveryMin": "12 MINS",
+          "deliveryMin": "11 MINS",
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -2320,7 +2320,7 @@
           "discount": "22% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "CENTRAL GOA_bottle_2l": {
@@ -2328,7 +2328,7 @@
           "cityId": "CENTRAL GOA",
           "cityName": "Central Goa",
           "area": "Panaji",
-          "deliveryMin": "12 MINS",
+          "deliveryMin": "11 MINS",
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -2339,7 +2339,7 @@
           "discount": "24% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.5",
+          "rating": "4.6",
           "isListed": true
         },
         "CENTRAL GOA_bottle_500ml": {
@@ -2347,7 +2347,7 @@
           "cityId": "CENTRAL GOA",
           "cityName": "Central Goa",
           "area": "Panaji",
-          "deliveryMin": "12 MINS",
+          "deliveryMin": "11 MINS",
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -2358,7 +2358,7 @@
           "discount": "28% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": "4.4",
+          "rating": "4.6",
           "isListed": true
         },
         "CENTRAL GOA_spray_200ml": {
@@ -2366,7 +2366,7 @@
           "cityId": "CENTRAL GOA",
           "cityName": "Central Goa",
           "area": "Panaji",
-          "deliveryMin": "12 MINS",
+          "deliveryMin": "11 MINS",
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -2377,7 +2377,7 @@
           "discount": "29% OFF",
           "inStock": true,
           "stockStatus": "In Stock",
-          "rating": null,
+          "rating": "4.6",
           "isListed": true
         }
       }
