@@ -2,7 +2,7 @@
   "history": [
     {
       "date": "2026-10-02",
-      "timestamp": "2026-10-02T06:51:18.050Z",
+      "timestamp": "2026-10-02T06:59:27.143Z",
       "totalCities": 25,
       "citySkuMatrix": {
         "CHENNAI_pouch_1l": {
@@ -26,7 +26,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "CHENNAI_bottle_1l": {
           "date": "2026-10-02",
@@ -49,7 +49,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "CHENNAI_bottle_2l": {
           "date": "2026-10-02",
@@ -72,7 +72,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "CHENNAI_bottle_500ml": {
           "date": "2026-10-02",
@@ -95,7 +95,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "CHENNAI_spray_200ml": {
           "date": "2026-10-02",
@@ -118,7 +118,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "BANGALORE_pouch_1l": {
           "date": "2026-10-02",
@@ -141,7 +141,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "BANGALORE_bottle_1l": {
           "date": "2026-10-02",
@@ -164,7 +164,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "BANGALORE_bottle_2l": {
           "date": "2026-10-02",
@@ -187,7 +187,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "BANGALORE_bottle_500ml": {
           "date": "2026-10-02",
@@ -210,7 +210,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "BANGALORE_spray_200ml": {
           "date": "2026-10-02",
@@ -233,7 +233,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "COIMBATORE_pouch_1l": {
           "date": "2026-10-02",
@@ -256,7 +256,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "COIMBATORE_bottle_1l": {
           "date": "2026-10-02",
@@ -279,7 +279,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "COIMBATORE_bottle_2l": {
           "date": "2026-10-02",
@@ -302,7 +302,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "COIMBATORE_bottle_500ml": {
           "date": "2026-10-02",
@@ -325,7 +325,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "COIMBATORE_spray_200ml": {
           "date": "2026-10-02",
@@ -348,7 +348,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "HYDERABAD_pouch_1l": {
           "date": "2026-10-02",
@@ -371,7 +371,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "HYDERABAD_bottle_1l": {
           "date": "2026-10-02",
@@ -394,7 +394,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "HYDERABAD_bottle_2l": {
           "date": "2026-10-02",
@@ -417,7 +417,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "HYDERABAD_bottle_500ml": {
           "date": "2026-10-02",
@@ -440,7 +440,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "HYDERABAD_spray_200ml": {
           "date": "2026-10-02",
@@ -463,7 +463,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MUMBAI_pouch_1l": {
           "date": "2026-10-02",
@@ -486,7 +486,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MUMBAI_bottle_1l": {
           "date": "2026-10-02",
@@ -509,7 +509,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MUMBAI_bottle_2l": {
           "date": "2026-10-02",
@@ -532,7 +532,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MUMBAI_bottle_500ml": {
           "date": "2026-10-02",
@@ -555,7 +555,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MUMBAI_spray_200ml": {
           "date": "2026-10-02",
@@ -578,7 +578,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "SALEM_pouch_1l": {
           "date": "2026-10-02",
@@ -601,7 +601,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "SALEM_bottle_1l": {
           "date": "2026-10-02",
@@ -624,7 +624,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "SALEM_bottle_2l": {
           "date": "2026-10-02",
@@ -647,7 +647,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "SALEM_bottle_500ml": {
           "date": "2026-10-02",
@@ -670,7 +670,7 @@
           "stockStatus": "Out of Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "SALEM_spray_200ml": {
           "date": "2026-10-02",
@@ -693,7 +693,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TRICHY_pouch_1l": {
           "date": "2026-10-02",
@@ -716,7 +716,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TRICHY_bottle_1l": {
           "date": "2026-10-02",
@@ -739,7 +739,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TRICHY_bottle_2l": {
           "date": "2026-10-02",
@@ -762,7 +762,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TRICHY_bottle_500ml": {
           "date": "2026-10-02",
@@ -785,7 +785,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TRICHY_spray_200ml": {
           "date": "2026-10-02",
@@ -808,7 +808,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VIZAG_pouch_1l": {
           "date": "2026-10-02",
@@ -831,7 +831,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VIZAG_bottle_1l": {
           "date": "2026-10-02",
@@ -854,7 +854,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VIZAG_bottle_2l": {
           "date": "2026-10-02",
@@ -877,7 +877,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VIZAG_bottle_500ml": {
           "date": "2026-10-02",
@@ -900,7 +900,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VIZAG_spray_200ml": {
           "date": "2026-10-02",
@@ -923,7 +923,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MADURAI_pouch_1l": {
           "date": "2026-10-02",
@@ -946,7 +946,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MADURAI_bottle_1l": {
           "date": "2026-10-02",
@@ -969,7 +969,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MADURAI_bottle_2l": {
           "date": "2026-10-02",
@@ -992,7 +992,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MADURAI_bottle_500ml": {
           "date": "2026-10-02",
@@ -1015,7 +1015,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MADURAI_spray_200ml": {
           "date": "2026-10-02",
@@ -1038,7 +1038,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "PUNE_pouch_1l": {
           "date": "2026-10-02",
@@ -1061,7 +1061,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "PUNE_bottle_1l": {
           "date": "2026-10-02",
@@ -1084,7 +1084,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "PUNE_bottle_2l": {
           "date": "2026-10-02",
@@ -1107,7 +1107,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "PUNE_bottle_500ml": {
           "date": "2026-10-02",
@@ -1130,7 +1130,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "PUNE_spray_200ml": {
           "date": "2026-10-02",
@@ -1153,7 +1153,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "PONDICHERRY_pouch_1l": {
           "date": "2026-10-02",
@@ -1176,7 +1176,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "PONDICHERRY_bottle_1l": {
           "date": "2026-10-02",
@@ -1199,7 +1199,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "PONDICHERRY_bottle_2l": {
           "date": "2026-10-02",
@@ -1222,7 +1222,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "PONDICHERRY_bottle_500ml": {
           "date": "2026-10-02",
@@ -1245,7 +1245,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "PONDICHERRY_spray_200ml": {
           "date": "2026-10-02",
@@ -1268,7 +1268,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VIJAYAWADA_pouch_1l": {
           "date": "2026-10-02",
@@ -1291,7 +1291,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VIJAYAWADA_bottle_1l": {
           "date": "2026-10-02",
@@ -1314,7 +1314,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VIJAYAWADA_bottle_2l": {
           "date": "2026-10-02",
@@ -1337,7 +1337,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VIJAYAWADA_bottle_500ml": {
           "date": "2026-10-02",
@@ -1360,7 +1360,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VIJAYAWADA_spray_200ml": {
           "date": "2026-10-02",
@@ -1383,7 +1383,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TIRUPUR_pouch_1l": {
           "date": "2026-10-02",
@@ -1406,7 +1406,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TIRUPUR_bottle_1l": {
           "date": "2026-10-02",
@@ -1429,7 +1429,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TIRUPUR_bottle_2l": {
           "date": "2026-10-02",
@@ -1452,7 +1452,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TIRUPUR_bottle_500ml": {
           "date": "2026-10-02",
@@ -1475,7 +1475,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TIRUPUR_spray_200ml": {
           "date": "2026-10-02",
@@ -1498,7 +1498,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KOCHI_pouch_1l": {
           "date": "2026-10-02",
@@ -1521,7 +1521,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KOCHI_bottle_1l": {
           "date": "2026-10-02",
@@ -1544,7 +1544,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KOCHI_bottle_2l": {
           "date": "2026-10-02",
@@ -1567,7 +1567,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KOCHI_bottle_500ml": {
           "date": "2026-10-02",
@@ -1590,7 +1590,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KOCHI_spray_200ml": {
           "date": "2026-10-02",
@@ -1613,7 +1613,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "ERODE_pouch_1l": {
           "date": "2026-10-02",
@@ -1636,7 +1636,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "ERODE_bottle_1l": {
           "date": "2026-10-02",
@@ -1659,7 +1659,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "ERODE_bottle_2l": {
           "date": "2026-10-02",
@@ -1682,7 +1682,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "ERODE_bottle_500ml": {
           "date": "2026-10-02",
@@ -1705,7 +1705,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "ERODE_spray_200ml": {
           "date": "2026-10-02",
@@ -1728,7 +1728,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VELLORE_pouch_1l": {
           "date": "2026-10-02",
@@ -1751,7 +1751,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VELLORE_bottle_1l": {
           "date": "2026-10-02",
@@ -1774,7 +1774,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VELLORE_bottle_2l": {
           "date": "2026-10-02",
@@ -1797,7 +1797,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VELLORE_bottle_500ml": {
           "date": "2026-10-02",
@@ -1820,7 +1820,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "VELLORE_spray_200ml": {
           "date": "2026-10-02",
@@ -1843,7 +1843,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "THANJAVUR_pouch_1l": {
           "date": "2026-10-02",
@@ -1866,7 +1866,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "THANJAVUR_bottle_1l": {
           "date": "2026-10-02",
@@ -1889,7 +1889,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "THANJAVUR_bottle_2l": {
           "date": "2026-10-02",
@@ -1912,7 +1912,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "THANJAVUR_bottle_500ml": {
           "date": "2026-10-02",
@@ -1935,7 +1935,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "THANJAVUR_spray_200ml": {
           "date": "2026-10-02",
@@ -1958,7 +1958,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TIRUNELVELI_pouch_1l": {
           "date": "2026-10-02",
@@ -1981,7 +1981,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TIRUNELVELI_bottle_1l": {
           "date": "2026-10-02",
@@ -2004,7 +2004,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TIRUNELVELI_bottle_2l": {
           "date": "2026-10-02",
@@ -2027,7 +2027,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TIRUNELVELI_bottle_500ml": {
           "date": "2026-10-02",
@@ -2050,7 +2050,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "TIRUNELVELI_spray_200ml": {
           "date": "2026-10-02",
@@ -2073,7 +2073,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MYSORE_pouch_1l": {
           "date": "2026-10-02",
@@ -2096,7 +2096,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MYSORE_bottle_1l": {
           "date": "2026-10-02",
@@ -2119,7 +2119,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MYSORE_bottle_2l": {
           "date": "2026-10-02",
@@ -2142,7 +2142,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MYSORE_bottle_500ml": {
           "date": "2026-10-02",
@@ -2165,7 +2165,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "MYSORE_spray_200ml": {
           "date": "2026-10-02",
@@ -2188,7 +2188,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "NELLORE_pouch_1l": {
           "date": "2026-10-02",
@@ -2211,7 +2211,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "NELLORE_bottle_1l": {
           "date": "2026-10-02",
@@ -2234,7 +2234,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "NELLORE_bottle_2l": {
           "date": "2026-10-02",
@@ -2257,7 +2257,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "NELLORE_bottle_500ml": {
           "date": "2026-10-02",
@@ -2280,7 +2280,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "NELLORE_spray_200ml": {
           "date": "2026-10-02",
@@ -2303,7 +2303,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "THOOTHUKUDI_pouch_1l": {
           "date": "2026-10-02",
@@ -2326,7 +2326,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "THOOTHUKUDI_bottle_1l": {
           "date": "2026-10-02",
@@ -2349,7 +2349,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "THOOTHUKUDI_bottle_2l": {
           "date": "2026-10-02",
@@ -2372,7 +2372,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "THOOTHUKUDI_bottle_500ml": {
           "date": "2026-10-02",
@@ -2395,7 +2395,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "THOOTHUKUDI_spray_200ml": {
           "date": "2026-10-02",
@@ -2418,7 +2418,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KANCHIPURAM_pouch_1l": {
           "date": "2026-10-02",
@@ -2441,7 +2441,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KANCHIPURAM_bottle_1l": {
           "date": "2026-10-02",
@@ -2464,7 +2464,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KANCHIPURAM_bottle_2l": {
           "date": "2026-10-02",
@@ -2487,7 +2487,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KANCHIPURAM_bottle_500ml": {
           "date": "2026-10-02",
@@ -2510,7 +2510,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KANCHIPURAM_spray_200ml": {
           "date": "2026-10-02",
@@ -2533,7 +2533,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "WARANGAL_pouch_1l": {
           "date": "2026-10-02",
@@ -2556,7 +2556,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "WARANGAL_bottle_1l": {
           "date": "2026-10-02",
@@ -2579,7 +2579,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "WARANGAL_bottle_2l": {
           "date": "2026-10-02",
@@ -2602,7 +2602,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "WARANGAL_bottle_500ml": {
           "date": "2026-10-02",
@@ -2625,7 +2625,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "WARANGAL_spray_200ml": {
           "date": "2026-10-02",
@@ -2648,7 +2648,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KARUR_pouch_1l": {
           "date": "2026-10-02",
@@ -2671,7 +2671,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KARUR_bottle_1l": {
           "date": "2026-10-02",
@@ -2694,7 +2694,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KARUR_bottle_2l": {
           "date": "2026-10-02",
@@ -2717,7 +2717,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KARUR_bottle_500ml": {
           "date": "2026-10-02",
@@ -2740,7 +2740,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "KARUR_spray_200ml": {
           "date": "2026-10-02",
@@ -2763,7 +2763,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "CENTRAL GOA_pouch_1l": {
           "date": "2026-10-02",
@@ -2786,7 +2786,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "CENTRAL GOA_bottle_1l": {
           "date": "2026-10-02",
@@ -2809,7 +2809,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "CENTRAL GOA_bottle_2l": {
           "date": "2026-10-02",
@@ -2832,7 +2832,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "CENTRAL GOA_bottle_500ml": {
           "date": "2026-10-02",
@@ -2855,7 +2855,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         },
         "CENTRAL GOA_spray_200ml": {
           "date": "2026-10-02",
@@ -2878,7 +2878,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-02T06:51:18.050Z"
+          "lastVerifiedAt": "2026-10-02T06:59:27.143Z"
         }
       }
     }
