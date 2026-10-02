@@ -430,7 +430,7 @@ export default function StockTab() {
         gemVsLowestDiff,
         brandDetails,
         activeCompetitorsCount: compPricesD.length,
-        // Specific brand shortcuts for table columns
+        // All 15 Requested Competitor Brand shortcuts for matrix columns
         jivoD: mapD[`${city}||${product}||Jivo`] ?? null,
         jivoD1: mapD1[`${city}||${product}||Jivo`] ?? null,
         idhayamD: mapD[`${city}||${product}||Idhayam`] ?? null,
@@ -441,8 +441,24 @@ export default function StockTab() {
         vvdD1: mapD1[`${city}||${product}||VVD`] ?? null,
         fortuneD: mapD[`${city}||${product}||Fortune`] ?? null,
         fortuneD1: mapD1[`${city}||${product}||Fortune`] ?? null,
-        goldwinnerD: mapD[`${city}||${product}||Gold winner`] ?? null,
+        tataD: mapD[`${city}||${product}||TATA`] ?? mapD[`${city}||${product}||Tata Simply Better`] ?? null,
+        tataD1: mapD1[`${city}||${product}||TATA`] ?? null,
+        mantraD: mapD[`${city}||${product}||24 Mantra`] ?? null,
+        mantraD1: mapD1[`${city}||${product}||24 Mantra`] ?? null,
+        goldwinnerD: mapD[`${city}||${product}||Gold winner`] ?? mapD[`${city}||${product}||Gold Winner`] ?? null,
         goldwinnerD1: mapD1[`${city}||${product}||Gold winner`] ?? null,
+        dharaD: mapD[`${city}||${product}||Dhara`] ?? null,
+        dharaD1: mapD1[`${city}||${product}||Dhara`] ?? null,
+        saffolaD: mapD[`${city}||${product}||Saffola`] ?? null,
+        saffolaD1: mapD1[`${city}||${product}||Saffola`] ?? null,
+        gulabD: mapD[`${city}||${product}||Gulab`] ?? null,
+        gulabD1: mapD1[`${city}||${product}||Gulab`] ?? null,
+        geminiD: mapD[`${city}||${product}||Gemini`] ?? null,
+        geminiD1: mapD1[`${city}||${product}||Gemini`] ?? null,
+        farmseD: mapD[`${city}||${product}||Farm SE`] ?? null,
+        farmseD1: mapD1[`${city}||${product}||Farm SE`] ?? null,
+        pronatureD: mapD[`${city}||${product}||Pro nature`] ?? null,
+        pronatureD1: mapD1[`${city}||${product}||Pro nature`] ?? null,
       })
     }
 
@@ -873,6 +889,69 @@ export default function StockTab() {
       render: r => <span style={{ color: r.fortuneD ? '#cbd5e1' : '#64748b' }}>{r.fortuneD ? `₹${r.fortuneD}` : '—'}</span>
     },
     {
+      key: 'tata',
+      label: 'TATA',
+      align: 'right',
+      accessor: r => r.tataD,
+      render: r => <span style={{ color: r.tataD ? '#cbd5e1' : '#64748b' }}>{r.tataD ? `₹${r.tataD}` : '—'}</span>
+    },
+    {
+      key: 'mantra',
+      label: '24 Mantra',
+      align: 'right',
+      accessor: r => r.mantraD,
+      render: r => <span style={{ color: r.mantraD ? '#cbd5e1' : '#64748b' }}>{r.mantraD ? `₹${r.mantraD}` : '—'}</span>
+    },
+    {
+      key: 'goldwinner',
+      label: 'Gold Winner',
+      align: 'right',
+      accessor: r => r.goldwinnerD,
+      render: r => <span style={{ color: r.goldwinnerD ? '#cbd5e1' : '#64748b' }}>{r.goldwinnerD ? `₹${r.goldwinnerD}` : '—'}</span>
+    },
+    {
+      key: 'dhara',
+      label: 'Dhara',
+      align: 'right',
+      accessor: r => r.dharaD,
+      render: r => <span style={{ color: r.dharaD ? '#cbd5e1' : '#64748b' }}>{r.dharaD ? `₹${r.dharaD}` : '—'}</span>
+    },
+    {
+      key: 'saffola',
+      label: 'Saffola',
+      align: 'right',
+      accessor: r => r.saffolaD,
+      render: r => <span style={{ color: r.saffolaD ? '#cbd5e1' : '#64748b' }}>{r.saffolaD ? `₹${r.saffolaD}` : '—'}</span>
+    },
+    {
+      key: 'gulab',
+      label: 'Gulab',
+      align: 'right',
+      accessor: r => r.gulabD,
+      render: r => <span style={{ color: r.gulabD ? '#cbd5e1' : '#64748b' }}>{r.gulabD ? `₹${r.gulabD}` : '—'}</span>
+    },
+    {
+      key: 'gemini',
+      label: 'Gemini',
+      align: 'right',
+      accessor: r => r.geminiD,
+      render: r => <span style={{ color: r.geminiD ? '#cbd5e1' : '#64748b' }}>{r.geminiD ? `₹${r.geminiD}` : '—'}</span>
+    },
+    {
+      key: 'farmse',
+      label: 'Farm SE',
+      align: 'right',
+      accessor: r => r.farmseD,
+      render: r => <span style={{ color: r.farmseD ? '#cbd5e1' : '#64748b' }}>{r.farmseD ? `₹${r.farmseD}` : '—'}</span>
+    },
+    {
+      key: 'pronature',
+      label: 'Pro Nature',
+      align: 'right',
+      accessor: r => r.pronatureD,
+      render: r => <span style={{ color: r.pronatureD ? '#cbd5e1' : '#64748b' }}>{r.pronatureD ? `₹${r.pronatureD}` : '—'}</span>
+    },
+    {
       key: 'lowest',
       label: 'Lowest Competitor',
       align: 'right',
@@ -1277,7 +1356,14 @@ export default function StockTab() {
       accessor: r => r.cityName,
       render: r => (
         <div>
-          <span style={{ fontWeight: 700, color: '#f1f5f9' }}>{r.cityName}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontWeight: 700, color: '#f1f5f9' }}>{r.cityName}</span>
+            {r.deliveryMin && (
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
+                ⚡ {r.deliveryMin}
+              </span>
+            )}
+          </div>
           <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.area}</div>
         </div>
       )
