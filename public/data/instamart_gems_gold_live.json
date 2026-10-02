@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-10-02T05:49:03.132Z",
+  "lastUpdated": "2026-10-02T06:09:39.663Z",
   "date": "2026-10-02",
   "targetCities": [
     {
@@ -276,7 +276,7 @@
       "discount": "21% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "CHENNAI_bottle_2l": {
@@ -295,7 +295,7 @@
       "discount": "28% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "CHENNAI_bottle_500ml": {
@@ -314,7 +314,7 @@
       "discount": "48% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.4",
       "isListed": true
     },
     "CHENNAI_spray_200ml": {
@@ -371,7 +371,7 @@
       "discount": "21% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "BANGALORE_bottle_2l": {
@@ -390,7 +390,7 @@
       "discount": "23% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "BANGALORE_bottle_500ml": {
@@ -409,7 +409,7 @@
       "discount": "34% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.4",
       "isListed": true
     },
     "BANGALORE_spray_200ml": {
@@ -466,7 +466,7 @@
       "discount": "21% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "COIMBATORE_bottle_2l": {
@@ -485,7 +485,7 @@
       "discount": "28% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "COIMBATORE_bottle_500ml": {
@@ -504,7 +504,7 @@
       "discount": "48% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.4",
       "isListed": true
     },
     "COIMBATORE_spray_200ml": {
@@ -751,7 +751,7 @@
       "discount": "21% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "SALEM_bottle_2l": {
@@ -770,7 +770,7 @@
       "discount": "23% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "SALEM_bottle_500ml": {
@@ -789,7 +789,7 @@
       "discount": "0%",
       "inStock": false,
       "stockStatus": "Out of Stock",
-      "rating": "4.6",
+      "rating": "4.4",
       "isListed": true
     },
     "SALEM_spray_200ml": {
@@ -1036,7 +1036,7 @@
       "discount": "21% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "MADURAI_bottle_2l": {
@@ -1055,7 +1055,7 @@
       "discount": "28% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "MADURAI_bottle_500ml": {
@@ -1074,7 +1074,7 @@
       "discount": "34% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.4",
       "isListed": true
     },
     "MADURAI_spray_200ml": {
@@ -1416,7 +1416,7 @@
       "discount": "21% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "TIRUPUR_bottle_2l": {
@@ -1435,7 +1435,7 @@
       "discount": "23% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "TIRUPUR_bottle_500ml": {
@@ -1454,7 +1454,7 @@
       "discount": "34% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.4",
       "isListed": true
     },
     "TIRUPUR_spray_200ml": {
@@ -1606,7 +1606,7 @@
       "discount": "21% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "ERODE_bottle_2l": {
@@ -1625,7 +1625,7 @@
       "discount": "28% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "ERODE_bottle_500ml": {
@@ -1644,7 +1644,7 @@
       "discount": "34% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.4",
       "isListed": true
     },
     "ERODE_spray_200ml": {
@@ -2461,7 +2461,7 @@
       "discount": "21% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "KARUR_bottle_2l": {
@@ -2480,7 +2480,7 @@
       "discount": "28% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.5",
       "isListed": true
     },
     "KARUR_bottle_500ml": {
@@ -2499,7 +2499,7 @@
       "discount": "34% OFF",
       "inStock": true,
       "stockStatus": "In Stock",
-      "rating": "4.6",
+      "rating": "4.4",
       "isListed": true
     },
     "KARUR_spray_200ml": {
