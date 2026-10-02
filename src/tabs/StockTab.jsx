@@ -177,15 +177,63 @@ function PriceDeltaBadge({ delta, priceD, prevPrice, showStable = true }) {
 
 // Availability Status Pill
 function AvailabilityPill({ status }) {
-  const s = (status || '').toLowerCase()
-  if (s.includes('avail')) {
-    return <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)' }}>✓ Available</span>
+  const s = (status || '').toLowerCase().trim()
+  if (s === 'in stock' || s.includes('in stock') || s.includes('avail') || s === 'available') {
+    return (
+      <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '2px 8px',
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 700,
+        background: 'rgba(34, 197, 94, 0.15)',
+        color: '#4ade80',
+        border: '1px solid rgba(34, 197, 94, 0.3)',
+        whiteSpace: 'nowrap'
+      }}>
+        ✓ In Stock
+      </span>
+    )
   }
-  if (s.includes('out') || s.includes('stock') || s === 'oos') {
-    return <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}>⛔ Out of Stock</span>
+  if (s.includes('out of stock') || s === 'oos' || s.includes('sold out') || s.includes('out')) {
+    return (
+      <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '2px 8px',
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 700,
+        background: 'rgba(239, 68, 68, 0.15)',
+        color: '#f87171',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+        whiteSpace: 'nowrap'
+      }}>
+        ⛔ Out of Stock
+      </span>
+    )
   }
-  if (s.includes('miss')) {
-    return <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(234, 179, 8, 0.15)', color: '#facc15', border: '1px solid rgba(234, 179, 8, 0.3)' }}>⚠️ Missing</span>
+  if (s.includes('miss') || s.includes('delist')) {
+    return (
+      <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '2px 8px',
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 700,
+        background: 'rgba(234, 179, 8, 0.15)',
+        color: '#facc15',
+        border: '1px solid rgba(234, 179, 8, 0.3)',
+        whiteSpace: 'nowrap'
+      }}>
+        ⚠️ Missing
+      </span>
+    )
   }
   return <span style={{ color: '#64748b', fontSize: 11 }}>{status || '—'}</span>
 }
@@ -1428,6 +1476,29 @@ export default function StockTab() {
       align: 'center',
       accessor: r => r.stockStatus,
       render: r => <AvailabilityPill status={r.stockStatus} />
+    },
+    {
+      key: 'marketComp',
+      label: 'Market Competitors',
+      align: 'left',
+      render: r => {
+        const comps = (liveAgentSnapshot?.records || []).filter(c => c.city === r.cityId && c.volumeMl === r.volumeMl && c.brand !== "GEM'S GOLD" && c.sellingPrice)
+        if (!comps.length) return <span style={{ color: '#64748b' }}>—</span>
+        const lowest = comps.reduce((min, c) => c.sellingPrice < min.sellingPrice ? c : min, comps[0])
+        const diff = r.sellingPrice && lowest.sellingPrice ? r.sellingPrice - lowest.sellingPrice : null
+        return (
+          <div style={{ fontSize: 11, lineHeight: 1.3 }}>
+            <div>
+              <span style={{ color: '#facc15', fontWeight: 700 }}>{lowest.brand}:</span> <span style={{ color: '#f1f5f9', fontWeight: 600 }}>₹{lowest.sellingPrice}</span>
+            </div>
+            {diff !== null && (
+              <div style={{ fontSize: 10, color: diff <= 0 ? '#4ade80' : '#f87171', fontWeight: 700, marginTop: 2 }}>
+                {diff < 0 ? `Gem ₹${Math.abs(diff)} cheaper` : diff === 0 ? 'Price Parity' : `Gem +₹${diff}`}
+              </div>
+            )}
+          </div>
+        )
+      }
     }
   ]
 
@@ -1977,8 +2048,31 @@ export default function StockTab() {
                 </div>
               </div>
 
-              {/* KPI Stat Chips */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {/* KPI Stat Chips & Live Refresh Button */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  onClick={loadData}
+                  disabled={isRefreshing}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    background: isRefreshing ? '#0f172a' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    border: '1px solid #3b82f6',
+                    color: '#ffffff',
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: isRefreshing ? 'wait' : 'pointer',
+                    boxShadow: '0 0 15px rgba(59, 130, 246, 0.35)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{isRefreshing ? '⏳' : '⚡'}</span>
+                  {isRefreshing ? 'Refreshing Feeds...' : 'LIVE REFRESH SCAN'}
+                </button>
+
                 <div style={{ background: '#0f172a', padding: '8px 14px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
                   <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Active Cities</div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: '#38bdf8' }}>{gemsKPIs.totalCities} Cities</div>
