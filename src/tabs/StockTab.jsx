@@ -202,15 +202,21 @@ export default function StockTab() {
   const [error, setError] = useState(null)
   const [competitorData, setCompetitorData] = useState([])
   const [instaData, setInstaData] = useState([])
+  const [liveAgentSnapshot, setLiveAgentSnapshot] = useState(null)
+  const [liveCityFilter, setLiveCityFilter] = useState('All')
+  const [liveCategoryFilter, setLiveCategoryFilter] = useState('All')
+  const [liveBrandFilter, setLiveBrandFilter] = useState('All')
+  const [liveStockFilter, setLiveStockFilter] = useState('All')
 
-  // Fetch all required data sheets
+  // Fetch all required data sheets and live agent snapshot
   const loadData = useCallback(async () => {
     setIsRefreshing(true)
     setError(null)
     try {
-      const [resComp, resInsta] = await Promise.all([
+      const [resComp, resInsta, resLiveSnap] = await Promise.all([
         fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_COMPETITORS}`),
-        fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_INSTA}`)
+        fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_INSTA}`),
+        fetch(`${import.meta.env.BASE_URL || ''}data/instamart_live_snapshot.json`).catch(() => null)
       ])
 
       if (!resComp.ok || !resInsta.ok) {
@@ -225,6 +231,12 @@ export default function StockTab() {
 
       setCompetitorData(parsedComp)
       setInstaData(parsedInsta)
+
+      if (resLiveSnap && resLiveSnap.ok) {
+        const snapJson = await resLiveSnap.json()
+        setLiveAgentSnapshot(snapJson)
+      }
+
       setLoading(false)
       setIsRefreshing(false)
     } catch (e) {
@@ -953,6 +965,188 @@ export default function StockTab() {
     return instaAvailabilityData.filter(r => r.city.toLowerCase().includes(q) || r.product.toLowerCase().includes(q) || r.shift.toLowerCase().includes(q))
   }, [instaAvailabilityData, searchQuery])
 
+  // Live Agent Processed Records & Distinct Filters
+  const liveAgentAllRecords = useMemo(() => liveAgentSnapshot?.records || [], [liveAgentSnapshot])
+
+  const liveDistinctBrands = useMemo(() => {
+    const s = new Set(liveAgentAllRecords.map(r => r.brand).filter(Boolean))
+    return ['All', ...Array.from(s).sort()]
+  }, [liveAgentAllRecords])
+
+  const liveDistinctCategories = useMemo(() => {
+    const s = new Set(liveAgentAllRecords.map(r => r.oilType).filter(Boolean))
+    return ['All', ...Array.from(s).sort()]
+  }, [liveAgentAllRecords])
+
+  const liveDistinctCities = useMemo(() => {
+    const s = new Set(liveAgentAllRecords.map(r => r.city).filter(Boolean))
+    return ['All', ...Array.from(s).sort()]
+  }, [liveAgentAllRecords])
+
+  const filteredLiveAgentRows = useMemo(() => {
+    return liveAgentAllRecords.filter(r => {
+      if (liveCityFilter !== 'All' && r.city !== liveCityFilter) return false
+      if (liveCategoryFilter !== 'All' && r.oilType !== liveCategoryFilter) return false
+      if (liveBrandFilter !== 'All' && r.brand !== liveBrandFilter) return false
+      if (liveStockFilter === 'instock' && !r.inStock) return false
+      if (liveStockFilter === 'oos' && r.inStock) return false
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase()
+        return r.productName.toLowerCase().includes(q) || r.brand.toLowerCase().includes(q) || r.city.toLowerCase().includes(q) || r.area.toLowerCase().includes(q)
+      }
+      return true
+    })
+  }, [liveAgentAllRecords, liveCityFilter, liveCategoryFilter, liveBrandFilter, liveStockFilter, searchQuery])
+
+  // Live Agent KPI Metrics
+  const liveAgentKPIs = useMemo(() => {
+    const total = filteredLiveAgentRows.length
+    const priced = filteredLiveAgentRows.filter(r => r.sellingPrice > 0 && r.pricePerLiter > 0)
+    const avgPricePerL = priced.length ? Math.round(priced.reduce((s, r) => s + r.pricePerLiter, 0) / priced.length) : 0
+    const oosCount = filteredLiveAgentRows.filter(r => !r.inStock || (r.stockStatus || '').toLowerCase().includes('out')).length
+    const oosRate = total > 0 ? Math.round((oosCount / total) * 1000) / 10 : 0
+    const inStockCount = total - oosCount
+    const brandsCount = new Set(filteredLiveAgentRows.map(r => r.brand)).size
+    return {
+      total,
+      avgPricePerL,
+      oosCount,
+      oosRate,
+      inStockCount,
+      brandsCount,
+      lastUpdated: liveAgentSnapshot?.lastUpdated || null
+    }
+  }, [filteredLiveAgentRows, liveAgentSnapshot])
+
+  // Live Agent Columns
+  const liveAgentColumns = [
+    {
+      key: 'city',
+      label: 'City & Hub Area',
+      accessor: r => r.city,
+      render: r => (
+        <div>
+          <div style={{ fontWeight: 700, color: '#f1f5f9' }}>{formatCity(r.city)}</div>
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.area}</div>
+        </div>
+      )
+    },
+    {
+      key: 'oilType',
+      label: 'Category',
+      accessor: r => r.oilType,
+      render: r => (
+        <span style={{
+          padding: '2px 8px',
+          borderRadius: 6,
+          fontSize: 11,
+          fontWeight: 600,
+          background: 'rgba(56, 189, 248, 0.12)',
+          color: '#38bdf8',
+          border: '1px solid rgba(56, 189, 248, 0.25)'
+        }}>
+          {r.oilType}
+        </span>
+      )
+    },
+    {
+      key: 'brand',
+      label: 'Brand',
+      accessor: r => r.brand,
+      render: r => <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{r.brand}</span>
+    },
+    {
+      key: 'productName',
+      label: 'Product Title',
+      accessor: r => r.productName,
+      render: r => (
+        <div style={{ maxWidth: 320, lineHeight: 1.3 }}>
+          <span style={{ color: '#f8fafc', fontSize: 12, fontWeight: 500 }}>{r.productName}</span>
+          {r.rating && (
+            <div style={{ fontSize: 10, color: '#facc15', marginTop: 3 }}>
+              ★ {r.rating} {r.ratingCount ? `(${r.ratingCount})` : ''}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'packSize',
+      label: 'Pack Size',
+      align: 'center',
+      accessor: r => r.packSize,
+      render: r => <span style={{ color: '#cbd5e1', fontWeight: 600, fontSize: 11 }}>{r.packSize}</span>
+    },
+    {
+      key: 'mrp',
+      label: 'MRP (₹)',
+      align: 'right',
+      accessor: r => r.mrp,
+      render: r => <span style={{ color: '#94a3b8', textDecoration: r.sellingPrice && r.sellingPrice < r.mrp ? 'line-through' : 'none' }}>{r.mrp ? `₹${r.mrp}` : '—'}</span>
+    },
+    {
+      key: 'sellingPrice',
+      label: 'Selling Price (₹)',
+      align: 'right',
+      accessor: r => r.sellingPrice,
+      render: r => <span style={{ fontWeight: 700, color: '#22c55e', fontSize: 13 }}>{r.sellingPrice ? `₹${r.sellingPrice}` : '—'}</span>
+    },
+    {
+      key: 'pricePerLiter',
+      label: 'Price / L (₹)',
+      align: 'right',
+      accessor: r => r.pricePerLiter,
+      render: r => r.pricePerLiter ? (
+        <span style={{ fontWeight: 700, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 6px', borderRadius: 4 }}>
+          ₹{r.pricePerLiter}
+        </span>
+      ) : <span style={{ color: '#64748b' }}>—</span>
+    },
+    {
+      key: 'discount',
+      label: 'Discount',
+      align: 'center',
+      accessor: r => r.discount,
+      render: r => (r.discount && r.discount !== '0%') ? (
+        <span style={{ fontWeight: 700, color: '#c084fc', background: 'rgba(192, 132, 252, 0.15)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>
+          {r.discount}
+        </span>
+      ) : <span style={{ color: '#64748b' }}>—</span>
+    },
+    {
+      key: 'stockStatus',
+      label: 'Availability',
+      align: 'center',
+      accessor: r => r.stockStatus,
+      render: r => <AvailabilityPill status={r.stockStatus} />
+    }
+  ]
+
+  const exportLiveAgentCSV = () => {
+    const rows = ['Instamart Live Agent Market Intelligence Scan']
+    rows.push(`Last Updated: ${liveAgentSnapshot?.lastUpdated || new Date().toISOString()}`)
+    rows.push('')
+    rows.push('City,Area,OilCategory,Brand,Product,PackSize,MRP,SellingPrice,PricePerLiter,Discount,StockStatus,Rating,RatingCount')
+    filteredLiveAgentRows.forEach(r => {
+      rows.push([
+        csvEscape(r.city),
+        csvEscape(r.area),
+        csvEscape(r.oilType),
+        csvEscape(r.brand),
+        csvEscape(r.productName),
+        csvEscape(r.packSize),
+        r.mrp || '',
+        r.sellingPrice || '',
+        r.pricePerLiter || '',
+        csvEscape(r.discount),
+        csvEscape(r.stockStatus),
+        r.rating || '',
+        r.ratingCount || ''
+      ].join(','))
+    })
+    return rows
+  }
+
   return (
     <>
       {/* HEADER SECTION */}
@@ -1132,6 +1326,7 @@ export default function StockTab() {
         {/* Navigation Tabs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {[
+            { id: 'live_agent', label: `🤖 Instamart Live Agent (${liveAgentAllRecords.length})` },
             { id: 'competitors', label: `📊 Competitor Price Tracking (${filteredCompetitorRows.length})` },
             { id: 'insta_avail', label: `📦 Instamart 3-Day Availability (${filteredInstaRows.length})` },
             { id: 'alerts', label: `⚡ Price & Stock Alerts (${alertsList.length})` },
@@ -1157,60 +1352,158 @@ export default function StockTab() {
           ))}
         </div>
 
-        {/* Global Filters */}
+        {/* Global / Sub-tab Contextual Filters */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {/* City Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>CITY:</span>
-            <select
-              value={selectedCity}
-              onChange={e => setSelectedCity(e.target.value)}
-              style={{
-                background: '#0f172a',
-                color: '#f1f5f9',
-                border: '1px solid #334155',
-                borderRadius: 6,
-                padding: '4px 8px',
-                fontSize: 11,
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              {allCities.map(c => (
-                <option key={c} value={c}>{formatCity(c)}</option>
-              ))}
-            </select>
-          </div>
+          {activeSubTab === 'live_agent' ? (
+            <>
+              {/* Live Agent City Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>CITY:</span>
+                <select
+                  value={liveCityFilter}
+                  onChange={e => setLiveCityFilter(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f1f5f9',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {liveDistinctCities.map(c => (
+                    <option key={c} value={c}>{c === 'All' ? 'All Metros' : formatCity(c)}</option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Product Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>PRODUCT:</span>
-            <select
-              value={selectedProduct}
-              onChange={e => setSelectedProduct(e.target.value)}
-              style={{
-                background: '#0f172a',
-                color: '#f1f5f9',
-                border: '1px solid #334155',
-                borderRadius: 6,
-                padding: '4px 8px',
-                fontSize: 11,
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              <option value="All">All Products</option>
-              {activeSubTab === 'competitors'
-                ? allCompProducts.filter(p => p !== 'All').map(p => <option key={p} value={p}>{p}</option>)
-                : allInstaProducts.filter(p => p !== 'All').map(p => <option key={p} value={p}>{p}</option>)
-              }
-            </select>
-          </div>
+              {/* Live Agent Category Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>OIL TYPE:</span>
+                <select
+                  value={liveCategoryFilter}
+                  onChange={e => setLiveCategoryFilter(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f1f5f9',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {liveDistinctCategories.map(cat => (
+                    <option key={cat} value={cat}>{cat === 'All' ? 'All Oil Types' : cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Live Agent Brand Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>BRAND:</span>
+                <select
+                  value={liveBrandFilter}
+                  onChange={e => setLiveBrandFilter(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f1f5f9',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {liveDistinctBrands.map(b => (
+                    <option key={b} value={b}>{b === 'All' ? 'All Brands' : b}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Live Agent Stock Status Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>STOCK:</span>
+                <select
+                  value={liveStockFilter}
+                  onChange={e => setLiveStockFilter(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f1f5f9',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="All">All Status</option>
+                  <option value="instock">✓ In Stock Only</option>
+                  <option value="oos">⛔ Out of Stock Only</option>
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* City Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>CITY:</span>
+                <select
+                  value={selectedCity}
+                  onChange={e => setSelectedCity(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f1f5f9',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {allCities.map(c => (
+                    <option key={c} value={c}>{formatCity(c)}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Product Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>PRODUCT:</span>
+                <select
+                  value={selectedProduct}
+                  onChange={e => setSelectedProduct(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f1f5f9',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="All">All Products</option>
+                  {activeSubTab === 'competitors'
+                    ? allCompProducts.filter(p => p !== 'All').map(p => <option key={p} value={p}>{p}</option>)
+                    : allInstaProducts.filter(p => p !== 'All').map(p => <option key={p} value={p}>{p}</option>)
+                  }
+                </select>
+              </div>
+            </>
+          )}
 
           {/* Search Box */}
           <input
             type="text"
-            placeholder="Search city, SKU..."
+            placeholder="Search SKU / Brand..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{
@@ -1225,6 +1518,9 @@ export default function StockTab() {
           />
 
           {/* Export CSV Button */}
+          {activeSubTab === 'live_agent' && (
+            <CSVButton makeRows={exportLiveAgentCSV} filename={`instamart_live_agent_scan_${new Date().toISOString().split('T')[0]}.csv`} />
+          )}
           {activeSubTab === 'competitors' && (
             <CSVButton makeRows={exportCompetitorsCSV} filename={`competitor_price_tracking_${dayD}.csv`} />
           )}
@@ -1243,6 +1539,79 @@ export default function StockTab() {
         marginBottom: 24,
         padding: activeSubTab === 'trends' ? 20 : 0
       }}>
+        {/* SUB-TAB 0: INSTAMART LIVE AGENT MARKET INTELLIGENCE */}
+        {activeSubTab === 'live_agent' && (
+          <div>
+            {/* Live Agent Top Meta & Mini KPI Banner */}
+            <div style={{
+              padding: '14px 18px',
+              background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%)',
+              borderBottom: '1px solid #334155',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 14
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>🤖</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#f8fafc' }}>
+                    Automated Swiggy Instamart Monitor Agent Feed
+                  </span>
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    color: '#4ade80',
+                    border: '1px solid rgba(34, 197, 94, 0.3)'
+                  }}>
+                    ● LIVE AGENT ACTIVE
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
+                  Last Auto-Scan: <strong>{liveAgentKPIs.lastUpdated ? new Date(liveAgentKPIs.lastUpdated).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'Today'}</strong> • Hubs: <strong>Bangalore, Chennai, Hyderabad, Mumbai, Delhi</strong> • <code>npm run monitor:instamart</code>
+                </div>
+              </div>
+
+              {/* Quick Stat Badges */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ background: '#0f172a', padding: '6px 12px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Total SKUs</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8' }}>{liveAgentKPIs.total}</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: '6px 12px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Avg Price / L</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e' }}>₹{liveAgentKPIs.avgPricePerL}</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: '6px 12px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>In Stock</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80' }}>{liveAgentKPIs.inStockCount}</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: '6px 12px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Out of Stock</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#f87171' }}>{liveAgentKPIs.oosCount} ({liveAgentKPIs.oosRate}%)</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: '6px 12px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Brands</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#c084fc' }}>{liveAgentKPIs.brandsCount}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Table */}
+            <DataTable
+              columns={liveAgentColumns}
+              rows={filteredLiveAgentRows}
+              pageSize={20}
+              filename={`instamart_live_agent_${new Date().toISOString().split('T')[0]}.csv`}
+              emptyMessage="No Instamart SKUs match the selected filters."
+            />
+          </div>
+        )}
+
         {/* SUB-TAB 1: COMPETITOR PRICE TRACKING */}
         {activeSubTab === 'competitors' && (
           <div>
