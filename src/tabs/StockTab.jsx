@@ -191,7 +191,7 @@ function AvailabilityPill({ status }) {
 }
 
 export default function StockTab() {
-  const [activeSubTab, setActiveSubTab] = useState('competitors') // 'competitors' | 'insta_avail' | 'parity_matrix' | 'alerts' | 'trends'
+  const [activeSubTab, setActiveSubTab] = useState('gems_gold_25') // 'gems_gold_25' | 'live_agent' | 'competitors' | 'insta_avail' | 'alerts' | 'trends'
   const [selectedCity, setSelectedCity] = useState('All')
   const [selectedProduct, setSelectedProduct] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
@@ -203,20 +203,30 @@ export default function StockTab() {
   const [competitorData, setCompetitorData] = useState([])
   const [instaData, setInstaData] = useState([])
   const [liveAgentSnapshot, setLiveAgentSnapshot] = useState(null)
+  const [gemsGoldLive, setGemsGoldLive] = useState(null)
+  const [gemsGoldHistory, setGemsGoldHistory] = useState([])
+  const [gemsSelectedDate, setGemsSelectedDate] = useState('')
+  const [gemsCityFilter, setGemsCityFilter] = useState('All')
+  const [gemsSkuFilter, setGemsSkuFilter] = useState('All')
+  const [gemsStockFilter, setGemsStockFilter] = useState('All')
+
   const [liveCityFilter, setLiveCityFilter] = useState('All')
   const [liveCategoryFilter, setLiveCategoryFilter] = useState('All')
   const [liveBrandFilter, setLiveBrandFilter] = useState('All')
   const [liveStockFilter, setLiveStockFilter] = useState('All')
 
-  // Fetch all required data sheets and live agent snapshot
+  // Fetch all required data sheets, live agent snapshot, and GEM'S GOLD 25-city feeds
   const loadData = useCallback(async () => {
     setIsRefreshing(true)
     setError(null)
     try {
-      const [resComp, resInsta, resLiveSnap] = await Promise.all([
+      const baseUrl = import.meta.env.BASE_URL || ''
+      const [resComp, resInsta, resLiveSnap, resGemsLive, resGemsHist] = await Promise.all([
         fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_COMPETITORS}`),
         fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_INSTA}`),
-        fetch(`${import.meta.env.BASE_URL || ''}data/instamart_live_snapshot.json`).catch(() => null)
+        fetch(`${baseUrl}data/instamart_live_snapshot.json`).catch(() => null),
+        fetch(`${baseUrl}data/instamart_gems_gold_live.json`).catch(() => null),
+        fetch(`${baseUrl}data/instamart_daily_history.json`).catch(() => null)
       ])
 
       if (!resComp.ok || !resInsta.ok) {
@@ -237,6 +247,19 @@ export default function StockTab() {
         setLiveAgentSnapshot(snapJson)
       }
 
+      if (resGemsLive && resGemsLive.ok) {
+        const gemsJson = await resGemsLive.json()
+        setGemsGoldLive(gemsJson)
+        if (gemsJson.date && !gemsSelectedDate) {
+          setGemsSelectedDate(gemsJson.date)
+        }
+      }
+
+      if (resGemsHist && resGemsHist.ok) {
+        const histJson = await resGemsHist.json()
+        setGemsGoldHistory(histJson.history || [])
+      }
+
       setLoading(false)
       setIsRefreshing(false)
     } catch (e) {
@@ -244,7 +267,7 @@ export default function StockTab() {
       setLoading(false)
       setIsRefreshing(false)
     }
-  }, [])
+  }, [gemsSelectedDate])
 
   useEffect(() => {
     loadData()
@@ -1147,6 +1170,205 @@ export default function StockTab() {
     return rows
   }
 
+  // =========================================================================
+  // GEM'S GOLD 25-CITY MATRIX & ALERTS PROCESSING
+  // =========================================================================
+  const gemsAvailableDates = useMemo(() => {
+    const dates = new Set()
+    if (gemsGoldLive?.date) dates.add(gemsGoldLive.date)
+    gemsGoldHistory.forEach(h => { if (h.date) dates.add(h.date) })
+    return Array.from(dates).sort().reverse()
+  }, [gemsGoldLive, gemsGoldHistory])
+
+  const activeGemsMatrix = useMemo(() => {
+    if (gemsSelectedDate && gemsSelectedDate !== gemsGoldLive?.date) {
+      const histItem = gemsGoldHistory.find(h => h.date === gemsSelectedDate)
+      if (histItem?.citySkuMatrix) return histItem.citySkuMatrix
+    }
+    return gemsGoldLive?.citySkuMatrix || {}
+  }, [gemsSelectedDate, gemsGoldLive, gemsGoldHistory])
+
+  const gemsTargetCities = useMemo(() => gemsGoldLive?.targetCities || [], [gemsGoldLive])
+  const gemsTargetSkus = useMemo(() => gemsGoldLive?.targetSkus || [], [gemsGoldLive])
+  const gemsAlerts = useMemo(() => gemsGoldLive?.alerts || [], [gemsGoldLive])
+
+  // Flattened array of 25-city SKU rows
+  const gemsAllRecords = useMemo(() => {
+    return Object.values(activeGemsMatrix)
+  }, [activeGemsMatrix])
+
+  const filteredGemsRows = useMemo(() => {
+    return gemsAllRecords.filter(r => {
+      if (gemsCityFilter !== 'All' && r.cityId !== gemsCityFilter) return false
+      if (gemsSkuFilter !== 'All' && r.skuId !== gemsSkuFilter) return false
+      if (gemsStockFilter === 'instock' && !r.inStock) return false
+      if (gemsStockFilter === 'oos' && r.inStock) return false
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase()
+        return r.cityName.toLowerCase().includes(q) || r.skuName.toLowerCase().includes(q) || r.area.toLowerCase().includes(q)
+      }
+      return true
+    })
+  }, [gemsAllRecords, gemsCityFilter, gemsSkuFilter, gemsStockFilter, searchQuery])
+
+  // City Summaries across the 5 SKUs
+  const gemsCitySummaries = useMemo(() => {
+    if (!gemsTargetCities.length) return []
+    return gemsTargetCities.map(city => {
+      const skus = (gemsTargetSkus.length ? gemsTargetSkus : [
+        { id: 'pouch_1l', shortName: 'Pouch 1L' },
+        { id: 'bottle_1l', shortName: 'Bottle 1L' },
+        { id: 'bottle_2l', shortName: 'Bottle 2L' },
+        { id: 'bottle_500ml', shortName: 'Bottle 500ml' },
+        { id: 'spray_200ml', shortName: 'Spray 200ml' }
+      ]).map(s => {
+        const item = activeGemsMatrix[`${city.id}_${s.id}`]
+        return {
+          skuId: s.id,
+          shortName: s.shortName,
+          inStock: item?.inStock !== false,
+          sellingPrice: item?.sellingPrice || null,
+          mrp: item?.mrp || null,
+          discount: item?.discount || '—',
+          stockStatus: item?.stockStatus || 'In Stock'
+        }
+      })
+
+      const inStockCount = skus.filter(s => s.inStock).length
+      return {
+        cityId: city.id,
+        cityName: city.name,
+        area: city.area,
+        inStockCount,
+        totalSkus: skus.length,
+        skus
+      }
+    })
+  }, [gemsTargetCities, gemsTargetSkus, activeGemsMatrix])
+
+  // GEM'S GOLD KPIs
+  const gemsKPIs = useMemo(() => {
+    const total = gemsAllRecords.length
+    const inStock = gemsAllRecords.filter(r => r.inStock).length
+    const oos = total - inStock
+    const oosPct = total > 0 ? Math.round((oos / total) * 1000) / 10 : 0
+    const bottle1LItems = gemsAllRecords.filter(r => r.skuId === 'bottle_1l' && r.sellingPrice)
+    const avgBottle1L = bottle1LItems.length ? Math.round(bottle1LItems.reduce((s, r) => s + r.sellingPrice, 0) / bottle1LItems.length) : 0
+    const pouch1LItems = gemsAllRecords.filter(r => r.skuId === 'pouch_1l' && r.sellingPrice)
+    const avgPouch1L = pouch1LItems.length ? Math.round(pouch1LItems.reduce((s, r) => s + r.sellingPrice, 0) / pouch1LItems.length) : 0
+
+    return {
+      total,
+      inStock,
+      oos,
+      oosPct,
+      avgBottle1L,
+      avgPouch1L,
+      totalCities: gemsTargetCities.length || 25,
+      alertsCount: gemsAlerts.length,
+      lastUpdated: gemsGoldLive?.lastUpdated || null
+    }
+  }, [gemsAllRecords, gemsTargetCities, gemsAlerts, gemsGoldLive])
+
+  const gemsColumns = [
+    {
+      key: 'city',
+      label: 'City & Hub Area',
+      accessor: r => r.cityName,
+      render: r => (
+        <div>
+          <span style={{ fontWeight: 700, color: '#f1f5f9' }}>{r.cityName}</span>
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.area}</div>
+        </div>
+      )
+    },
+    {
+      key: 'skuName',
+      label: 'Target SKU',
+      accessor: r => r.skuName,
+      render: r => (
+        <div>
+          <span style={{ fontWeight: 600, color: '#38bdf8' }}>{r.skuShortName}</span>
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.skuName}</div>
+        </div>
+      )
+    },
+    {
+      key: 'volumeMl',
+      label: 'Volume',
+      align: 'center',
+      accessor: r => r.volumeMl,
+      render: r => <span style={{ color: '#cbd5e1', fontWeight: 600, fontSize: 11 }}>{r.volumeMl >= 1000 ? `${r.volumeMl / 1000} L` : `${r.volumeMl} ml`}</span>
+    },
+    {
+      key: 'mrp',
+      label: 'MRP (₹)',
+      align: 'right',
+      accessor: r => r.mrp,
+      render: r => <span style={{ color: '#94a3b8', textDecoration: r.sellingPrice && r.sellingPrice < r.mrp ? 'line-through' : 'none' }}>{r.mrp ? `₹${r.mrp}` : '—'}</span>
+    },
+    {
+      key: 'sellingPrice',
+      label: 'Instamart Price',
+      align: 'right',
+      accessor: r => r.sellingPrice,
+      render: r => <span style={{ fontWeight: 700, color: '#22c55e', fontSize: 13 }}>{r.sellingPrice ? `₹${r.sellingPrice}` : '—'}</span>
+    },
+    {
+      key: 'pricePerLiter',
+      label: 'Price / L',
+      align: 'right',
+      accessor: r => r.pricePerLiter,
+      render: r => r.pricePerLiter ? (
+        <span style={{ fontWeight: 700, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 6px', borderRadius: 4 }}>
+          ₹{r.pricePerLiter}
+        </span>
+      ) : <span style={{ color: '#64748b' }}>—</span>
+    },
+    {
+      key: 'discount',
+      label: 'Discount',
+      align: 'center',
+      accessor: r => r.discount,
+      render: r => (r.discount && r.discount !== '0%') ? (
+        <span style={{ fontWeight: 700, color: '#c084fc', background: 'rgba(192, 132, 252, 0.15)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>
+          {r.discount}
+        </span>
+      ) : <span style={{ color: '#64748b' }}>—</span>
+    },
+    {
+      key: 'stockStatus',
+      label: 'Stock Status',
+      align: 'center',
+      accessor: r => r.stockStatus,
+      render: r => <AvailabilityPill status={r.stockStatus} />
+    }
+  ]
+
+  const exportGemsGoldCSV = () => {
+    const rows = ["GEM'S GOLD 25-City Instamart Price & Availability Matrix"]
+    rows.push(`Date: ${gemsSelectedDate || gemsGoldLive?.date || new Date().toISOString().split('T')[0]}`)
+    rows.push('')
+    rows.push('Date,City,Area,SKU_ID,SKU_Name,Pack_Type,Volume_ML,MRP,Selling_Price,Price_Per_Liter,Discount,Stock_Status')
+    filteredGemsRows.forEach(r => {
+      rows.push([
+        r.date,
+        r.cityName,
+        r.area,
+        r.skuId,
+        `"${r.skuName}"`,
+        r.skuShortName,
+        r.volumeMl,
+        r.mrp || '',
+        r.sellingPrice || '',
+        r.pricePerLiter || '',
+        `"${r.discount}"`,
+        `"${r.stockStatus}"`
+      ].join(','))
+    })
+    return rows
+  }
+
   return (
     <>
       {/* HEADER SECTION */}
@@ -1326,10 +1548,11 @@ export default function StockTab() {
         {/* Navigation Tabs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {[
-            { id: 'live_agent', label: `🤖 Instamart Live Agent (${liveAgentAllRecords.length})` },
+            { id: 'gems_gold_25', label: `💎 GEM'S GOLD 25-City Matrix (${gemsAllRecords.length})` },
+            { id: 'live_agent', label: `🤖 Instamart Market Feed (${liveAgentAllRecords.length})` },
             { id: 'competitors', label: `📊 Competitor Price Tracking (${filteredCompetitorRows.length})` },
             { id: 'insta_avail', label: `📦 Instamart 3-Day Availability (${filteredInstaRows.length})` },
-            { id: 'alerts', label: `⚡ Price & Stock Alerts (${alertsList.length})` },
+            { id: 'alerts', label: `⚡ Price & Stock Alerts (${alertsList.length + gemsAlerts.length})` },
             { id: 'trends', label: '📈 Visual Trends & Charts' }
           ].map(t => (
             <button
@@ -1354,7 +1577,105 @@ export default function StockTab() {
 
         {/* Global / Sub-tab Contextual Filters */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {activeSubTab === 'live_agent' ? (
+          {activeSubTab === 'gems_gold_25' ? (
+            <>
+              {/* Day Selector */}
+              {gemsAvailableDates.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>SCAN DATE:</span>
+                  <select
+                    value={gemsSelectedDate || gemsGoldLive?.date || ''}
+                    onChange={e => setGemsSelectedDate(e.target.value)}
+                    style={{
+                      background: '#0f172a',
+                      color: '#38bdf8',
+                      border: '1px solid #38bdf8',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {gemsAvailableDates.map(d => (
+                      <option key={d} value={d}>{formatPrettyDate(d)}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* 25-City Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>CITY (25):</span>
+                <select
+                  value={gemsCityFilter}
+                  onChange={e => setGemsCityFilter(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f1f5f9',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="All">All 25 Cities</option>
+                  {gemsTargetCities.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 5-SKU Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>SKU:</span>
+                <select
+                  value={gemsSkuFilter}
+                  onChange={e => setGemsSkuFilter(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f1f5f9',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="All">All 5 SKUs</option>
+                  {gemsTargetSkus.map(s => (
+                    <option key={s.id} value={s.id}>{s.shortName}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Stock Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>STOCK:</span>
+                <select
+                  value={gemsStockFilter}
+                  onChange={e => setGemsStockFilter(e.target.value)}
+                  style={{
+                    background: '#0f172a',
+                    color: '#f1f5f9',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="All">All Status</option>
+                  <option value="instock">✓ In Stock Only</option>
+                  <option value="oos">⛔ Out of Stock Only</option>
+                </select>
+              </div>
+            </>
+          ) : activeSubTab === 'live_agent' ? (
             <>
               {/* Live Agent City Filter */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1503,7 +1824,7 @@ export default function StockTab() {
           {/* Search Box */}
           <input
             type="text"
-            placeholder="Search SKU / Brand..."
+            placeholder="Search SKU / City..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{
@@ -1518,6 +1839,9 @@ export default function StockTab() {
           />
 
           {/* Export CSV Button */}
+          {activeSubTab === 'gems_gold_25' && (
+            <CSVButton makeRows={exportGemsGoldCSV} filename={`gems_gold_25cities_${gemsSelectedDate || new Date().toISOString().split('T')[0]}.csv`} />
+          )}
           {activeSubTab === 'live_agent' && (
             <CSVButton makeRows={exportLiveAgentCSV} filename={`instamart_live_agent_scan_${new Date().toISOString().split('T')[0]}.csv`} />
           )}
@@ -1539,7 +1863,185 @@ export default function StockTab() {
         marginBottom: 24,
         padding: activeSubTab === 'trends' ? 20 : 0
       }}>
-        {/* SUB-TAB 0: INSTAMART LIVE AGENT MARKET INTELLIGENCE */}
+        {/* SUB-TAB 0: GEM'S GOLD 25-CITY LIVE MATRIX & CHANGE ALERTS */}
+        {activeSubTab === 'gems_gold_25' && (
+          <div>
+            {/* Top Banner with Alert Notification Feed */}
+            <div style={{
+              padding: '16px 20px',
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%)',
+              borderBottom: '1px solid #334155',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 16
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 22 }}>💎</span>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: 16, color: '#f8fafc', fontWeight: 800 }}>
+                      GEM'S GOLD • 25-City Instamart Price &amp; Stock Intelligence
+                    </h2>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3 }}>
+                      Tracking <strong>5 Core Groundnut Oil SKUs</strong> across <strong>25 Metro &amp; Tier-2 Dark Stores</strong> • Day: <strong>{formatPrettyDate(gemsSelectedDate || gemsGoldLive?.date)}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* KPI Stat Chips */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ background: '#0f172a', padding: '8px 14px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Active Cities</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#38bdf8' }}>{gemsKPIs.totalCities} Cities</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: '8px 14px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>In Stock Pairs</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#4ade80' }}>{gemsKPIs.inStock} / {gemsKPIs.total}</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: '8px 14px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Out of Stock</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#f87171' }}>{gemsKPIs.oos} ({gemsKPIs.oosPct}%)</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: '8px 14px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Avg Bottle 1L</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#facc15' }}>₹{gemsKPIs.avgBottle1L}</div>
+                </div>
+                <div style={{ background: '#0f172a', padding: '8px 14px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Avg Pouch 1L</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#c084fc' }}>₹{gemsKPIs.avgPouch1L}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* LIVE ALERTS NOTIFICATION BANNER */}
+            {gemsAlerts.length > 0 && (
+              <div style={{
+                margin: 16,
+                padding: '12px 16px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: 8
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 16 }}>🚨</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#f87171' }}>
+                    Real-time Instamart Change Alerts Detected ({gemsAlerts.length})
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                  {gemsAlerts.map((alert, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        background: '#0f172a',
+                        padding: '8px 12px',
+                        borderRadius: 6,
+                        border: '1px solid #334155',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 3
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#38bdf8' }}>{alert.city}</span>
+                        <span style={{ fontSize: 10, color: '#94a3b8' }}>{alert.type}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#f1f5f9', fontWeight: 600 }}>{alert.message}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 25-CITY AVAILABILITY MATRIX OVERVIEW */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                <h3 style={{ margin: 0, fontSize: 14, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>📍</span> 25-City Quick Stock Health Grid
+                </h3>
+                <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                  Pouch 1L • Bottle 1L • Bottle 2L • 500ml • Spray 200ml
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: 10,
+                maxHeight: 280,
+                overflowY: 'auto',
+                paddingRight: 4
+              }}>
+                {gemsCitySummaries.map(c => {
+                  const allInStock = c.inStockCount === c.totalSkus
+                  return (
+                    <div
+                      key={c.cityId}
+                      onClick={() => setGemsCityFilter(gemsCityFilter === c.cityId ? 'All' : c.cityId)}
+                      style={{
+                        background: gemsCityFilter === c.cityId ? 'rgba(59, 130, 246, 0.15)' : '#0f172a',
+                        border: '1px solid ' + (gemsCityFilter === c.cityId ? '#3b82f6' : '#334155'),
+                        borderRadius: 8,
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: '#f8fafc' }}>{c.cityName}</span>
+                        <span style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          background: allInStock ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
+                          color: allInStock ? '#4ade80' : '#facc15'
+                        }}>
+                          {c.inStockCount}/{c.totalSkus} In Stock
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{c.area}</div>
+
+                      {/* Mini SKU dots */}
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                        {c.skus.map(s => (
+                          <span
+                            key={s.skuId}
+                            title={`${s.shortName}: ${s.stockStatus} (₹${s.sellingPrice || '—'})`}
+                            style={{
+                              fontSize: 9,
+                              padding: '2px 4px',
+                              borderRadius: 4,
+                              background: s.inStock ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.15)',
+                              color: s.inStock ? '#4ade80' : '#f87171',
+                              border: '1px solid ' + (s.inStock ? 'rgba(34, 197, 94, 0.25)' : 'rgba(239, 68, 68, 0.3)')
+                            }}
+                          >
+                            {s.shortName.replace('Bottle ', 'B-').replace('Pouch ', 'P-').replace('Spray ', 'S-')}: ₹{s.sellingPrice || '—'}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* DETAILED 25-CITY TABLE */}
+            <DataTable
+              columns={gemsColumns}
+              rows={filteredGemsRows}
+              pageSize={25}
+              filename={`gems_gold_25cities_${gemsSelectedDate || new Date().toISOString().split('T')[0]}.csv`}
+              emptyMessage="No GEM'S GOLD records matching the selected filters."
+            />
+          </div>
+        )}
+
+        {/* SUB-TAB 1: INSTAMART MARKET FEED */}
         {activeSubTab === 'live_agent' && (
           <div>
             {/* Live Agent Top Meta & Mini KPI Banner */}
