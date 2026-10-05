@@ -266,6 +266,44 @@ export default function StockTab() {
   const [liveBrandFilter, setLiveBrandFilter] = useState('All')
   const [liveStockFilter, setLiveStockFilter] = useState('All')
 
+  // Real-time stock override state for instant city-level calibration
+  const [customOverrides, setCustomOverrides] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('gems_gold_stock_overrides') || '{}')
+    } catch {
+      return {}
+    }
+  })
+
+  const toggleSkuStock = (cityId, skuId) => {
+    const key = `${cityId}_${skuId}`
+    const current = activeGemsMatrix[key] || {}
+    const newInStock = current.inStock !== false ? false : true
+    const updated = {
+      ...customOverrides,
+      [key]: {
+        ...current,
+        cityId,
+        skuId,
+        inStock: newInStock,
+        stockStatus: newInStock ? 'In Stock' : 'Out of Stock',
+        sellingPrice: newInStock ? (current.sellingPrice || current.mrp || 195) : null,
+        lastVerifiedAt: new Date().toISOString()
+      }
+    }
+    setCustomOverrides(updated)
+    try {
+      localStorage.setItem('gems_gold_stock_overrides', JSON.stringify(updated))
+    } catch {}
+  }
+
+  const resetAllOverrides = () => {
+    setCustomOverrides({})
+    try {
+      localStorage.removeItem('gems_gold_stock_overrides')
+    } catch {}
+  }
+
   // Fetch all required data sheets, live agent snapshot, and GEM'S GOLD 25-city feeds
   const loadData = useCallback(async () => {
     setIsRefreshing(true)
@@ -1312,12 +1350,13 @@ export default function StockTab() {
   }, [gemsGoldLive, gemsGoldHistory])
 
   const activeGemsMatrix = useMemo(() => {
+    let base = gemsGoldLive?.citySkuMatrix || {}
     if (gemsSelectedDate && gemsSelectedDate !== gemsGoldLive?.date) {
       const histItem = gemsGoldHistory.find(h => h.date === gemsSelectedDate)
-      if (histItem?.citySkuMatrix) return histItem.citySkuMatrix
+      if (histItem?.citySkuMatrix) base = histItem.citySkuMatrix
     }
-    return gemsGoldLive?.citySkuMatrix || {}
-  }, [gemsSelectedDate, gemsGoldLive, gemsGoldHistory])
+    return { ...base, ...customOverrides }
+  }, [gemsSelectedDate, gemsGoldLive, gemsGoldHistory, customOverrides])
 
   const gemsTargetCities = useMemo(() => gemsGoldLive?.targetCities || [], [gemsGoldLive])
   const gemsTargetSkus = useMemo(() => gemsGoldLive?.targetSkus || [], [gemsGoldLive])
@@ -2610,7 +2649,7 @@ export default function StockTab() {
                             </div>
                           </div>
 
-                          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                               <span style={{ fontSize: 16, fontWeight: 800, color: s.inStock ? '#38bdf8' : '#94a3b8' }}>
                                 ₹{s.sellingPrice || '—'}
@@ -2621,16 +2660,34 @@ export default function StockTab() {
                                 </span>
                               )}
                             </div>
-                            <span style={{
-                              fontSize: 10,
-                              fontWeight: 700,
-                              padding: '2px 6px',
-                              borderRadius: 4,
-                              background: s.inStock ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                              color: s.inStock ? '#4ade80' : '#f87171'
-                            }}>
-                              {s.stockStatus}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                background: s.inStock ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                color: s.inStock ? '#4ade80' : '#f87171'
+                              }}>
+                                {s.stockStatus}
+                              </span>
+                              <button
+                                onClick={() => toggleSkuStock(inspectingCity.cityId, s.skuId)}
+                                style={{
+                                  background: s.inStock ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)',
+                                  border: '1px solid ' + (s.inStock ? 'rgba(239, 68, 68, 0.35)' : 'rgba(34, 197, 94, 0.35)'),
+                                  color: s.inStock ? '#f87171' : '#4ade80',
+                                  padding: '2px 8px',
+                                  borderRadius: 4,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                                title="Click to toggle live stock status for this dark store"
+                              >
+                                {s.inStock ? 'Mark OOS' : 'Mark In Stock'}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -2644,11 +2701,33 @@ export default function StockTab() {
                     borderTop: '1px solid #334155',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 10
                   }}>
-                    <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                      Status: Hyper-Local Dark Store Verified
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                        Status: Hyper-Local Dark Store Verified
+                      </span>
+                      {Object.keys(customOverrides).length > 0 && (
+                        <button
+                          onClick={resetAllOverrides}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#f87171',
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                          title="Reset manual overrides to server snapshot"
+                        >
+                          ↺ Reset Overrides ({Object.keys(customOverrides).length})
+                        </button>
+                      )}
+                    </div>
                     <button
                       onClick={() => {
                         setGemsCityFilter(inspectingCity.cityId)
