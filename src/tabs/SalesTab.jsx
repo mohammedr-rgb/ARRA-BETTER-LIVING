@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { num, parseCSV } from '../lib/utils'
-import { ProfileSection, CSVButton } from '../components/ui'
+import { ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell
@@ -14,9 +14,9 @@ function formatINR(val) {
 const NEW_SPREADSHEET_ID = '1auxWTw7MntZdYHNb8hZZqWvG3WVQ60BS5Jz2-8kYcWE'
 
 const SUBTABS = [
-  { id: 'overall', label: 'Overall Sales', icon: '📊' },
-  { id: 'groundnut', label: 'Groundnut - Sales', icon: '🥜' },
-  { id: 'ads_spend', label: 'Ads Spend', icon: '📢' },
+  { id: 'overall', label: 'Overall Sales (GMV)', icon: '📊' },
+  { id: 'groundnut', label: 'Groundnut - Sales (GMV)', icon: '🥜' },
+  { id: 'ads_spend', label: 'Ads Spend vs. GMV', icon: '📢' },
 ]
 
 function extractNumber(val) {
@@ -103,7 +103,6 @@ export default function SalesTab() {
     setError(null)
     try {
       const ts = Date.now()
-      const sheets = ['Overall sales', 'Groundnut - Sales', 'Ads Spend']
       const fetchUrl = (sheet) => `https://docs.google.com/spreadsheets/d/${NEW_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&t=${ts}`
 
       const [resOverall, resGN, resAds] = await Promise.all([
@@ -120,7 +119,7 @@ export default function SalesTab() {
       const textGN = await resGN.text()
       const textAds = await resAds.text()
 
-      // 1. Parse Overall Sales
+      // 1. Parse Overall Sales (GMV Focused)
       const gridOverall = parseFullCSV(textOverall)
       const topCities = []
       const instaSKUs = []
@@ -158,21 +157,36 @@ export default function SalesTab() {
         }
 
         if (readingCities && col0 && col0 !== 'City' && col0 !== 'Item Code') {
+          const sepInstaGross = extractNumber(row[8])
+          const sepAmzGross = extractNumber(row[10])
+          const sepBlinkitGross = extractNumber(row[12])
+          const sepTotalGMV = sepInstaGross + sepAmzGross + sepBlinkitGross
+
+          const junNet = extractNumber(row[1])
+          const julNet = extractNumber(row[2])
+          const augNet = extractNumber(row[3])
+          
+          // Calculate Estimated GMV for historical months proportionally
+          const junGMV = Math.round(junNet / 0.7148)
+          const julGMV = Math.round(julNet / 0.7145)
+          const augGMV = Math.round(augNet / 0.7149)
+
+          const momJul = julGMV > 0 && junGMV > 0 ? Math.round(((julGMV - junGMV) / junGMV) * 1000) / 10 : 0
+          const momAug = augGMV > 0 && julGMV > 0 ? Math.round(((augGMV - julGMV) / julGMV) * 1000) / 10 : 0
+          const momSep = sepTotalGMV > 0 && augGMV > 0 ? Math.round(((sepTotalGMV - augGMV) / augGMV) * 1000) / 10 : 0
+
           topCities.push({
             city: col0,
-            juneNet: extractNumber(row[1]),
-            julyNet: extractNumber(row[2]),
-            augustNet: extractNumber(row[3]),
-            sepNet: extractNumber(row[4]),
-            momJul: extractNumber(row[5]),
-            momAug: extractNumber(row[6]),
-            momSep: extractNumber(row[7]),
-            sepInstaGross: extractNumber(row[8]),
-            sepInstaNet: extractNumber(row[9]),
-            sepAmzGross: extractNumber(row[10]),
-            sepAmzNet: extractNumber(row[11]),
-            sepBlinkitGross: extractNumber(row[12]),
-            sepBlinkitNet: extractNumber(row[13]),
+            juneGMV: junGMV,
+            julyGMV: julGMV,
+            augustGMV: augGMV,
+            sepGMV: sepTotalGMV,
+            momJul,
+            momAug,
+            momSep,
+            sepInstaGross,
+            sepAmzGross,
+            sepBlinkitGross,
             focus: row[14] || 'Scale Up'
           })
         }
@@ -182,13 +196,9 @@ export default function SalesTab() {
             itemCode: col0,
             sku: row[1] || '',
             juneGross: extractNumber(row[2]),
-            juneNet: extractNumber(row[3]),
             julyGross: extractNumber(row[4]),
-            julyNet: extractNumber(row[5]),
             augGross: extractNumber(row[6]),
-            augNet: extractNumber(row[7]),
             sepGross: extractNumber(row[8]),
-            sepNet: extractNumber(row[9]),
             momJul: extractNumber(row[10]),
             momAug: extractNumber(row[11]),
             momSep: extractNumber(row[12]),
@@ -200,13 +210,9 @@ export default function SalesTab() {
             asin: col0,
             sku: row[1] || '',
             juneGross: extractNumber(row[2]),
-            juneNet: extractNumber(row[3]),
             julyGross: extractNumber(row[4]),
-            julyNet: extractNumber(row[5]),
             augGross: extractNumber(row[6]),
-            augNet: extractNumber(row[7]),
             sepGross: extractNumber(row[8]),
-            sepNet: extractNumber(row[9]),
             momJul: extractNumber(row[10]),
             momAug: extractNumber(row[11]),
             momSep: extractNumber(row[12]),
@@ -218,27 +224,22 @@ export default function SalesTab() {
             itemId: col0,
             sku: row[1] || '',
             augGross: extractNumber(row[6]),
-            augNet: extractNumber(row[7]),
             sepGross: extractNumber(row[8]),
-            sepNet: extractNumber(row[9]),
             momSep: extractNumber(row[12]),
           })
         }
       }
 
-      const overallMonthly = [
-        { metric: 'Instamart GMV', channel: 'Instamart', type: 'GMV', june: 2500789, july: 3906823, august: 7102825, sepMtd: 4260089, momJul: 56.2, momAug: 81.8, momSep: -40.0 },
-        { metric: 'Instamart Final Net', channel: 'Instamart', type: 'Net', june: 1788064, july: 2793378, august: 5078520, sepMtd: 3045964, momJul: 56.2, momAug: 81.8, momSep: -40.0 },
-        { metric: 'Amazon Gross Sales', channel: 'Amazon', type: 'GMV', june: 520086, july: 2940544, august: 2490620, sepMtd: 893088, momJul: 465.4, momAug: -15.3, momSep: -64.1 },
-        { metric: 'Amazon Final Net', channel: 'Amazon', type: 'Net', june: 371427, july: 2098742, august: 1776346, sepMtd: 637084, momJul: 465.0, momAug: -15.4, momSep: -64.1 },
-        { metric: 'Blinkit MRP', channel: 'Blinkit', type: 'GMV', june: 0, july: 0, august: 77070, sepMtd: 597336, momJul: 0, momAug: 0, momSep: 675.1 },
-        { metric: 'Blinkit Final Net', channel: 'Blinkit', type: 'Net', june: 0, july: 0, august: 57803, sepMtd: 448002, momJul: 0, momAug: 0, momSep: 675.1 },
-        { metric: 'Overall Final Net', channel: 'All', type: 'Total Net', june: 2159491, july: 4892120, august: 6912669, sepMtd: 4131049, momJul: 126.5, momAug: 41.3, momSep: -40.2 },
+      const overallMonthlyGMV = [
+        { metric: 'Instamart GMV', channel: 'Instamart', type: 'Channel GMV', june: 2500789, july: 3906823, august: 7102825, sepMtd: 4260089, momJul: 56.2, momAug: 81.8, momSep: -40.0 },
+        { metric: 'Amazon Gross Sales', channel: 'Amazon', type: 'Channel GMV', june: 520086, july: 2940544, august: 2490620, sepMtd: 893088, momJul: 465.4, momAug: -15.3, momSep: -64.1 },
+        { metric: 'Blinkit MRP Sales', channel: 'Blinkit', type: 'Channel GMV', june: 0, july: 0, august: 77070, sepMtd: 597336, momJul: 0, momAug: 0, momSep: 675.1 },
+        { metric: 'Total Multi-Channel GMV', channel: 'All', type: 'Total GMV', june: 3020875, july: 6847367, august: 9670515, sepMtd: 5750513, momJul: 126.7, momAug: 41.2, momSep: -40.5 },
       ]
 
-      setOverallData({ monthlyOverview: overallMonthly, topCities, instaSKUs, amazonSKUs, blinkitSKUs })
+      setOverallData({ monthlyOverview: overallMonthlyGMV, topCities, instaSKUs, amazonSKUs, blinkitSKUs })
 
-      // 2. Parse Groundnut Sales
+      // 2. Parse Groundnut Sales (GMV Focused)
       const gridGN = parseFullCSV(textGN)
       const gnTopCities = []
       let readingGNCities = false
@@ -250,35 +251,52 @@ export default function SalesTab() {
           continue
         }
         if (readingGNCities && col0 && col0 !== 'City') {
+          const sepInstaNet = extractNumber(row[8])
+          const sepAmzNet = extractNumber(row[9])
+          const sepBlinkitNet = extractNumber(row[10])
+
+          const sepInstaGMV = Math.round(sepInstaNet / 0.715)
+          const sepAmzGMV = Math.round(sepAmzNet / 0.7135)
+          const sepBlinkitGMV = Math.round(sepBlinkitNet / 0.75)
+          const sepTotalGMV = sepInstaGMV + sepAmzGMV + sepBlinkitGMV
+
+          const junNet = extractNumber(row[1])
+          const julNet = extractNumber(row[2])
+          const augNet = extractNumber(row[3])
+          const junGMV = Math.round(junNet / 0.715)
+          const julGMV = Math.round(julNet / 0.715)
+          const augGMV = Math.round(augNet / 0.715)
+
+          const momJul = julGMV > 0 && junGMV > 0 ? Math.round(((julGMV - junGMV) / junGMV) * 1000) / 10 : 0
+          const momAug = augGMV > 0 && julGMV > 0 ? Math.round(((augGMV - julGMV) / julGMV) * 1000) / 10 : 0
+          const momSep = sepTotalGMV > 0 && augGMV > 0 ? Math.round(((sepTotalGMV - augGMV) / augGMV) * 1000) / 10 : 0
+
           gnTopCities.push({
             city: col0,
-            juneNet: extractNumber(row[1]),
-            julyNet: extractNumber(row[2]),
-            augustNet: extractNumber(row[3]),
-            sepNet: extractNumber(row[4]),
-            momJul: extractNumber(row[5]),
-            momAug: extractNumber(row[6]),
-            momSep: extractNumber(row[7]),
-            sepInstaNet: extractNumber(row[8]),
-            sepAmzNet: extractNumber(row[9]),
-            sepBlinkitNet: extractNumber(row[10]),
+            juneGMV: junGMV,
+            julyGMV: julGMV,
+            augustGMV: augGMV,
+            sepGMV: sepTotalGMV,
+            momJul,
+            momAug,
+            momSep,
+            sepInstaGMV,
+            sepAmzGMV,
+            sepBlinkitGMV,
           })
         }
       }
 
-      const gnMonthly = [
+      const gnMonthlyGMV = [
         { metric: 'Instamart Groundnut GMV', channel: 'Instamart', june: 2500192, july: 3793426, august: 7062981, sepMtd: 4260089, momJul: 51.7, momAug: 86.2, momSep: -39.7 },
-        { metric: 'Instamart Groundnut Net', channel: 'Instamart', june: 1787637, july: 2712300, august: 5050031, sepMtd: 3045964, momJul: 51.7, momAug: 86.2, momSep: -39.7 },
-        { metric: 'Amazon Groundnut Net Sales', channel: 'Amazon', june: 480197, july: 2182960, august: 2019190, sepMtd: 836572, momJul: 354.6, momAug: -7.5, momSep: -58.6 },
-        { metric: 'Amazon Groundnut Final Net', channel: 'Amazon', june: 343017, july: 1558306, august: 1440312, sepMtd: 597067, momJul: 354.3, momAug: -7.6, momSep: -58.5 },
+        { metric: 'Amazon Groundnut Gross Sales', channel: 'Amazon', june: 480197, july: 2182960, august: 2019190, sepMtd: 836572, momJul: 354.6, momAug: -7.5, momSep: -58.6 },
         { metric: 'Blinkit Groundnut MRP', channel: 'Blinkit', june: 0, july: 0, august: 46773, sepMtd: 379187, momJul: 0, momAug: 0, momSep: 710.7 },
-        { metric: 'Blinkit Groundnut Final Net', channel: 'Blinkit', june: 0, july: 0, august: 35080, sepMtd: 284390, momJul: 0, momAug: 0, momSep: 710.7 },
-        { metric: 'Overall Groundnut Final Net', channel: 'All', june: 2130654, july: 4270606, august: 6525423, sepMtd: 3927421, momJul: 100.4, momAug: 52.8, momSep: -39.8 }
+        { metric: 'Total Groundnut GMV', channel: 'All', june: 2980389, july: 5976386, august: 9128944, sepMtd: 5475848, momJul: 100.5, momAug: 52.7, momSep: -40.0 }
       ]
 
-      setGroundnutData({ monthlyOverview: gnMonthly, topCities: gnTopCities })
+      setGroundnutData({ monthlyOverview: gnMonthlyGMV, topCities: gnTopCities })
 
-      // 3. Parse Ads Spend
+      // 3. Parse Ads Spend (GMV Compared)
       const gridAds = parseFullCSV(textAds)
       const adsPlatforms = []
       for (let i = 1; i < gridAds.length; i++) {
@@ -325,55 +343,55 @@ export default function SalesTab() {
     window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
   }, [])
 
-  // Chart Data: Monthly Revenue by Channel
-  const monthlyRevenueChartData = [
-    { month: 'June', Instamart: 1788064, Amazon: 371427, Blinkit: 0, Total: 2159491 },
-    { month: 'July', Instamart: 2793378, Amazon: 2098742, Blinkit: 0, Total: 4892120 },
-    { month: 'August', Instamart: 5078520, Amazon: 1776346, Blinkit: 57803, Total: 6912669 },
-    { month: 'Sep MTD', Instamart: 3045964, Amazon: 637084, Blinkit: 448002, Total: 4131049 }
+  // Monthly GMV Trend Chart Data
+  const monthlyGMVChartData = [
+    { month: 'June', Instamart: 2500789, Amazon: 520086, Blinkit: 0, Total: 3020875 },
+    { month: 'July', Instamart: 3906823, Amazon: 2940544, Blinkit: 0, Total: 6847367 },
+    { month: 'August', Instamart: 7102825, Amazon: 2490620, Blinkit: 77070, Total: 9670515 },
+    { month: 'Sep MTD', Instamart: 4260089, Amazon: 893088, Blinkit: 597336, Total: 5750513 }
   ]
 
-  // Chart Data: Sep Channel Mix
-  const sepChannelMix = [
-    { name: 'Instamart', value: 3045964, color: '#f97316' },
-    { name: 'Amazon', value: 637084, color: '#3b82f6' },
-    { name: 'Blinkit', value: 448002, color: '#eab308' }
+  // Sep MTD GMV Channel Mix
+  const sepGMVChannelMix = [
+    { name: 'Instamart', value: 4260089, color: '#f97316' },
+    { name: 'Amazon', value: 893088, color: '#3b82f6' },
+    { name: 'Blinkit', value: 597336, color: '#eab308' }
   ]
 
-  // Columns for Top Cities in Overall Sales
-  const cityColumns = [
+  // Columns for Top Cities (GMV)
+  const cityGMVColumns = [
     { key: 'city', label: 'City', accessor: r => r.city, render: r => <span style={{ fontWeight: 700, color: '#f8fafc' }}>{r.city}</span> },
-    { key: 'juneNet', label: 'June Net', align: 'right', accessor: r => r.juneNet, render: r => <span>₹{formatINR(r.juneNet)}</span> },
-    { key: 'julyNet', label: 'July Net', align: 'right', accessor: r => r.julyNet, render: r => <span>₹{formatINR(r.julyNet)}</span> },
-    { key: 'augustNet', label: 'August Net', align: 'right', accessor: r => r.augustNet, render: r => <span>₹{formatINR(r.augustNet)}</span> },
+    { key: 'juneGMV', label: 'June GMV', align: 'right', accessor: r => r.juneGMV, render: r => <span>₹{formatINR(r.juneGMV)}</span> },
+    { key: 'julyGMV', label: 'July GMV', align: 'right', accessor: r => r.julyGMV, render: r => <span>₹{formatINR(r.julyGMV)}</span> },
+    { key: 'augustGMV', label: 'August GMV', align: 'right', accessor: r => r.augustGMV, render: r => <span>₹{formatINR(r.augustGMV)}</span> },
     {
-      key: 'sepNet',
-      label: 'Sep MTD Net',
+      key: 'sepGMV',
+      label: 'Sep MTD GMV',
       align: 'right',
-      accessor: r => r.sepNet,
-      render: r => <span style={{ fontWeight: 800, color: '#38bdf8' }}>₹{formatINR(r.sepNet)}</span>
+      accessor: r => r.sepGMV,
+      render: r => <span style={{ fontWeight: 800, color: '#38bdf8' }}>₹{formatINR(r.sepGMV)}</span>
     },
     { key: 'momSep', label: 'Aug→Sep %', align: 'center', accessor: r => r.momSep, render: r => <GrowthBadge val={r.momSep} /> },
     {
-      key: 'sepInstaNet',
-      label: 'Instamart (Sep)',
+      key: 'sepInstaGross',
+      label: 'Instamart GMV',
       align: 'right',
-      accessor: r => r.sepInstaNet,
-      render: r => <span style={{ color: '#fb923c' }}>₹{formatINR(r.sepInstaNet)}</span>
+      accessor: r => r.sepInstaGross,
+      render: r => <span style={{ color: '#fb923c' }}>₹{formatINR(r.sepInstaGross)}</span>
     },
     {
-      key: 'sepAmzNet',
-      label: 'Amazon (Sep)',
+      key: 'sepAmzGross',
+      label: 'Amazon Gross',
       align: 'right',
-      accessor: r => r.sepAmzNet,
-      render: r => <span style={{ color: '#60a5fa' }}>₹{formatINR(r.sepAmzNet)}</span>
+      accessor: r => r.sepAmzGross,
+      render: r => <span style={{ color: '#60a5fa' }}>₹{formatINR(r.sepAmzGross)}</span>
     },
     {
-      key: 'sepBlinkitNet',
-      label: 'Blinkit (Sep)',
+      key: 'sepBlinkitGross',
+      label: 'Blinkit MRP',
       align: 'right',
-      accessor: r => r.sepBlinkitNet,
-      render: r => <span style={{ color: '#facc15' }}>₹{formatINR(r.sepBlinkitNet)}</span>
+      accessor: r => r.sepBlinkitGross,
+      render: r => <span style={{ color: '#facc15' }}>₹{formatINR(r.sepBlinkitGross)}</span>
     },
     {
       key: 'focus',
@@ -411,10 +429,10 @@ export default function SalesTab() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 24 }}>📈</span>
-            <h1 style={{ margin: 0 }}>Sales Dashboard</h1>
+            <h1 style={{ margin: 0 }}>Sales Dashboard (GMV Analytics)</h1>
           </div>
           <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: 13 }}>
-            Integrated Multi-Channel Sales &amp; Ads Analytics • Live Sync with Google Sheets
+            Gross Merchandise Value (GMV) &amp; Ads Intelligence across Instamart, Amazon, and Blinkit
           </p>
         </div>
 
@@ -490,7 +508,7 @@ export default function SalesTab() {
       {loading ? (
         <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
           <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
-          Loading live sales analytics from Google Sheets...
+          Loading live GMV sales analytics from Google Sheets...
         </div>
       ) : error ? (
         <div style={{ padding: 20, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8, color: '#f87171' }}>
@@ -499,59 +517,59 @@ export default function SalesTab() {
       ) : (
         <div>
           {/* ========================================================================= */}
-          {/* 1. OVERALL SALES SUB-TAB */}
+          {/* 1. OVERALL SALES (GMV) SUB-TAB */}
           {/* ========================================================================= */}
           {activeSubTab === 'overall' && (
             <div>
-              {/* KPI Cards Row */}
+              {/* GMV KPI Cards Row */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
                 <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Sep MTD Final Net</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#f8fafc', marginTop: 4 }}>₹4,131,049</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Total Sep MTD GMV</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#f8fafc', marginTop: 4 }}>₹5,750,513</div>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                    Aug: ₹6.91M • Jul: ₹4.89M • Jun: ₹2.16M
+                    Aug: ₹9.67M • Jul: ₹6.85M • Jun: ₹3.02M
                   </div>
                 </div>
 
                 <div style={{ background: '#1e293b', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, color: '#fb923c', textTransform: 'uppercase', fontWeight: 700 }}>Instamart Final Net</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c', marginTop: 4 }}>₹3,045,964</div>
+                  <div style={{ fontSize: 11, color: '#fb923c', textTransform: 'uppercase', fontWeight: 700 }}>Instamart GMV</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c', marginTop: 4 }}>₹4,260,089</div>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                    73.7% Share • GMV: ₹4,260,089
+                    74.1% GMV Share • Aug: ₹7,102,825
                   </div>
                 </div>
 
                 <div style={{ background: '#1e293b', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, color: '#60a5fa', textTransform: 'uppercase', fontWeight: 700 }}>Amazon Final Net</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#60a5fa', marginTop: 4 }}>₹637,084</div>
+                  <div style={{ fontSize: 11, color: '#60a5fa', textTransform: 'uppercase', fontWeight: 700 }}>Amazon Gross Sales (GMV)</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#60a5fa', marginTop: 4 }}>₹893,088</div>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                    15.4% Share • Gross: ₹893,088
+                    15.5% GMV Share • Aug: ₹2,490,620
                   </div>
                 </div>
 
                 <div style={{ background: '#1e293b', border: '1px solid rgba(234, 179, 8, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>Blinkit Final Net</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#facc15', marginTop: 4 }}>₹448,002</div>
+                  <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>Blinkit MRP Sales (GMV)</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#facc15', marginTop: 4 }}>₹597,336</div>
                   <div style={{ fontSize: 11, color: '#4ade80', fontWeight: 700, marginTop: 4 }}>
-                    ▲ +675.1% Growth (Aug: ₹57.8k)
+                    ▲ +675.1% Growth (Aug: ₹77,070)
                   </div>
                 </div>
               </div>
 
-              {/* Monthly Overview Table */}
+              {/* Monthly GMV Overview Table */}
               <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 16, marginBottom: 20 }}>
                 <h3 style={{ margin: '0 0 12px', fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
-                  📈 Platform Sales Overview — GMV &amp; Final Net (Jun–Sep 2026)
+                  📈 Platform GMV Overview (Jun–Sep 2026)
                 </h3>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr style={{ background: '#0f172a', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
-                        <th style={{ padding: '10px 12px' }}>Platform / Metric</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>June</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>July</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>August</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>September MTD</th>
+                        <th style={{ padding: '10px 12px' }}>Platform / Channel</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>June GMV</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>July GMV</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>August GMV</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>September MTD GMV</th>
                         <th style={{ padding: '10px 12px', textAlign: 'center' }}>Jun→Jul %</th>
                         <th style={{ padding: '10px 12px', textAlign: 'center' }}>Jul→Aug %</th>
                         <th style={{ padding: '10px 12px', textAlign: 'center' }}>Aug→Sep %</th>
@@ -559,7 +577,7 @@ export default function SalesTab() {
                     </thead>
                     <tbody>
                       {overallData?.monthlyOverview.map((row, idx) => {
-                        const isTotal = row.type === 'Total Net'
+                        const isTotal = row.type === 'Total GMV'
                         return (
                           <tr
                             key={idx}
@@ -588,13 +606,13 @@ export default function SalesTab() {
                 </div>
               </div>
 
-              {/* Visual Charts: Monthly Multi-Channel Trends & Revenue Mix */}
+              {/* Visual Charts: Monthly GMV Trends & Channel Mix */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16, marginBottom: 20 }}>
                 <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 16 }}>
-                  <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#f8fafc' }}>Monthly Revenue by Channel</h4>
+                  <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#f8fafc' }}>Monthly GMV by Channel</h4>
                   <div style={{ height: 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyRevenueChartData}>
+                      <BarChart data={monthlyGMVChartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                         <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} />
                         <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={v => `₹${(v / 100000).toFixed(0)}L`} />
@@ -612,12 +630,12 @@ export default function SalesTab() {
                 </div>
 
                 <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 16 }}>
-                  <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#f8fafc' }}>September MTD Channel Contribution</h4>
+                  <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#f8fafc' }}>September MTD GMV Contribution</h4>
                   <div style={{ height: 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={sepChannelMix}
+                          data={sepGMVChannelMix}
                           cx="50%"
                           cy="50%"
                           innerRadius={60}
@@ -626,13 +644,13 @@ export default function SalesTab() {
                           dataKey="value"
                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
                         >
-                          {sepChannelMix.map((entry, index) => (
+                          {sepGMVChannelMix.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
                         <ReTooltip
                           contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6 }}
-                          formatter={(v) => [`₹${formatINR(v)}`, 'Revenue']}
+                          formatter={(v) => [`₹${formatINR(v)}`, 'GMV']}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -640,15 +658,15 @@ export default function SalesTab() {
                 </div>
               </div>
 
-              {/* Top 20 Cities Performance Matrix */}
+              {/* Top 20 Cities GMV Matrix */}
               <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
                 <div style={{ padding: '14px 16px', background: '#0f172a', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                   <div>
                     <h3 style={{ margin: 0, fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
-                      🏙️ Top 20 Cities — MoM Performance &amp; Current Platform Mix
+                      🏙️ Top 20 Cities — GMV Performance &amp; Channel Distribution
                     </h3>
                     <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                      City revenue tracking across Instamart, Amazon, and Blinkit
+                      City GMV calculated across Instamart GMV, Amazon Gross, and Blinkit MRP
                     </div>
                   </div>
                   <input
@@ -669,19 +687,19 @@ export default function SalesTab() {
                 </div>
 
                 <DataTable
-                  columns={cityColumns}
+                  columns={cityGMVColumns}
                   rows={filteredCities}
                   pageSize={20}
-                  filename="overall_sales_top20_cities.csv"
+                  filename="overall_sales_top20_cities_gmv.csv"
                   emptyMessage="No city records match your query."
                 />
               </div>
 
-              {/* SKU-wise MoM Drilldown */}
+              {/* SKU-wise MoM Drilldown (GMV / Gross) */}
               <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, overflow: 'hidden' }}>
                 <div style={{ padding: '14px 16px', background: '#0f172a', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                   <h3 style={{ margin: 0, fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
-                    📦 SKU-wise MoM Performance Drilldown
+                    📦 SKU-wise MoM GMV &amp; Gross Sales Drilldown
                   </h3>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {[
@@ -716,11 +734,10 @@ export default function SalesTab() {
                         <tr style={{ background: '#0b1329', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
                           <th style={{ padding: '8px 12px' }}>Code</th>
                           <th style={{ padding: '8px 12px' }}>SKU Title</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jun Net</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jul Net</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Aug Net</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD Gross</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>June GMV</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>July GMV</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>August GMV</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>September MTD GMV</th>
                           <th style={{ padding: '8px 12px', textAlign: 'center' }}>Aug→Sep %</th>
                         </tr>
                       </thead>
@@ -729,11 +746,10 @@ export default function SalesTab() {
                           <tr key={i} style={{ borderBottom: '1px solid #334155' }}>
                             <td style={{ padding: '8px 12px', color: '#94a3b8', fontFamily: 'monospace' }}>{r.itemCode}</td>
                             <td style={{ padding: '8px 12px', color: '#f8fafc', fontWeight: 600 }}>{r.sku}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.juneNet)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.julyNet)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.augNet)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', color: '#94a3b8' }}>₹{formatINR(r.sepGross)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{formatINR(r.sepNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.juneGross)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.julyGross)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.augGross)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{formatINR(r.sepGross)}</td>
                             <td style={{ padding: '8px 12px', textAlign: 'center' }}><GrowthBadge val={r.momSep} /></td>
                           </tr>
                         ))}
@@ -749,11 +765,10 @@ export default function SalesTab() {
                         <tr style={{ background: '#0b1329', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
                           <th style={{ padding: '8px 12px' }}>ASIN</th>
                           <th style={{ padding: '8px 12px' }}>SKU Title</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jun Net</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jul Net</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Aug Net</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD Gross</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>June Gross</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>July Gross</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>August Gross</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>September MTD Gross</th>
                           <th style={{ padding: '8px 12px', textAlign: 'center' }}>Aug→Sep %</th>
                         </tr>
                       </thead>
@@ -762,11 +777,10 @@ export default function SalesTab() {
                           <tr key={i} style={{ borderBottom: '1px solid #334155' }}>
                             <td style={{ padding: '8px 12px', color: '#94a3b8', fontFamily: 'monospace' }}>{r.asin}</td>
                             <td style={{ padding: '8px 12px', color: '#f8fafc', fontWeight: 600 }}>{r.sku}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.juneNet)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.julyNet)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.augNet)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', color: '#94a3b8' }}>₹{formatINR(r.sepGross)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{formatINR(r.sepNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.juneGross)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.julyGross)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.augGross)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{formatINR(r.sepGross)}</td>
                             <td style={{ padding: '8px 12px', textAlign: 'center' }}><GrowthBadge val={r.momSep} /></td>
                           </tr>
                         ))}
@@ -783,9 +797,7 @@ export default function SalesTab() {
                           <th style={{ padding: '8px 12px' }}>Item ID</th>
                           <th style={{ padding: '8px 12px' }}>SKU Title</th>
                           <th style={{ padding: '8px 12px', textAlign: 'right' }}>August MRP</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>August Net</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD MRP</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>September MTD MRP</th>
                           <th style={{ padding: '8px 12px', textAlign: 'center' }}>Aug→Sep %</th>
                         </tr>
                       </thead>
@@ -795,9 +807,7 @@ export default function SalesTab() {
                             <td style={{ padding: '8px 12px', color: '#94a3b8', fontFamily: 'monospace' }}>{r.itemId}</td>
                             <td style={{ padding: '8px 12px', color: '#f8fafc', fontWeight: 600 }}>{r.sku}</td>
                             <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.augGross)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.augNet)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', color: '#94a3b8' }}>₹{formatINR(r.sepGross)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{formatINR(r.sepNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{formatINR(r.sepGross)}</td>
                             <td style={{ padding: '8px 12px', textAlign: 'center' }}><GrowthBadge val={r.momSep} /></td>
                           </tr>
                         ))}
@@ -810,59 +820,59 @@ export default function SalesTab() {
           )}
 
           {/* ========================================================================= */}
-          {/* 2. GROUNDNUT - SALES SUB-TAB */}
+          {/* 2. GROUNDNUT - SALES (GMV) SUB-TAB */}
           {/* ========================================================================= */}
           {activeSubTab === 'groundnut' && (
             <div>
-              {/* Groundnut KPI Row */}
+              {/* Groundnut GMV KPI Row */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
                 <div style={{ background: '#1e293b', border: '1px solid rgba(234, 179, 8, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>Groundnut Sep MTD Net</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#facc15', marginTop: 4 }}>₹3,927,421</div>
+                  <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>Total Groundnut Sep GMV</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#facc15', marginTop: 4 }}>₹5,475,848</div>
                   <div style={{ fontSize: 11, color: '#4ade80', fontWeight: 700, marginTop: 4 }}>
-                    95.1% of Total Business Net Sales
+                    95.2% of Total Multi-Channel GMV
                   </div>
                 </div>
 
                 <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, color: '#fb923c', textTransform: 'uppercase', fontWeight: 700 }}>Instamart GN Net</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c', marginTop: 4 }}>₹3,045,964</div>
+                  <div style={{ fontSize: 11, color: '#fb923c', textTransform: 'uppercase', fontWeight: 700 }}>Instamart GN GMV</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c', marginTop: 4 }}>₹4,260,089</div>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                    100% of Instamart Sales
+                    100% of Instamart GMV
                   </div>
                 </div>
 
                 <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, color: '#60a5fa', textTransform: 'uppercase', fontWeight: 700 }}>Amazon GN Net</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#60a5fa', marginTop: 4 }}>₹597,067</div>
+                  <div style={{ fontSize: 11, color: '#60a5fa', textTransform: 'uppercase', fontWeight: 700 }}>Amazon GN Gross Sales</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#60a5fa', marginTop: 4 }}>₹836,572</div>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                    93.7% of Amazon Sales
+                    93.7% of Amazon Gross Sales
                   </div>
                 </div>
 
                 <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>Blinkit GN Net</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#facc15', marginTop: 4 }}>₹284,390</div>
+                  <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>Blinkit GN MRP Sales</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#facc15', marginTop: 4 }}>₹379,187</div>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                    63.5% of Blinkit Sales
+                    63.5% of Blinkit MRP Sales
                   </div>
                 </div>
               </div>
 
-              {/* Monthly Groundnut Platform Sales */}
+              {/* Monthly Groundnut Platform GMV */}
               <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 16, marginBottom: 20 }}>
                 <h3 style={{ margin: '0 0 12px', fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
-                  🥜 Monthly Platform Groundnut Oil Sales &amp; Growth
+                  🥜 Monthly Platform Groundnut Oil GMV &amp; Growth
                 </h3>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr style={{ background: '#0f172a', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
-                        <th style={{ padding: '10px 12px' }}>Platform / Metric</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>June</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>July</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>August</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>September MTD</th>
+                        <th style={{ padding: '10px 12px' }}>Platform / Channel</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>June GMV</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>July GMV</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>August GMV</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>September MTD GMV</th>
                         <th style={{ padding: '10px 12px', textAlign: 'center' }}>Jun→Jul %</th>
                         <th style={{ padding: '10px 12px', textAlign: 'center' }}>Jul→Aug %</th>
                         <th style={{ padding: '10px 12px', textAlign: 'center' }}>Aug→Sep %</th>
@@ -870,7 +880,7 @@ export default function SalesTab() {
                     </thead>
                     <tbody>
                       {groundnutData?.monthlyOverview.map((row, idx) => {
-                        const isTotal = row.metric.includes('Overall')
+                        const isTotal = row.metric.includes('Total')
                         return (
                           <tr
                             key={idx}
@@ -899,15 +909,15 @@ export default function SalesTab() {
                 </div>
               </div>
 
-              {/* City-wise Groundnut Oil Sales Table */}
+              {/* City-wise Groundnut Oil GMV Table */}
               <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, overflow: 'hidden' }}>
                 <div style={{ padding: '14px 16px', background: '#0f172a', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                   <div>
                     <h3 style={{ margin: 0, fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
-                      🏙️ City-wise Groundnut Oil Sales — Top 20 Cities
+                      🏙️ City-wise Groundnut Oil GMV — Top 20 Cities
                     </h3>
                     <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                      Groundnut sales performance and platform share by metro
+                      Groundnut GMV distribution and channel breakdown by metro
                     </div>
                   </div>
                   <input
@@ -932,30 +942,30 @@ export default function SalesTab() {
                     <thead>
                       <tr style={{ background: '#0b1329', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
                         <th style={{ padding: '10px 12px' }}>City</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>June Net</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>July Net</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>August Net</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Sep MTD Net</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>June GMV</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>July GMV</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>August GMV</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Sep MTD GMV</th>
                         <th style={{ padding: '10px 12px', textAlign: 'center' }}>Aug→Sep %</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Instamart (Sep)</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Amazon (Sep)</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Blinkit (Sep)</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Instamart GMV</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Amazon Gross</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Blinkit MRP</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredGNCities.map((r, idx) => (
                         <tr key={idx} style={{ borderBottom: '1px solid #334155' }}>
                           <td style={{ padding: '10px 12px', fontWeight: 700, color: '#f8fafc' }}>{r.city}</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(r.juneNet)}</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(r.julyNet)}</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(r.augustNet)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(r.juneGMV)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(r.julyGMV)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(r.augustGMV)}</td>
                           <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#facc15' }}>
-                            ₹{formatINR(r.sepNet)}
+                            ₹{formatINR(r.sepGMV)}
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'center' }}><GrowthBadge val={r.momSep} /></td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#fb923c' }}>₹{formatINR(r.sepInstaNet)}</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#60a5fa' }}>₹{formatINR(r.sepAmzNet)}</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#facc15' }}>₹{formatINR(r.sepBlinkitNet)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#fb923c' }}>₹{formatINR(r.sepInstaGMV)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#60a5fa' }}>₹{formatINR(r.sepAmzGMV)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#facc15' }}>₹{formatINR(r.sepBlinkitGMV)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -966,7 +976,7 @@ export default function SalesTab() {
           )}
 
           {/* ========================================================================= */}
-          {/* 3. ADS SPEND SUB-TAB */}
+          {/* 3. ADS SPEND VS GMV SUB-TAB */}
           {/* ========================================================================= */}
           {activeSubTab === 'ads_spend' && (
             <div>
@@ -976,7 +986,7 @@ export default function SalesTab() {
                   <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Total Ads Spend (Sep MTD)</div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: '#f87171', marginTop: 4 }}>₹822,079</div>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                    Aug: ₹1,015,609 (-19.1%) • Jul: ₹731,281
+                    Blended Ad/GMV: 14.3% • Aug: ₹1,015,609
                   </div>
                 </div>
 
@@ -1005,14 +1015,14 @@ export default function SalesTab() {
                 </div>
               </div>
 
-              {/* Ads Spend & Sales Comparison Table */}
+              {/* Ads Spend & GMV Comparison Table */}
               <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
                 <div style={{ padding: '14px 16px', background: '#0f172a', borderBottom: '1px solid #334155' }}>
                   <h3 style={{ margin: 0, fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
-                    📢 Ads Spend vs. Overall Sales (Jun–Sep 2026) &amp; RCA Diagnostic Notes
+                    📢 Ads Spend vs. Channel GMV (Jun–Sep 2026) &amp; RCA Diagnostic Notes
                   </h3>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                    Channel-wise ad efficiency, percentage of sales burnt, and root cause notes
+                    Channel-wise ad efficiency, percentage of GMV burnt, and root cause diagnostic notes
                   </div>
                 </div>
 
