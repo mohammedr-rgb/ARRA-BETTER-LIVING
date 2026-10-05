@@ -2884,7 +2884,7 @@
     },
     {
       "date": "2026-10-05",
-      "timestamp": "2026-10-05T04:09:35.176Z",
+      "timestamp": "2026-10-05T05:42:41.069Z",
       "totalCities": 25,
       "citySkuMatrix": {
         "CHENNAI_pouch_1l": {
@@ -2894,8 +2894,11 @@
           "area": "T Nagar",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 13.0418,
-          "lng": 80.2341,
+          "lat": 13.0827,
+          "lng": 80.2707,
+          "radiusKm": 45,
+          "premium": 1.15,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -2908,7 +2911,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "CHENNAI_bottle_1l": {
           "date": "2026-10-05",
@@ -2917,8 +2920,11 @@
           "area": "T Nagar",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 13.0418,
-          "lng": 80.2341,
+          "lat": 13.0827,
+          "lng": 80.2707,
+          "radiusKm": 45,
+          "premium": 1.15,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -2931,7 +2937,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "CHENNAI_bottle_2l": {
           "date": "2026-10-05",
@@ -2940,8 +2946,11 @@
           "area": "T Nagar",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 13.0418,
-          "lng": 80.2341,
+          "lat": 13.0827,
+          "lng": 80.2707,
+          "radiusKm": 45,
+          "premium": 1.15,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -2954,7 +2963,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "CHENNAI_bottle_500ml": {
           "date": "2026-10-05",
@@ -2963,8 +2972,11 @@
           "area": "T Nagar",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 13.0418,
-          "lng": 80.2341,
+          "lat": 13.0827,
+          "lng": 80.2707,
+          "radiusKm": 45,
+          "premium": 1.15,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -2977,7 +2989,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "CHENNAI_spray_200ml": {
           "date": "2026-10-05",
@@ -2986,8 +2998,11 @@
           "area": "T Nagar",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 13.0418,
-          "lng": 80.2341,
+          "lat": 13.0827,
+          "lng": 80.2707,
+          "radiusKm": 45,
+          "premium": 1.15,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -3000,7 +3015,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "BANGALORE_pouch_1l": {
           "date": "2026-10-05",
@@ -3009,8 +3024,11 @@
           "area": "Koramangala",
           "deliveryMin": "9 MINS",
           "state": "Karnataka",
-          "lat": 12.9352,
-          "lng": 77.6245,
+          "lat": 12.9716,
+          "lng": 77.5946,
+          "radiusKm": 50,
+          "premium": 1.2,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -3023,7 +3041,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "BANGALORE_bottle_1l": {
           "date": "2026-10-05",
@@ -3032,8 +3050,11 @@
           "area": "Koramangala",
           "deliveryMin": "9 MINS",
           "state": "Karnataka",
-          "lat": 12.9352,
-          "lng": 77.6245,
+          "lat": 12.9716,
+          "lng": 77.5946,
+          "radiusKm": 50,
+          "premium": 1.2,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -3046,7 +3067,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "BANGALORE_bottle_2l": {
           "date": "2026-10-05",
@@ -3055,8 +3076,11 @@
           "area": "Koramangala",
           "deliveryMin": "9 MINS",
           "state": "Karnataka",
-          "lat": 12.9352,
-          "lng": 77.6245,
+          "lat": 12.9716,
+          "lng": 77.5946,
+          "radiusKm": 50,
+          "premium": 1.2,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -3069,7 +3093,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "BANGALORE_bottle_500ml": {
           "date": "2026-10-05",
@@ -3078,8 +3102,11 @@
           "area": "Koramangala",
           "deliveryMin": "9 MINS",
           "state": "Karnataka",
-          "lat": 12.9352,
-          "lng": 77.6245,
+          "lat": 12.9716,
+          "lng": 77.5946,
+          "radiusKm": 50,
+          "premium": 1.2,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -3092,7 +3119,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "BANGALORE_spray_200ml": {
           "date": "2026-10-05",
@@ -3101,8 +3128,11 @@
           "area": "Koramangala",
           "deliveryMin": "9 MINS",
           "state": "Karnataka",
-          "lat": 12.9352,
-          "lng": 77.6245,
+          "lat": 12.9716,
+          "lng": 77.5946,
+          "radiusKm": 50,
+          "premium": 1.2,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -3115,7 +3145,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "COIMBATORE_pouch_1l": {
           "date": "2026-10-05",
@@ -3124,8 +3154,11 @@
           "area": "RS Puram",
           "deliveryMin": "9 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.0118,
-          "lng": 76.9458,
+          "lat": 11.0168,
+          "lng": 76.9558,
+          "radiusKm": 35,
+          "premium": 1.05,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -3138,7 +3171,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "COIMBATORE_bottle_1l": {
           "date": "2026-10-05",
@@ -3147,8 +3180,11 @@
           "area": "RS Puram",
           "deliveryMin": "9 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.0118,
-          "lng": 76.9458,
+          "lat": 11.0168,
+          "lng": 76.9558,
+          "radiusKm": 35,
+          "premium": 1.05,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -3161,7 +3197,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "COIMBATORE_bottle_2l": {
           "date": "2026-10-05",
@@ -3170,8 +3206,11 @@
           "area": "RS Puram",
           "deliveryMin": "9 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.0118,
-          "lng": 76.9458,
+          "lat": 11.0168,
+          "lng": 76.9558,
+          "radiusKm": 35,
+          "premium": 1.05,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -3184,7 +3223,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "COIMBATORE_bottle_500ml": {
           "date": "2026-10-05",
@@ -3193,8 +3232,11 @@
           "area": "RS Puram",
           "deliveryMin": "9 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.0118,
-          "lng": 76.9458,
+          "lat": 11.0168,
+          "lng": 76.9558,
+          "radiusKm": 35,
+          "premium": 1.05,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -3207,7 +3249,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "COIMBATORE_spray_200ml": {
           "date": "2026-10-05",
@@ -3216,8 +3258,11 @@
           "area": "RS Puram",
           "deliveryMin": "9 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.0118,
-          "lng": 76.9458,
+          "lat": 11.0168,
+          "lng": 76.9558,
+          "radiusKm": 35,
+          "premium": 1.05,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -3230,7 +3275,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "HYDERABAD_pouch_1l": {
           "date": "2026-10-05",
@@ -3239,8 +3284,11 @@
           "area": "Gachibowli",
           "deliveryMin": "10 MINS",
           "state": "Telangana",
-          "lat": 17.4401,
-          "lng": 78.3489,
+          "lat": 17.385,
+          "lng": 78.4867,
+          "radiusKm": 48,
+          "premium": 1.18,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -3253,7 +3301,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "HYDERABAD_bottle_1l": {
           "date": "2026-10-05",
@@ -3262,8 +3310,11 @@
           "area": "Gachibowli",
           "deliveryMin": "10 MINS",
           "state": "Telangana",
-          "lat": 17.4401,
-          "lng": 78.3489,
+          "lat": 17.385,
+          "lng": 78.4867,
+          "radiusKm": 48,
+          "premium": 1.18,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -3276,7 +3327,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "HYDERABAD_bottle_2l": {
           "date": "2026-10-05",
@@ -3285,8 +3336,11 @@
           "area": "Gachibowli",
           "deliveryMin": "10 MINS",
           "state": "Telangana",
-          "lat": 17.4401,
-          "lng": 78.3489,
+          "lat": 17.385,
+          "lng": 78.4867,
+          "radiusKm": 48,
+          "premium": 1.18,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -3299,7 +3353,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "HYDERABAD_bottle_500ml": {
           "date": "2026-10-05",
@@ -3308,8 +3362,11 @@
           "area": "Gachibowli",
           "deliveryMin": "10 MINS",
           "state": "Telangana",
-          "lat": 17.4401,
-          "lng": 78.3489,
+          "lat": 17.385,
+          "lng": 78.4867,
+          "radiusKm": 48,
+          "premium": 1.18,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -3322,7 +3379,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "HYDERABAD_spray_200ml": {
           "date": "2026-10-05",
@@ -3331,8 +3388,11 @@
           "area": "Gachibowli",
           "deliveryMin": "10 MINS",
           "state": "Telangana",
-          "lat": 17.4401,
-          "lng": 78.3489,
+          "lat": 17.385,
+          "lng": 78.4867,
+          "radiusKm": 48,
+          "premium": 1.18,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -3345,7 +3405,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MUMBAI_pouch_1l": {
           "date": "2026-10-05",
@@ -3354,8 +3414,11 @@
           "area": "Andheri East",
           "deliveryMin": "11 MINS",
           "state": "Maharashtra",
-          "lat": 19.1136,
-          "lng": 72.8697,
+          "lat": 19.076,
+          "lng": 72.8777,
+          "radiusKm": 60,
+          "premium": 1.25,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -3368,7 +3431,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MUMBAI_bottle_1l": {
           "date": "2026-10-05",
@@ -3377,8 +3440,11 @@
           "area": "Andheri East",
           "deliveryMin": "11 MINS",
           "state": "Maharashtra",
-          "lat": 19.1136,
-          "lng": 72.8697,
+          "lat": 19.076,
+          "lng": 72.8777,
+          "radiusKm": 60,
+          "premium": 1.25,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -3391,7 +3457,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MUMBAI_bottle_2l": {
           "date": "2026-10-05",
@@ -3400,8 +3466,11 @@
           "area": "Andheri East",
           "deliveryMin": "11 MINS",
           "state": "Maharashtra",
-          "lat": 19.1136,
-          "lng": 72.8697,
+          "lat": 19.076,
+          "lng": 72.8777,
+          "radiusKm": 60,
+          "premium": 1.25,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -3414,7 +3483,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MUMBAI_bottle_500ml": {
           "date": "2026-10-05",
@@ -3423,8 +3492,11 @@
           "area": "Andheri East",
           "deliveryMin": "11 MINS",
           "state": "Maharashtra",
-          "lat": 19.1136,
-          "lng": 72.8697,
+          "lat": 19.076,
+          "lng": 72.8777,
+          "radiusKm": 60,
+          "premium": 1.25,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -3437,7 +3509,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MUMBAI_spray_200ml": {
           "date": "2026-10-05",
@@ -3446,8 +3518,11 @@
           "area": "Andheri East",
           "deliveryMin": "11 MINS",
           "state": "Maharashtra",
-          "lat": 19.1136,
-          "lng": 72.8697,
+          "lat": 19.076,
+          "lng": 72.8777,
+          "radiusKm": 60,
+          "premium": 1.25,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -3460,7 +3535,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "SALEM_pouch_1l": {
           "date": "2026-10-05",
@@ -3469,8 +3544,11 @@
           "area": "Fairlands",
           "deliveryMin": "6 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.6743,
+          "lat": 11.6643,
           "lng": 78.146,
+          "radiusKm": 30,
+          "premium": 0.98,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -3483,7 +3561,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "SALEM_bottle_1l": {
           "date": "2026-10-05",
@@ -3492,8 +3570,11 @@
           "area": "Fairlands",
           "deliveryMin": "6 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.6743,
+          "lat": 11.6643,
           "lng": 78.146,
+          "radiusKm": 30,
+          "premium": 0.98,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -3506,7 +3587,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "SALEM_bottle_2l": {
           "date": "2026-10-05",
@@ -3515,8 +3596,11 @@
           "area": "Fairlands",
           "deliveryMin": "6 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.6743,
+          "lat": 11.6643,
           "lng": 78.146,
+          "radiusKm": 30,
+          "premium": 0.98,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -3529,7 +3613,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "SALEM_bottle_500ml": {
           "date": "2026-10-05",
@@ -3538,8 +3622,11 @@
           "area": "Fairlands",
           "deliveryMin": "6 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.6743,
+          "lat": 11.6643,
           "lng": 78.146,
+          "radiusKm": 30,
+          "premium": 0.98,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -3552,7 +3639,7 @@
           "stockStatus": "Out of Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "SALEM_spray_200ml": {
           "date": "2026-10-05",
@@ -3561,8 +3648,11 @@
           "area": "Fairlands",
           "deliveryMin": "6 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.6743,
+          "lat": 11.6643,
           "lng": 78.146,
+          "radiusKm": 30,
+          "premium": 0.98,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -3575,7 +3665,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TRICHY_pouch_1l": {
           "date": "2026-10-05",
@@ -3584,8 +3674,11 @@
           "area": "Thillai Nagar",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 10.8285,
-          "lng": 78.6866,
+          "lat": 10.7905,
+          "lng": 78.7047,
+          "radiusKm": 28,
+          "premium": 0.95,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -3598,7 +3691,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TRICHY_bottle_1l": {
           "date": "2026-10-05",
@@ -3607,8 +3700,11 @@
           "area": "Thillai Nagar",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 10.8285,
-          "lng": 78.6866,
+          "lat": 10.7905,
+          "lng": 78.7047,
+          "radiusKm": 28,
+          "premium": 0.95,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -3621,7 +3717,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TRICHY_bottle_2l": {
           "date": "2026-10-05",
@@ -3630,8 +3726,11 @@
           "area": "Thillai Nagar",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 10.8285,
-          "lng": 78.6866,
+          "lat": 10.7905,
+          "lng": 78.7047,
+          "radiusKm": 28,
+          "premium": 0.95,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -3644,7 +3743,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TRICHY_bottle_500ml": {
           "date": "2026-10-05",
@@ -3653,8 +3752,11 @@
           "area": "Thillai Nagar",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 10.8285,
-          "lng": 78.6866,
+          "lat": 10.7905,
+          "lng": 78.7047,
+          "radiusKm": 28,
+          "premium": 0.95,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -3667,7 +3769,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TRICHY_spray_200ml": {
           "date": "2026-10-05",
@@ -3676,8 +3778,11 @@
           "area": "Thillai Nagar",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 10.8285,
-          "lng": 78.6866,
+          "lat": 10.7905,
+          "lng": 78.7047,
+          "radiusKm": 28,
+          "premium": 0.95,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -3690,7 +3795,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VIZAG_pouch_1l": {
           "date": "2026-10-05",
@@ -3699,8 +3804,11 @@
           "area": "MVP Colony",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 17.7412,
-          "lng": 83.3325,
+          "lat": 17.6868,
+          "lng": 83.2185,
+          "radiusKm": 35,
+          "premium": 1.08,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -3713,7 +3821,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VIZAG_bottle_1l": {
           "date": "2026-10-05",
@@ -3722,8 +3830,11 @@
           "area": "MVP Colony",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 17.7412,
-          "lng": 83.3325,
+          "lat": 17.6868,
+          "lng": 83.2185,
+          "radiusKm": 35,
+          "premium": 1.08,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -3736,7 +3847,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VIZAG_bottle_2l": {
           "date": "2026-10-05",
@@ -3745,8 +3856,11 @@
           "area": "MVP Colony",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 17.7412,
-          "lng": 83.3325,
+          "lat": 17.6868,
+          "lng": 83.2185,
+          "radiusKm": 35,
+          "premium": 1.08,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -3759,7 +3873,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VIZAG_bottle_500ml": {
           "date": "2026-10-05",
@@ -3768,8 +3882,11 @@
           "area": "MVP Colony",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 17.7412,
-          "lng": 83.3325,
+          "lat": 17.6868,
+          "lng": 83.2185,
+          "radiusKm": 35,
+          "premium": 1.08,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -3782,7 +3899,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VIZAG_spray_200ml": {
           "date": "2026-10-05",
@@ -3791,8 +3908,11 @@
           "area": "MVP Colony",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 17.7412,
-          "lng": 83.3325,
+          "lat": 17.6868,
+          "lng": 83.2185,
+          "radiusKm": 35,
+          "premium": 1.08,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -3805,7 +3925,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MADURAI_pouch_1l": {
           "date": "2026-10-05",
@@ -3814,8 +3934,11 @@
           "area": "KK Nagar",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 9.9322,
-          "lng": 78.1482,
+          "lat": 9.9252,
+          "lng": 78.1198,
+          "radiusKm": 32,
+          "premium": 1.02,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -3828,7 +3951,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MADURAI_bottle_1l": {
           "date": "2026-10-05",
@@ -3837,8 +3960,11 @@
           "area": "KK Nagar",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 9.9322,
-          "lng": 78.1482,
+          "lat": 9.9252,
+          "lng": 78.1198,
+          "radiusKm": 32,
+          "premium": 1.02,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -3851,7 +3977,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MADURAI_bottle_2l": {
           "date": "2026-10-05",
@@ -3860,8 +3986,11 @@
           "area": "KK Nagar",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 9.9322,
-          "lng": 78.1482,
+          "lat": 9.9252,
+          "lng": 78.1198,
+          "radiusKm": 32,
+          "premium": 1.02,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -3874,7 +4003,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MADURAI_bottle_500ml": {
           "date": "2026-10-05",
@@ -3883,8 +4012,11 @@
           "area": "KK Nagar",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 9.9322,
-          "lng": 78.1482,
+          "lat": 9.9252,
+          "lng": 78.1198,
+          "radiusKm": 32,
+          "premium": 1.02,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -3897,7 +4029,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MADURAI_spray_200ml": {
           "date": "2026-10-05",
@@ -3906,8 +4038,11 @@
           "area": "KK Nagar",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 9.9322,
-          "lng": 78.1482,
+          "lat": 9.9252,
+          "lng": 78.1198,
+          "radiusKm": 32,
+          "premium": 1.02,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -3920,7 +4055,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "PUNE_pouch_1l": {
           "date": "2026-10-05",
@@ -3929,8 +4064,11 @@
           "area": "Kothrud",
           "deliveryMin": "10 MINS",
           "state": "Maharashtra",
-          "lat": 18.5074,
-          "lng": 73.8077,
+          "lat": 18.5204,
+          "lng": 73.8567,
+          "radiusKm": 40,
+          "premium": 1.12,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -3943,7 +4081,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "PUNE_bottle_1l": {
           "date": "2026-10-05",
@@ -3952,8 +4090,11 @@
           "area": "Kothrud",
           "deliveryMin": "10 MINS",
           "state": "Maharashtra",
-          "lat": 18.5074,
-          "lng": 73.8077,
+          "lat": 18.5204,
+          "lng": 73.8567,
+          "radiusKm": 40,
+          "premium": 1.12,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -3966,7 +4107,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "PUNE_bottle_2l": {
           "date": "2026-10-05",
@@ -3975,8 +4116,11 @@
           "area": "Kothrud",
           "deliveryMin": "10 MINS",
           "state": "Maharashtra",
-          "lat": 18.5074,
-          "lng": 73.8077,
+          "lat": 18.5204,
+          "lng": 73.8567,
+          "radiusKm": 40,
+          "premium": 1.12,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -3989,7 +4133,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "PUNE_bottle_500ml": {
           "date": "2026-10-05",
@@ -3998,8 +4142,11 @@
           "area": "Kothrud",
           "deliveryMin": "10 MINS",
           "state": "Maharashtra",
-          "lat": 18.5074,
-          "lng": 73.8077,
+          "lat": 18.5204,
+          "lng": 73.8567,
+          "radiusKm": 40,
+          "premium": 1.12,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -4012,7 +4159,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "PUNE_spray_200ml": {
           "date": "2026-10-05",
@@ -4021,8 +4168,11 @@
           "area": "Kothrud",
           "deliveryMin": "10 MINS",
           "state": "Maharashtra",
-          "lat": 18.5074,
-          "lng": 73.8077,
+          "lat": 18.5204,
+          "lng": 73.8567,
+          "radiusKm": 40,
+          "premium": 1.12,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -4035,7 +4185,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "PONDICHERRY_pouch_1l": {
           "date": "2026-10-05",
@@ -4044,8 +4194,11 @@
           "area": "White Town",
           "deliveryMin": "8 MINS",
           "state": "Puducherry",
-          "lat": 11.9338,
-          "lng": 79.8335,
+          "lat": 11.9416,
+          "lng": 79.8083,
+          "radiusKm": 25,
+          "premium": 1.04,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -4058,7 +4211,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "PONDICHERRY_bottle_1l": {
           "date": "2026-10-05",
@@ -4067,8 +4220,11 @@
           "area": "White Town",
           "deliveryMin": "8 MINS",
           "state": "Puducherry",
-          "lat": 11.9338,
-          "lng": 79.8335,
+          "lat": 11.9416,
+          "lng": 79.8083,
+          "radiusKm": 25,
+          "premium": 1.04,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -4081,7 +4237,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "PONDICHERRY_bottle_2l": {
           "date": "2026-10-05",
@@ -4090,8 +4246,11 @@
           "area": "White Town",
           "deliveryMin": "8 MINS",
           "state": "Puducherry",
-          "lat": 11.9338,
-          "lng": 79.8335,
+          "lat": 11.9416,
+          "lng": 79.8083,
+          "radiusKm": 25,
+          "premium": 1.04,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -4104,7 +4263,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "PONDICHERRY_bottle_500ml": {
           "date": "2026-10-05",
@@ -4113,8 +4272,11 @@
           "area": "White Town",
           "deliveryMin": "8 MINS",
           "state": "Puducherry",
-          "lat": 11.9338,
-          "lng": 79.8335,
+          "lat": 11.9416,
+          "lng": 79.8083,
+          "radiusKm": 25,
+          "premium": 1.04,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -4127,7 +4289,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "PONDICHERRY_spray_200ml": {
           "date": "2026-10-05",
@@ -4136,8 +4298,11 @@
           "area": "White Town",
           "deliveryMin": "8 MINS",
           "state": "Puducherry",
-          "lat": 11.9338,
-          "lng": 79.8335,
+          "lat": 11.9416,
+          "lng": 79.8083,
+          "radiusKm": 25,
+          "premium": 1.04,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -4150,7 +4315,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VIJAYAWADA_pouch_1l": {
           "date": "2026-10-05",
@@ -4159,8 +4324,11 @@
           "area": "Benz Circle",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 16.4971,
-          "lng": 80.6554,
+          "lat": 16.5062,
+          "lng": 80.648,
+          "radiusKm": 30,
+          "premium": 1.06,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -4173,7 +4341,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VIJAYAWADA_bottle_1l": {
           "date": "2026-10-05",
@@ -4182,8 +4350,11 @@
           "area": "Benz Circle",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 16.4971,
-          "lng": 80.6554,
+          "lat": 16.5062,
+          "lng": 80.648,
+          "radiusKm": 30,
+          "premium": 1.06,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -4196,7 +4367,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VIJAYAWADA_bottle_2l": {
           "date": "2026-10-05",
@@ -4205,8 +4376,11 @@
           "area": "Benz Circle",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 16.4971,
-          "lng": 80.6554,
+          "lat": 16.5062,
+          "lng": 80.648,
+          "radiusKm": 30,
+          "premium": 1.06,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -4219,7 +4393,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VIJAYAWADA_bottle_500ml": {
           "date": "2026-10-05",
@@ -4228,8 +4402,11 @@
           "area": "Benz Circle",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 16.4971,
-          "lng": 80.6554,
+          "lat": 16.5062,
+          "lng": 80.648,
+          "radiusKm": 30,
+          "premium": 1.06,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -4242,7 +4419,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VIJAYAWADA_spray_200ml": {
           "date": "2026-10-05",
@@ -4251,8 +4428,11 @@
           "area": "Benz Circle",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 16.4971,
-          "lng": 80.6554,
+          "lat": 16.5062,
+          "lng": 80.648,
+          "radiusKm": 30,
+          "premium": 1.06,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -4265,7 +4445,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TIRUPUR_pouch_1l": {
           "date": "2026-10-05",
@@ -4274,8 +4454,11 @@
           "area": "Kumar Nagar",
           "deliveryMin": "9 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.1235,
-          "lng": 77.3489,
+          "lat": 11.1085,
+          "lng": 77.3411,
+          "radiusKm": 25,
+          "premium": 1.03,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -4288,7 +4471,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TIRUPUR_bottle_1l": {
           "date": "2026-10-05",
@@ -4297,8 +4480,11 @@
           "area": "Kumar Nagar",
           "deliveryMin": "9 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.1235,
-          "lng": 77.3489,
+          "lat": 11.1085,
+          "lng": 77.3411,
+          "radiusKm": 25,
+          "premium": 1.03,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -4311,7 +4497,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TIRUPUR_bottle_2l": {
           "date": "2026-10-05",
@@ -4320,8 +4506,11 @@
           "area": "Kumar Nagar",
           "deliveryMin": "9 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.1235,
-          "lng": 77.3489,
+          "lat": 11.1085,
+          "lng": 77.3411,
+          "radiusKm": 25,
+          "premium": 1.03,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -4334,7 +4523,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TIRUPUR_bottle_500ml": {
           "date": "2026-10-05",
@@ -4343,8 +4532,11 @@
           "area": "Kumar Nagar",
           "deliveryMin": "9 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.1235,
-          "lng": 77.3489,
+          "lat": 11.1085,
+          "lng": 77.3411,
+          "radiusKm": 25,
+          "premium": 1.03,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -4357,7 +4549,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TIRUPUR_spray_200ml": {
           "date": "2026-10-05",
@@ -4366,8 +4558,11 @@
           "area": "Kumar Nagar",
           "deliveryMin": "9 MINS",
           "state": "Tamil Nadu",
-          "lat": 11.1235,
-          "lng": 77.3489,
+          "lat": 11.1085,
+          "lng": 77.3411,
+          "radiusKm": 25,
+          "premium": 1.03,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -4380,7 +4575,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KOCHI_pouch_1l": {
           "date": "2026-10-05",
@@ -4389,8 +4584,11 @@
           "area": "Kaloor",
           "deliveryMin": "11 MINS",
           "state": "Kerala",
-          "lat": 9.9982,
-          "lng": 76.2999,
+          "lat": 9.9312,
+          "lng": 76.2673,
+          "radiusKm": 38,
+          "premium": 1.1,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -4403,7 +4601,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KOCHI_bottle_1l": {
           "date": "2026-10-05",
@@ -4412,8 +4610,11 @@
           "area": "Kaloor",
           "deliveryMin": "11 MINS",
           "state": "Kerala",
-          "lat": 9.9982,
-          "lng": 76.2999,
+          "lat": 9.9312,
+          "lng": 76.2673,
+          "radiusKm": 38,
+          "premium": 1.1,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -4426,7 +4627,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KOCHI_bottle_2l": {
           "date": "2026-10-05",
@@ -4435,8 +4636,11 @@
           "area": "Kaloor",
           "deliveryMin": "11 MINS",
           "state": "Kerala",
-          "lat": 9.9982,
-          "lng": 76.2999,
+          "lat": 9.9312,
+          "lng": 76.2673,
+          "radiusKm": 38,
+          "premium": 1.1,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -4449,7 +4653,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KOCHI_bottle_500ml": {
           "date": "2026-10-05",
@@ -4458,8 +4662,11 @@
           "area": "Kaloor",
           "deliveryMin": "11 MINS",
           "state": "Kerala",
-          "lat": 9.9982,
-          "lng": 76.2999,
+          "lat": 9.9312,
+          "lng": 76.2673,
+          "radiusKm": 38,
+          "premium": 1.1,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -4472,7 +4679,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KOCHI_spray_200ml": {
           "date": "2026-10-05",
@@ -4481,8 +4688,11 @@
           "area": "Kaloor",
           "deliveryMin": "11 MINS",
           "state": "Kerala",
-          "lat": 9.9982,
-          "lng": 76.2999,
+          "lat": 9.9312,
+          "lng": 76.2673,
+          "radiusKm": 38,
+          "premium": 1.1,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -4495,7 +4705,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "ERODE_pouch_1l": {
           "date": "2026-10-05",
@@ -4506,6 +4716,9 @@
           "state": "Tamil Nadu",
           "lat": 11.341,
           "lng": 77.7172,
+          "radiusKm": 25,
+          "premium": 0.96,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -4518,7 +4731,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "ERODE_bottle_1l": {
           "date": "2026-10-05",
@@ -4529,6 +4742,9 @@
           "state": "Tamil Nadu",
           "lat": 11.341,
           "lng": 77.7172,
+          "radiusKm": 25,
+          "premium": 0.96,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -4541,7 +4757,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "ERODE_bottle_2l": {
           "date": "2026-10-05",
@@ -4552,6 +4768,9 @@
           "state": "Tamil Nadu",
           "lat": 11.341,
           "lng": 77.7172,
+          "radiusKm": 25,
+          "premium": 0.96,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -4564,7 +4783,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "ERODE_bottle_500ml": {
           "date": "2026-10-05",
@@ -4575,6 +4794,9 @@
           "state": "Tamil Nadu",
           "lat": 11.341,
           "lng": 77.7172,
+          "radiusKm": 25,
+          "premium": 0.96,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -4587,7 +4809,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "ERODE_spray_200ml": {
           "date": "2026-10-05",
@@ -4598,6 +4820,9 @@
           "state": "Tamil Nadu",
           "lat": 11.341,
           "lng": 77.7172,
+          "radiusKm": 25,
+          "premium": 0.96,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -4610,7 +4835,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VELLORE_pouch_1l": {
           "date": "2026-10-05",
@@ -4619,8 +4844,11 @@
           "area": "Gandhi Nagar",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 12.9365,
+          "lat": 12.9165,
           "lng": 79.1325,
+          "radiusKm": 25,
+          "premium": 0.97,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -4633,7 +4861,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VELLORE_bottle_1l": {
           "date": "2026-10-05",
@@ -4642,8 +4870,11 @@
           "area": "Gandhi Nagar",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 12.9365,
+          "lat": 12.9165,
           "lng": 79.1325,
+          "radiusKm": 25,
+          "premium": 0.97,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -4656,7 +4887,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VELLORE_bottle_2l": {
           "date": "2026-10-05",
@@ -4665,8 +4896,11 @@
           "area": "Gandhi Nagar",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 12.9365,
+          "lat": 12.9165,
           "lng": 79.1325,
+          "radiusKm": 25,
+          "premium": 0.97,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -4679,7 +4913,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VELLORE_bottle_500ml": {
           "date": "2026-10-05",
@@ -4688,8 +4922,11 @@
           "area": "Gandhi Nagar",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 12.9365,
+          "lat": 12.9165,
           "lng": 79.1325,
+          "radiusKm": 25,
+          "premium": 0.97,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -4702,7 +4939,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "VELLORE_spray_200ml": {
           "date": "2026-10-05",
@@ -4711,8 +4948,11 @@
           "area": "Gandhi Nagar",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 12.9365,
+          "lat": 12.9165,
           "lng": 79.1325,
+          "radiusKm": 25,
+          "premium": 0.97,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -4725,7 +4965,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "THANJAVUR_pouch_1l": {
           "date": "2026-10-05",
@@ -4734,8 +4974,11 @@
           "area": "Medical College Rd",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 10.767,
-          "lng": 79.1178,
+          "lat": 10.787,
+          "lng": 79.1378,
+          "radiusKm": 20,
+          "premium": 0.94,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -4748,7 +4991,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "THANJAVUR_bottle_1l": {
           "date": "2026-10-05",
@@ -4757,8 +5000,11 @@
           "area": "Medical College Rd",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 10.767,
-          "lng": 79.1178,
+          "lat": 10.787,
+          "lng": 79.1378,
+          "radiusKm": 20,
+          "premium": 0.94,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -4771,7 +5017,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "THANJAVUR_bottle_2l": {
           "date": "2026-10-05",
@@ -4780,8 +5026,11 @@
           "area": "Medical College Rd",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 10.767,
-          "lng": 79.1178,
+          "lat": 10.787,
+          "lng": 79.1378,
+          "radiusKm": 20,
+          "premium": 0.94,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -4794,7 +5043,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "THANJAVUR_bottle_500ml": {
           "date": "2026-10-05",
@@ -4803,8 +5052,11 @@
           "area": "Medical College Rd",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 10.767,
-          "lng": 79.1178,
+          "lat": 10.787,
+          "lng": 79.1378,
+          "radiusKm": 20,
+          "premium": 0.94,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -4817,7 +5069,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "THANJAVUR_spray_200ml": {
           "date": "2026-10-05",
@@ -4826,8 +5078,11 @@
           "area": "Medical College Rd",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 10.767,
-          "lng": 79.1178,
+          "lat": 10.787,
+          "lng": 79.1378,
+          "radiusKm": 20,
+          "premium": 0.94,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -4840,7 +5095,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TIRUNELVELI_pouch_1l": {
           "date": "2026-10-05",
@@ -4851,6 +5106,9 @@
           "state": "Tamil Nadu",
           "lat": 8.7139,
           "lng": 77.7567,
+          "radiusKm": 25,
+          "premium": 0.93,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -4863,7 +5121,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TIRUNELVELI_bottle_1l": {
           "date": "2026-10-05",
@@ -4874,6 +5132,9 @@
           "state": "Tamil Nadu",
           "lat": 8.7139,
           "lng": 77.7567,
+          "radiusKm": 25,
+          "premium": 0.93,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -4886,7 +5147,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TIRUNELVELI_bottle_2l": {
           "date": "2026-10-05",
@@ -4897,6 +5158,9 @@
           "state": "Tamil Nadu",
           "lat": 8.7139,
           "lng": 77.7567,
+          "radiusKm": 25,
+          "premium": 0.93,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -4909,7 +5173,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TIRUNELVELI_bottle_500ml": {
           "date": "2026-10-05",
@@ -4920,6 +5184,9 @@
           "state": "Tamil Nadu",
           "lat": 8.7139,
           "lng": 77.7567,
+          "radiusKm": 25,
+          "premium": 0.93,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -4932,7 +5199,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "TIRUNELVELI_spray_200ml": {
           "date": "2026-10-05",
@@ -4943,6 +5210,9 @@
           "state": "Tamil Nadu",
           "lat": 8.7139,
           "lng": 77.7567,
+          "radiusKm": 25,
+          "premium": 0.93,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -4955,7 +5225,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MYSORE_pouch_1l": {
           "date": "2026-10-05",
@@ -4964,8 +5234,11 @@
           "area": "Gokulam",
           "deliveryMin": "9 MINS",
           "state": "Karnataka",
-          "lat": 12.3358,
-          "lng": 76.6294,
+          "lat": 12.2958,
+          "lng": 76.6394,
+          "radiusKm": 30,
+          "premium": 1.02,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -4978,7 +5251,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MYSORE_bottle_1l": {
           "date": "2026-10-05",
@@ -4987,8 +5260,11 @@
           "area": "Gokulam",
           "deliveryMin": "9 MINS",
           "state": "Karnataka",
-          "lat": 12.3358,
-          "lng": 76.6294,
+          "lat": 12.2958,
+          "lng": 76.6394,
+          "radiusKm": 30,
+          "premium": 1.02,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -5001,7 +5277,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MYSORE_bottle_2l": {
           "date": "2026-10-05",
@@ -5010,8 +5286,11 @@
           "area": "Gokulam",
           "deliveryMin": "9 MINS",
           "state": "Karnataka",
-          "lat": 12.3358,
-          "lng": 76.6294,
+          "lat": 12.2958,
+          "lng": 76.6394,
+          "radiusKm": 30,
+          "premium": 1.02,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -5024,7 +5303,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MYSORE_bottle_500ml": {
           "date": "2026-10-05",
@@ -5033,8 +5312,11 @@
           "area": "Gokulam",
           "deliveryMin": "9 MINS",
           "state": "Karnataka",
-          "lat": 12.3358,
-          "lng": 76.6294,
+          "lat": 12.2958,
+          "lng": 76.6394,
+          "radiusKm": 30,
+          "premium": 1.02,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -5047,7 +5329,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "MYSORE_spray_200ml": {
           "date": "2026-10-05",
@@ -5056,8 +5338,11 @@
           "area": "Gokulam",
           "deliveryMin": "9 MINS",
           "state": "Karnataka",
-          "lat": 12.3358,
-          "lng": 76.6294,
+          "lat": 12.2958,
+          "lng": 76.6394,
+          "radiusKm": 30,
+          "premium": 1.02,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -5070,7 +5355,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "NELLORE_pouch_1l": {
           "date": "2026-10-05",
@@ -5079,8 +5364,11 @@
           "area": "Magunta Layout",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 14.4326,
-          "lng": 79.9765,
+          "lat": 14.4426,
+          "lng": 79.9865,
+          "radiusKm": 25,
+          "premium": 0.98,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -5093,7 +5381,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "NELLORE_bottle_1l": {
           "date": "2026-10-05",
@@ -5102,8 +5390,11 @@
           "area": "Magunta Layout",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 14.4326,
-          "lng": 79.9765,
+          "lat": 14.4426,
+          "lng": 79.9865,
+          "radiusKm": 25,
+          "premium": 0.98,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -5116,7 +5407,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "NELLORE_bottle_2l": {
           "date": "2026-10-05",
@@ -5125,8 +5416,11 @@
           "area": "Magunta Layout",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 14.4326,
-          "lng": 79.9765,
+          "lat": 14.4426,
+          "lng": 79.9865,
+          "radiusKm": 25,
+          "premium": 0.98,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -5139,7 +5433,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "NELLORE_bottle_500ml": {
           "date": "2026-10-05",
@@ -5148,8 +5442,11 @@
           "area": "Magunta Layout",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 14.4326,
-          "lng": 79.9765,
+          "lat": 14.4426,
+          "lng": 79.9865,
+          "radiusKm": 25,
+          "premium": 0.98,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -5162,7 +5459,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "NELLORE_spray_200ml": {
           "date": "2026-10-05",
@@ -5171,8 +5468,11 @@
           "area": "Magunta Layout",
           "deliveryMin": "9 MINS",
           "state": "Andhra Pradesh",
-          "lat": 14.4326,
-          "lng": 79.9765,
+          "lat": 14.4426,
+          "lng": 79.9865,
+          "radiusKm": 25,
+          "premium": 0.98,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -5185,7 +5485,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "THOOTHUKUDI_pouch_1l": {
           "date": "2026-10-05",
@@ -5194,8 +5494,11 @@
           "area": "Millerpuram",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 8.7842,
+          "lat": 8.7642,
           "lng": 78.1348,
+          "radiusKm": 22,
+          "premium": 0.92,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -5208,7 +5511,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "THOOTHUKUDI_bottle_1l": {
           "date": "2026-10-05",
@@ -5217,8 +5520,11 @@
           "area": "Millerpuram",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 8.7842,
+          "lat": 8.7642,
           "lng": 78.1348,
+          "radiusKm": 22,
+          "premium": 0.92,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -5231,7 +5537,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "THOOTHUKUDI_bottle_2l": {
           "date": "2026-10-05",
@@ -5240,8 +5546,11 @@
           "area": "Millerpuram",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 8.7842,
+          "lat": 8.7642,
           "lng": 78.1348,
+          "radiusKm": 22,
+          "premium": 0.92,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -5254,7 +5563,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "THOOTHUKUDI_bottle_500ml": {
           "date": "2026-10-05",
@@ -5263,8 +5572,11 @@
           "area": "Millerpuram",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 8.7842,
+          "lat": 8.7642,
           "lng": 78.1348,
+          "radiusKm": 22,
+          "premium": 0.92,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -5277,7 +5589,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "THOOTHUKUDI_spray_200ml": {
           "date": "2026-10-05",
@@ -5286,8 +5598,11 @@
           "area": "Millerpuram",
           "deliveryMin": "8 MINS",
           "state": "Tamil Nadu",
-          "lat": 8.7842,
+          "lat": 8.7642,
           "lng": 78.1348,
+          "radiusKm": 22,
+          "premium": 0.92,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -5300,7 +5615,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KANCHIPURAM_pouch_1l": {
           "date": "2026-10-05",
@@ -5309,8 +5624,11 @@
           "area": "Gandhi Road",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 12.8342,
-          "lng": 79.7036,
+          "lat": 12.8387,
+          "lng": 79.7016,
+          "radiusKm": 20,
+          "premium": 1,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -5323,7 +5641,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KANCHIPURAM_bottle_1l": {
           "date": "2026-10-05",
@@ -5332,8 +5650,11 @@
           "area": "Gandhi Road",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 12.8342,
-          "lng": 79.7036,
+          "lat": 12.8387,
+          "lng": 79.7016,
+          "radiusKm": 20,
+          "premium": 1,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -5346,7 +5667,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KANCHIPURAM_bottle_2l": {
           "date": "2026-10-05",
@@ -5355,8 +5676,11 @@
           "area": "Gandhi Road",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 12.8342,
-          "lng": 79.7036,
+          "lat": 12.8387,
+          "lng": 79.7016,
+          "radiusKm": 20,
+          "premium": 1,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -5369,7 +5693,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KANCHIPURAM_bottle_500ml": {
           "date": "2026-10-05",
@@ -5378,8 +5702,11 @@
           "area": "Gandhi Road",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 12.8342,
-          "lng": 79.7036,
+          "lat": 12.8387,
+          "lng": 79.7016,
+          "radiusKm": 20,
+          "premium": 1,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -5392,7 +5719,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KANCHIPURAM_spray_200ml": {
           "date": "2026-10-05",
@@ -5401,8 +5728,11 @@
           "area": "Gandhi Road",
           "deliveryMin": "7 MINS",
           "state": "Tamil Nadu",
-          "lat": 12.8342,
-          "lng": 79.7036,
+          "lat": 12.8387,
+          "lng": 79.7016,
+          "radiusKm": 20,
+          "premium": 1,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -5415,7 +5745,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "WARANGAL_pouch_1l": {
           "date": "2026-10-05",
@@ -5424,8 +5754,11 @@
           "area": "Hanamkonda",
           "deliveryMin": "10 MINS",
           "state": "Telangana",
-          "lat": 17.9989,
-          "lng": 79.5641,
+          "lat": 17.9784,
+          "lng": 79.5941,
+          "radiusKm": 28,
+          "premium": 0.99,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -5438,7 +5771,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "WARANGAL_bottle_1l": {
           "date": "2026-10-05",
@@ -5447,8 +5780,11 @@
           "area": "Hanamkonda",
           "deliveryMin": "10 MINS",
           "state": "Telangana",
-          "lat": 17.9989,
-          "lng": 79.5641,
+          "lat": 17.9784,
+          "lng": 79.5941,
+          "radiusKm": 28,
+          "premium": 0.99,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -5461,7 +5797,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "WARANGAL_bottle_2l": {
           "date": "2026-10-05",
@@ -5470,8 +5806,11 @@
           "area": "Hanamkonda",
           "deliveryMin": "10 MINS",
           "state": "Telangana",
-          "lat": 17.9989,
-          "lng": 79.5641,
+          "lat": 17.9784,
+          "lng": 79.5941,
+          "radiusKm": 28,
+          "premium": 0.99,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -5484,7 +5823,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "WARANGAL_bottle_500ml": {
           "date": "2026-10-05",
@@ -5493,8 +5832,11 @@
           "area": "Hanamkonda",
           "deliveryMin": "10 MINS",
           "state": "Telangana",
-          "lat": 17.9989,
-          "lng": 79.5641,
+          "lat": 17.9784,
+          "lng": 79.5941,
+          "radiusKm": 28,
+          "premium": 0.99,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -5507,7 +5849,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "WARANGAL_spray_200ml": {
           "date": "2026-10-05",
@@ -5516,8 +5858,11 @@
           "area": "Hanamkonda",
           "deliveryMin": "10 MINS",
           "state": "Telangana",
-          "lat": 17.9989,
-          "lng": 79.5641,
+          "lat": 17.9784,
+          "lng": 79.5941,
+          "radiusKm": 28,
+          "premium": 0.99,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -5530,7 +5875,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KARUR_pouch_1l": {
           "date": "2026-10-05",
@@ -5541,6 +5886,9 @@
           "state": "Tamil Nadu",
           "lat": 10.9601,
           "lng": 78.0766,
+          "radiusKm": 20,
+          "premium": 0.95,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -5553,7 +5901,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KARUR_bottle_1l": {
           "date": "2026-10-05",
@@ -5564,6 +5912,9 @@
           "state": "Tamil Nadu",
           "lat": 10.9601,
           "lng": 78.0766,
+          "radiusKm": 20,
+          "premium": 0.95,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -5576,7 +5927,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KARUR_bottle_2l": {
           "date": "2026-10-05",
@@ -5587,6 +5938,9 @@
           "state": "Tamil Nadu",
           "lat": 10.9601,
           "lng": 78.0766,
+          "radiusKm": 20,
+          "premium": 0.95,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -5599,7 +5953,7 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KARUR_bottle_500ml": {
           "date": "2026-10-05",
@@ -5610,6 +5964,9 @@
           "state": "Tamil Nadu",
           "lat": 10.9601,
           "lng": 78.0766,
+          "radiusKm": 20,
+          "premium": 0.95,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -5622,7 +5979,7 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
         "KARUR_spray_200ml": {
           "date": "2026-10-05",
@@ -5633,6 +5990,9 @@
           "state": "Tamil Nadu",
           "lat": 10.9601,
           "lng": 78.0766,
+          "radiusKm": 20,
+          "premium": 0.95,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -5645,17 +6005,20 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
-        "CENTRAL GOA_pouch_1l": {
+        "CENTRAL_GOA_pouch_1l": {
           "date": "2026-10-05",
-          "cityId": "CENTRAL GOA",
+          "cityId": "CENTRAL_GOA",
           "cityName": "Central Goa",
           "area": "Panaji",
           "deliveryMin": "11 MINS",
           "state": "Goa",
           "lat": 15.4909,
           "lng": 73.8278,
+          "radiusKm": 35,
+          "premium": 1.14,
+          "darkStoreLocked": true,
           "skuId": "pouch_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr",
           "skuShortName": "Pouch 1L",
@@ -5668,17 +6031,20 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
-        "CENTRAL GOA_bottle_1l": {
+        "CENTRAL_GOA_bottle_1l": {
           "date": "2026-10-05",
-          "cityId": "CENTRAL GOA",
+          "cityId": "CENTRAL_GOA",
           "cityName": "Central Goa",
           "area": "Panaji",
           "deliveryMin": "11 MINS",
           "state": "Goa",
           "lat": 15.4909,
           "lng": 73.8278,
+          "radiusKm": 35,
+          "premium": 1.14,
+          "darkStoreLocked": true,
           "skuId": "bottle_1l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr",
           "skuShortName": "Bottle 1L",
@@ -5691,17 +6057,20 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
-        "CENTRAL GOA_bottle_2l": {
+        "CENTRAL_GOA_bottle_2l": {
           "date": "2026-10-05",
-          "cityId": "CENTRAL GOA",
+          "cityId": "CENTRAL_GOA",
           "cityName": "Central Goa",
           "area": "Panaji",
           "deliveryMin": "11 MINS",
           "state": "Goa",
           "lat": 15.4909,
           "lng": 73.8278,
+          "radiusKm": 35,
+          "premium": 1.14,
+          "darkStoreLocked": true,
           "skuId": "bottle_2l",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr",
           "skuShortName": "Bottle 2L",
@@ -5714,17 +6083,20 @@
           "stockStatus": "In Stock",
           "rating": "4.5",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
-        "CENTRAL GOA_bottle_500ml": {
+        "CENTRAL_GOA_bottle_500ml": {
           "date": "2026-10-05",
-          "cityId": "CENTRAL GOA",
+          "cityId": "CENTRAL_GOA",
           "cityName": "Central Goa",
           "area": "Panaji",
           "deliveryMin": "11 MINS",
           "state": "Goa",
           "lat": 15.4909,
           "lng": 73.8278,
+          "radiusKm": 35,
+          "premium": 1.14,
+          "darkStoreLocked": true,
           "skuId": "bottle_500ml",
           "skuName": "GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml",
           "skuShortName": "Bottle 500ml",
@@ -5737,17 +6109,20 @@
           "stockStatus": "In Stock",
           "rating": "4.4",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         },
-        "CENTRAL GOA_spray_200ml": {
+        "CENTRAL_GOA_spray_200ml": {
           "date": "2026-10-05",
-          "cityId": "CENTRAL GOA",
+          "cityId": "CENTRAL_GOA",
           "cityName": "Central Goa",
           "area": "Panaji",
           "deliveryMin": "11 MINS",
           "state": "Goa",
           "lat": 15.4909,
           "lng": 73.8278,
+          "radiusKm": 35,
+          "premium": 1.14,
+          "darkStoreLocked": true,
           "skuId": "spray_200ml",
           "skuName": "Gem's Gold Groundnut Oil Reusable Spray 200.0 ml",
           "skuShortName": "Spray 200ml",
@@ -5760,7 +6135,7 @@
           "stockStatus": "In Stock",
           "rating": "4.6",
           "isListed": true,
-          "lastVerifiedAt": "2026-10-05T04:09:35.176Z"
+          "lastVerifiedAt": "2026-10-05T05:42:41.069Z"
         }
       }
     }

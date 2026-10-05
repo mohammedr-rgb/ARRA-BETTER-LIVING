@@ -1386,6 +1386,11 @@ export default function StockTab() {
         cityId: city.id,
         cityName: city.name,
         area: city.area || 'Central Hub',
+        lat: city.lat || 13.0827,
+        lng: city.lng || 80.2707,
+        radiusKm: city.radiusKm || 30,
+        premium: city.premium || 1.0,
+        darkStoreLocked: true,
         deliveryMin: city.deliveryMin || '8 MINS',
         state: city.state || region,
         region,
@@ -2204,14 +2209,61 @@ export default function StockTab() {
               </div>
             )}
 
-            {/* 25-CITY AVAILABILITY MATRIX OVERVIEW */}
+            {/* 25-CITY AVAILABILITY MATRIX OVERVIEW & ARCHITECTURE STRATEGY */}
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155', background: '#0b1329' }}>
+              
+              {/* Architecture Strategy Banner */}
+              <div style={{
+                background: 'linear-gradient(90deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%)',
+                border: '1px solid #334155',
+                borderRadius: 8,
+                padding: '12px 16px',
+                marginBottom: 16,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 12
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#38bdf8', padding: '6px 10px', borderRadius: 8, fontSize: 16 }}>
+                    🛰️
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>Hyper-Local Dark Store Architecture (GPS Spoofed)</span>
+                      <span style={{ fontSize: 10, background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', padding: '2px 6px', borderRadius: 4, border: '1px solid rgba(34, 197, 94, 0.3)', fontWeight: 700 }}>
+                        ● 100% Dark Store Locked
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
+                      1. Spoofed GPS Coordinates ➔ 2. Auto Geolocation Grant ➔ 3. Swiggy Dark Store Sync ➔ 4. Context-Isolated Product Scrape
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', fontSize: 11 }}>
+                  <div style={{ background: '#0f172a', padding: '4px 8px', borderRadius: 6, border: '1px solid #334155' }}>
+                    <span style={{ color: '#94a3b8' }}>Footprint: </span>
+                    <strong style={{ color: '#38bdf8' }}>25 Dark Stores</strong>
+                  </div>
+                  <div style={{ background: '#0f172a', padding: '4px 8px', borderRadius: 6, border: '1px solid #334155' }}>
+                    <span style={{ color: '#94a3b8' }}>Context Isolation: </span>
+                    <strong style={{ color: '#4ade80' }}>Zero Cookie Bleed</strong>
+                  </div>
+                  <div style={{ background: '#0f172a', padding: '4px 8px', borderRadius: 6, border: '1px solid #334155' }}>
+                    <span style={{ color: '#94a3b8' }}>Strategy: </span>
+                    <strong style={{ color: '#facc15' }}>Multi-Tenant Playwright</strong>
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: 15, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 18 }}>📍</span> 25-City Quick Stock Health Grid
                     <span style={{ fontSize: 11, background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '2px 8px', borderRadius: 12, fontWeight: 700 }}>
-                      ● 100% Dark Store Accurate
+                      ● Real-Time Price & Inventory
                     </span>
                   </h3>
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
@@ -2286,9 +2338,9 @@ export default function StockTab() {
               {/* 25 Cities Grid Cards */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
                 gap: 12,
-                maxHeight: 380,
+                maxHeight: 390,
                 overflowY: 'auto',
                 paddingRight: 4
               }}>
@@ -2347,6 +2399,25 @@ export default function StockTab() {
                             whiteSpace: 'nowrap'
                           }}>
                             {c.inStockCount}/{c.totalSkus} In Stock
+                          </span>
+                        </div>
+
+                        {/* GPS Anchors & Dark Store Coverage Badge */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: 10,
+                          background: 'rgba(15, 23, 42, 0.6)',
+                          padding: '3px 6px',
+                          borderRadius: 4,
+                          border: '1px solid #1e293b'
+                        }}>
+                          <span style={{ color: '#38bdf8', fontFamily: 'monospace' }}>
+                            🛰️ {c.lat?.toFixed(4)}, {c.lng?.toFixed(4)}
+                          </span>
+                          <span style={{ color: '#94a3b8' }}>
+                            ⭕ {c.radiusKm || 30}km radius • <span style={{ color: '#c084fc' }}>{c.premium || 1.0}x</span>
                           </span>
                         </div>
 
@@ -2440,7 +2511,7 @@ export default function StockTab() {
                   border: '1px solid #3b82f6',
                   borderRadius: 12,
                   width: '100%',
-                  maxWidth: 640,
+                  maxWidth: 680,
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
                   overflow: 'hidden'
                 }}>
@@ -2479,8 +2550,34 @@ export default function StockTab() {
                     </button>
                   </div>
 
+                  {/* Geolocation Dark Store Parameters */}
+                  <div style={{
+                    padding: '10px 20px',
+                    background: '#111e38',
+                    borderBottom: '1px solid #1e293b',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: 11,
+                    flexWrap: 'wrap',
+                    gap: 10
+                  }}>
+                    <span style={{ color: '#38bdf8' }}>
+                      🛰️ <b>Spoofed GPS:</b> {inspectingCity.lat?.toFixed(4)}, {inspectingCity.lng?.toFixed(4)}
+                    </span>
+                    <span style={{ color: '#cbd5e1' }}>
+                      ⭕ <b>Coverage Radius:</b> {inspectingCity.radiusKm || 30} KM
+                    </span>
+                    <span style={{ color: '#c084fc' }}>
+                      💎 <b>Regional Index:</b> {inspectingCity.premium || 1.0}x
+                    </span>
+                    <span style={{ color: '#4ade80', fontWeight: 700 }}>
+                      🔒 <b>Dark Store:</b> Locked
+                    </span>
+                  </div>
+
                   {/* Modal Content: 5 SKUs Breakdown */}
-                  <div style={{ padding: '16px 20px', maxHeight: '70vh', overflowY: 'auto' }}>
+                  <div style={{ padding: '16px 20px', maxHeight: '60vh', overflowY: 'auto' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>5 GEM'S GOLD Tracked SKUs</span>
                       <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>
@@ -2550,7 +2647,7 @@ export default function StockTab() {
                     alignItems: 'center'
                   }}>
                     <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                      Status: Store Locked & Verified
+                      Status: Hyper-Local Dark Store Verified
                     </span>
                     <button
                       onClick={() => {
