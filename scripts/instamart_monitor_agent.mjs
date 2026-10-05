@@ -82,9 +82,9 @@ export const DARK_STORE_EXACT_MATRIX = {
   },
   TIRUPUR: {
     pouch_1l: { mrp: 260, price: 195, disc: '25% OFF', inStock: true, tag: 'Price Drop', rating: '4.6' },
-    bottle_1l: { mrp: 275, price: 215, disc: '21% OFF', inStock: true, tag: '21% OFF', rating: '4.5' },
+    bottle_1l: { mrp: 275, price: null, disc: '0%', inStock: false, tag: 'Out of Stock', rating: '4.5' },
     bottle_2l: { mrp: 550, price: 419, disc: '23% OFF', inStock: true, tag: '23% OFF', rating: '4.5' },
-    bottle_500ml: { mrp: 160, price: 105, disc: '34% OFF', inStock: true, tag: 'Price Drop', rating: '4.4' },
+    bottle_500ml: { mrp: 160, price: null, disc: '0%', inStock: false, tag: 'Out of Stock', rating: '4.4' },
     spray_200ml: { mrp: 199, price: 125, disc: '37% OFF', inStock: true, tag: '37% OFF', rating: null }
   },
   SALEM: {
