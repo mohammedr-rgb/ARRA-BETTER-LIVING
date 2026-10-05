@@ -7,23 +7,29 @@ on:
     - cron: '30 12 * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
+# Explicit permissions required to push commits back to the repo
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
-
-      - name: Install Playwright Browsers
-        run: npx playwright install chromium --with-deps
 
       - name: Run Instamart Monitor Agent
         run: npm run monitor:instamart
@@ -36,8 +42,17 @@ jobs:
 
       - name: Commit and Push Updated Snapshots
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "Instamart Monitor Agent"
-          git add public/data/instamart_gems_gold_live.json public/data/instamart_daily_history.json public/data/instamart_gems_gold_25cities.csv public/data/instamart_live_snapshot.json public/data/instamart_parity_export.csv
-          git diff-index --quiet HEAD || git commit -m "chore(data): auto-update Instamart live price snapshot [skip ci]"
-          git push
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A public/data/
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "chore(data): auto-update Instamart live price snapshot [skip ci]"
+            git push origin master
+          else
+            echo "No data changes to commit."
+          fi
+
+      - name: Deploy to GitHub Pages
+        run: npm run deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
