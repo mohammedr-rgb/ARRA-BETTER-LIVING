@@ -272,12 +272,13 @@ export default function StockTab() {
     setError(null)
     try {
       const baseUrl = import.meta.env.BASE_URL || ''
+      const ts = Date.now()
       const [resComp, resInsta, resLiveSnap, resGemsLive, resGemsHist] = await Promise.all([
-        fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_COMPETITORS}`),
-        fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_INSTA}`),
-        fetch(`${baseUrl}data/instamart_live_snapshot.json`).catch(() => null),
-        fetch(`${baseUrl}data/instamart_gems_gold_live.json`).catch(() => null),
-        fetch(`${baseUrl}data/instamart_daily_history.json`).catch(() => null)
+        fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_COMPETITORS}&t=${ts}`, { cache: 'no-store' }),
+        fetch(`https://docs.google.com/spreadsheets/d/${PARITY_SPREADSHEET_ID}/export?format=csv&gid=${GID_INSTA}&t=${ts}`, { cache: 'no-store' }),
+        fetch(`${baseUrl}data/instamart_live_snapshot.json?t=${ts}`, { cache: 'no-store' }).catch(() => null),
+        fetch(`${baseUrl}data/instamart_gems_gold_live.json?t=${ts}`, { cache: 'no-store' }).catch(() => null),
+        fetch(`${baseUrl}data/instamart_daily_history.json?t=${ts}`, { cache: 'no-store' }).catch(() => null)
       ])
 
       if (!resComp.ok || !resInsta.ok) {
@@ -301,7 +302,7 @@ export default function StockTab() {
       if (resGemsLive && resGemsLive.ok) {
         const gemsJson = await resGemsLive.json()
         setGemsGoldLive(gemsJson)
-        if (gemsJson.date && !gemsSelectedDate) {
+        if (gemsJson.date) {
           setGemsSelectedDate(gemsJson.date)
         }
       }
@@ -318,7 +319,7 @@ export default function StockTab() {
       setLoading(false)
       setIsRefreshing(false)
     }
-  }, [gemsSelectedDate])
+  }, [])
 
   useEffect(() => {
     loadData()
