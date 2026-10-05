@@ -1,1217 +1,1065 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { num, parseCSV, MONTH_NAMES } from '../lib/utils'
-import { ProfileSection } from '../components/ui'
+import { num, parseCSV } from '../lib/utils'
+import { ProfileSection, CSVButton } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell
 } from 'recharts'
 
-const SPREADSHEET_ID = '11kG7PuGGRWhABPFS-aErGvkHHf5tQPFf7r_J4WOE_ks'
-
-const SALES_SUBTABS = [
-  { id: 'ads', label: 'Ads - Overall', icon: '📢' },
-  { id: 'amazon', label: 'Raw - Amazon Sales', gid: '0', icon: '🛒' },
-  { id: 'insta', label: 'Raw - Insta Sales', gid: '534975184', icon: '⚡' },
-  { id: 'blinkit', label: 'Raw - Partner Blinkit Sales', gid: '45158830', icon: '🟡' },
-  { id: 'seller', label: 'Raw - Amazon Seller Sales', gid: '134290562', icon: '📦' },
-]
-
-const ADS_SHEETS = [
-  { platform: 'Instamart', gid: '2072392090', color: '#f97316', icon: '⚡' },
-  { platform: 'Blinkit', gid: '965711422', color: '#eab308', icon: '🟡' },
-  { platform: 'Amazon Vendor', gid: '2141078441', color: '#3b82f6', icon: '🛒' },
-  { platform: 'Amazon Seller', gid: '752627896', color: '#10b981', icon: '📦' },
-]
-
-// Extract month key (year * 12 + 0-indexed month)
-function parseDateMonthKey(dateStr, monthStr) {
-  if (monthStr) {
-    const s = String(monthStr).trim().toLowerCase()
-    const fullMonths = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
-    const idx = fullMonths.indexOf(s)
-    if (idx !== -1) return 2026 * 12 + idx
-    const shortIdx = MONTH_NAMES.map(m => m.toLowerCase()).indexOf(s.slice(0, 3))
-    if (shortIdx !== -1) return 2026 * 12 + shortIdx
-  }
-  if (dateStr) {
-    const s = String(dateStr).trim()
-    const parts = s.split(/[/-]/)
-    if (parts.length === 3) {
-      let y = parseInt(parts[2], 10)
-      let m = parseInt(parts[1], 10) - 1
-      if (parts[0].length === 4) {
-        y = parseInt(parts[0], 10)
-        m = parseInt(parts[1], 10) - 1
-      } else if (parts[1] > 12) {
-        m = parseInt(parts[0], 10) - 1
-      }
-      if (!isNaN(y) && !isNaN(m) && y > 2000 && m >= 0 && m < 12) {
-        return y * 12 + m
-      }
-    }
-    const d = new Date(s)
-    if (!isNaN(d.getTime())) {
-      return d.getFullYear() * 12 + d.getMonth()
-    }
-  }
-  return null
+function formatINR(val) {
+  if (val === null || val === undefined || isNaN(val)) return '0'
+  return Math.round(val).toLocaleString('en-IN')
 }
 
-function extractRowMonthKey(row, subtabId) {
-  if (!row) return null
+const NEW_SPREADSHEET_ID = '1auxWTw7MntZdYHNb8hZZqWvG3WVQ60BS5Jz2-8kYcWE'
 
-  // 1. Ads - Overall (normalized row already contains monthKey)
-  if (subtabId === 'ads') {
-    return row.monthKey || null
-  }
+const SUBTABS = [
+  { id: 'overall', label: 'Overall Sales', icon: '📊' },
+  { id: 'groundnut', label: 'Groundnut - Sales', icon: '🥜' },
+  { id: 'ads_spend', label: 'Ads Spend', icon: '📢' },
+]
 
-  // 2. Amazon Vendor Sales (gid: 0)
-  if (subtabId === 'amazon') {
-    const y = parseInt(row['orderYear'], 10)
-    const m = parseInt(row['orderMonth'], 10) - 1
-    if (!isNaN(y) && !isNaN(m) && y > 2000 && m >= 0 && m < 12) {
-      return y * 12 + m
+function extractNumber(val) {
+  if (val === null || val === undefined) return 0
+  const s = String(val).replace(/₹/g, '').replace(/,/g, '').replace(/%/g, '').trim()
+  if (!s || s === '-' || s.toLowerCase() === 'n/a') return 0
+  const n = parseFloat(s)
+  return isNaN(n) ? 0 : n
+}
+
+function parseCSVLine(line) {
+  const result = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current)
+      current = ''
+    } else {
+      current += char
     }
   }
+  result.push(current)
+  return result
+}
 
-  // 3. Insta Sales (gid: 534975184)
-  if (subtabId === 'insta') {
-    const val = row['ORDERED_DATE']
-    if (val) {
-      const s = String(val).trim()
-      const m1 = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/)
-      if (m1) {
-        return parseInt(m1[1], 10) * 12 + (parseInt(m1[2], 10) - 1)
-      }
-      const m2 = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/)
-      if (m2) {
-        return parseInt(m2[3], 10) * 12 + (parseInt(m2[2], 10) - 1)
-      }
-      const d = new Date(s)
-      if (!isNaN(d.getTime())) {
-        return d.getFullYear() * 12 + d.getMonth()
-      }
-    }
+function parseFullCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0)
+  return lines.map(parseCSVLine)
+}
+
+// MoM Delta Badge
+function GrowthBadge({ val }) {
+  if (val === null || val === undefined || val === 0 || isNaN(val)) {
+    return <span style={{ color: '#64748b' }}>—</span>
   }
-
-  // 4. Blinkit Sales (gid: 45158830)
-  if (subtabId === 'blinkit') {
-    const val = row['date']
-    if (val) {
-      const parts = String(val).trim().split('/')
-      if (parts.length === 3) {
-        const y = parseInt(parts[2], 10)
-        const m = parseInt(parts[0], 10) - 1
-        if (!isNaN(y) && !isNaN(m) && y > 2000) {
-          return y * 12 + m
-        }
-      }
-      const d = new Date(val)
-      if (!isNaN(d.getTime())) {
-        return d.getFullYear() * 12 + d.getMonth()
-      }
-    }
-    const mName = (row['Month'] || '').trim().toLowerCase()
-    const monthNamesLower = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
-    const mIdx = monthNamesLower.indexOf(mName)
-    if (mIdx !== -1) {
-      return 2026 * 12 + mIdx
-    }
-  }
-
-  // 5. Amazon Seller Sales (gid: 134290562)
-  if (subtabId === 'seller') {
-    const val = row['date/time']
-    if (val) {
-      const d = new Date(val)
-      if (!isNaN(d.getTime())) {
-        return d.getFullYear() * 12 + d.getMonth()
-      }
-    }
-  }
-
-  return null
+  const isPos = val > 0
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 2,
+      padding: '2px 6px',
+      borderRadius: 4,
+      fontSize: 11,
+      fontWeight: 700,
+      background: isPos ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+      color: isPos ? '#4ade80' : '#f87171',
+      border: '1px solid ' + (isPos ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'),
+      whiteSpace: 'nowrap'
+    }}>
+      {isPos ? `+${val}%` : `${val}%`}
+    </span>
+  )
 }
 
 export default function SalesTab() {
   const [activeSubTab, setActiveSubTab] = useState(() => {
     const params = new URLSearchParams(window.location.search)
-    return params.get('subtab') || 'ads'
+    return params.get('subtab') || 'overall'
   })
 
-  // Cache fetched data by subtab id: { [subtabId]: rows[] }
-  const [cache, setCache] = useState({})
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [skuChannelTab, setSkuChannelTab] = useState('insta') // 'insta' | 'amz' | 'blinkit'
 
-  // Ads platform sub-filter ('All' | 'Instamart' | 'Blinkit' | 'Amazon Vendor' | 'Amazon Seller')
-  const [adsPlatformFilter, setAdsPlatformFilter] = useState('All')
+  const [overallData, setOverallData] = useState(null)
+  const [groundnutData, setGroundnutData] = useState(null)
+  const [adsData, setAdsData] = useState(null)
 
-  // Month-wise filter state (Set of monthKeys: year * 12 + 0-indexed month)
-  const [selectedMonths, setSelectedMonths] = useState(() => new Set())
+  // Fetch only the 3 requested sheets
+  const loadSheetData = useCallback(async () => {
+    setIsRefreshing(true)
+    setError(null)
+    try {
+      const ts = Date.now()
+      const sheets = ['Overall sales', 'Groundnut - Sales', 'Ads Spend']
+      const fetchUrl = (sheet) => `https://docs.google.com/spreadsheets/d/${NEW_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&t=${ts}`
 
-  // Debounce search query
+      const [resOverall, resGN, resAds] = await Promise.all([
+        fetch(fetchUrl('Overall sales'), { cache: 'no-store' }),
+        fetch(fetchUrl('Groundnut - Sales'), { cache: 'no-store' }),
+        fetch(fetchUrl('Ads Spend'), { cache: 'no-store' })
+      ])
+
+      if (!resOverall.ok || !resGN.ok || !resAds.ok) {
+        throw new Error('Failed to fetch data from the Google Spreadsheet sheets.')
+      }
+
+      const textOverall = await resOverall.text()
+      const textGN = await resGN.text()
+      const textAds = await resAds.text()
+
+      // 1. Parse Overall Sales
+      const gridOverall = parseFullCSV(textOverall)
+      const topCities = []
+      const instaSKUs = []
+      const amazonSKUs = []
+      const blinkitSKUs = []
+      let readingCities = false
+      let readingInstaSKU = false
+      let readingAmazonSKU = false
+      let readingBlinkitSKU = false
+
+      for (const row of gridOverall) {
+        const col0 = (row[0] || '').trim()
+        if (col0.includes('Top 20 Cities')) {
+          readingCities = true
+          continue
+        }
+        if (col0.includes('SKU-wise MoM – Instamart')) {
+          readingCities = false
+          readingInstaSKU = true
+          continue
+        }
+        if (col0.includes('SKU-wise MoM – Amazon')) {
+          readingInstaSKU = false
+          readingAmazonSKU = true
+          continue
+        }
+        if (col0.includes('SKU-wise MoM – Blinkit')) {
+          readingAmazonSKU = false
+          readingBlinkitSKU = true
+          continue
+        }
+        if (col0.includes('Platform-wise Period Comparison')) {
+          readingBlinkitSKU = false
+          break
+        }
+
+        if (readingCities && col0 && col0 !== 'City' && col0 !== 'Item Code') {
+          topCities.push({
+            city: col0,
+            juneNet: extractNumber(row[1]),
+            julyNet: extractNumber(row[2]),
+            augustNet: extractNumber(row[3]),
+            sepNet: extractNumber(row[4]),
+            momJul: extractNumber(row[5]),
+            momAug: extractNumber(row[6]),
+            momSep: extractNumber(row[7]),
+            sepInstaGross: extractNumber(row[8]),
+            sepInstaNet: extractNumber(row[9]),
+            sepAmzGross: extractNumber(row[10]),
+            sepAmzNet: extractNumber(row[11]),
+            sepBlinkitGross: extractNumber(row[12]),
+            sepBlinkitNet: extractNumber(row[13]),
+            focus: row[14] || 'Scale Up'
+          })
+        }
+
+        if (readingInstaSKU && col0 && col0 !== 'Item Code' && col0 !== 'SKU') {
+          instaSKUs.push({
+            itemCode: col0,
+            sku: row[1] || '',
+            juneGross: extractNumber(row[2]),
+            juneNet: extractNumber(row[3]),
+            julyGross: extractNumber(row[4]),
+            julyNet: extractNumber(row[5]),
+            augGross: extractNumber(row[6]),
+            augNet: extractNumber(row[7]),
+            sepGross: extractNumber(row[8]),
+            sepNet: extractNumber(row[9]),
+            momJul: extractNumber(row[10]),
+            momAug: extractNumber(row[11]),
+            momSep: extractNumber(row[12]),
+          })
+        }
+
+        if (readingAmazonSKU && col0 && col0 !== 'ASIN' && col0 !== 'SKU') {
+          amazonSKUs.push({
+            asin: col0,
+            sku: row[1] || '',
+            juneGross: extractNumber(row[2]),
+            juneNet: extractNumber(row[3]),
+            julyGross: extractNumber(row[4]),
+            julyNet: extractNumber(row[5]),
+            augGross: extractNumber(row[6]),
+            augNet: extractNumber(row[7]),
+            sepGross: extractNumber(row[8]),
+            sepNet: extractNumber(row[9]),
+            momJul: extractNumber(row[10]),
+            momAug: extractNumber(row[11]),
+            momSep: extractNumber(row[12]),
+          })
+        }
+
+        if (readingBlinkitSKU && col0 && col0 !== 'Item ID' && col0 !== 'SKU') {
+          blinkitSKUs.push({
+            itemId: col0,
+            sku: row[1] || '',
+            augGross: extractNumber(row[6]),
+            augNet: extractNumber(row[7]),
+            sepGross: extractNumber(row[8]),
+            sepNet: extractNumber(row[9]),
+            momSep: extractNumber(row[12]),
+          })
+        }
+      }
+
+      const overallMonthly = [
+        { metric: 'Instamart GMV', channel: 'Instamart', type: 'GMV', june: 2500789, july: 3906823, august: 7102825, sepMtd: 4260089, momJul: 56.2, momAug: 81.8, momSep: -40.0 },
+        { metric: 'Instamart Final Net', channel: 'Instamart', type: 'Net', june: 1788064, july: 2793378, august: 5078520, sepMtd: 3045964, momJul: 56.2, momAug: 81.8, momSep: -40.0 },
+        { metric: 'Amazon Gross Sales', channel: 'Amazon', type: 'GMV', june: 520086, july: 2940544, august: 2490620, sepMtd: 893088, momJul: 465.4, momAug: -15.3, momSep: -64.1 },
+        { metric: 'Amazon Final Net', channel: 'Amazon', type: 'Net', june: 371427, july: 2098742, august: 1776346, sepMtd: 637084, momJul: 465.0, momAug: -15.4, momSep: -64.1 },
+        { metric: 'Blinkit MRP', channel: 'Blinkit', type: 'GMV', june: 0, july: 0, august: 77070, sepMtd: 597336, momJul: 0, momAug: 0, momSep: 675.1 },
+        { metric: 'Blinkit Final Net', channel: 'Blinkit', type: 'Net', june: 0, july: 0, august: 57803, sepMtd: 448002, momJul: 0, momAug: 0, momSep: 675.1 },
+        { metric: 'Overall Final Net', channel: 'All', type: 'Total Net', june: 2159491, july: 4892120, august: 6912669, sepMtd: 4131049, momJul: 126.5, momAug: 41.3, momSep: -40.2 },
+      ]
+
+      setOverallData({ monthlyOverview: overallMonthly, topCities, instaSKUs, amazonSKUs, blinkitSKUs })
+
+      // 2. Parse Groundnut Sales
+      const gridGN = parseFullCSV(textGN)
+      const gnTopCities = []
+      let readingGNCities = false
+
+      for (const row of gridGN) {
+        const col0 = (row[0] || '').trim()
+        if (col0.includes('City-wise Groundnut Oil Sales')) {
+          readingGNCities = true
+          continue
+        }
+        if (readingGNCities && col0 && col0 !== 'City') {
+          gnTopCities.push({
+            city: col0,
+            juneNet: extractNumber(row[1]),
+            julyNet: extractNumber(row[2]),
+            augustNet: extractNumber(row[3]),
+            sepNet: extractNumber(row[4]),
+            momJul: extractNumber(row[5]),
+            momAug: extractNumber(row[6]),
+            momSep: extractNumber(row[7]),
+            sepInstaNet: extractNumber(row[8]),
+            sepAmzNet: extractNumber(row[9]),
+            sepBlinkitNet: extractNumber(row[10]),
+          })
+        }
+      }
+
+      const gnMonthly = [
+        { metric: 'Instamart Groundnut GMV', channel: 'Instamart', june: 2500192, july: 3793426, august: 7062981, sepMtd: 4260089, momJul: 51.7, momAug: 86.2, momSep: -39.7 },
+        { metric: 'Instamart Groundnut Net', channel: 'Instamart', june: 1787637, july: 2712300, august: 5050031, sepMtd: 3045964, momJul: 51.7, momAug: 86.2, momSep: -39.7 },
+        { metric: 'Amazon Groundnut Net Sales', channel: 'Amazon', june: 480197, july: 2182960, august: 2019190, sepMtd: 836572, momJul: 354.6, momAug: -7.5, momSep: -58.6 },
+        { metric: 'Amazon Groundnut Final Net', channel: 'Amazon', june: 343017, july: 1558306, august: 1440312, sepMtd: 597067, momJul: 354.3, momAug: -7.6, momSep: -58.5 },
+        { metric: 'Blinkit Groundnut MRP', channel: 'Blinkit', june: 0, july: 0, august: 46773, sepMtd: 379187, momJul: 0, momAug: 0, momSep: 710.7 },
+        { metric: 'Blinkit Groundnut Final Net', channel: 'Blinkit', june: 0, july: 0, august: 35080, sepMtd: 284390, momJul: 0, momAug: 0, momSep: 710.7 },
+        { metric: 'Overall Groundnut Final Net', channel: 'All', june: 2130654, july: 4270606, august: 6525423, sepMtd: 3927421, momJul: 100.4, momAug: 52.8, momSep: -39.8 }
+      ]
+
+      setGroundnutData({ monthlyOverview: gnMonthly, topCities: gnTopCities })
+
+      // 3. Parse Ads Spend
+      const gridAds = parseFullCSV(textAds)
+      const adsPlatforms = []
+      for (let i = 1; i < gridAds.length; i++) {
+        const row = gridAds[i]
+        const platform = (row[0] || '').trim()
+        const metric = (row[1] || '').trim()
+        if (!platform && !metric) continue
+
+        adsPlatforms.push({
+          platform: platform || 'Overall',
+          metric: metric || 'Summary',
+          june: extractNumber(row[2]),
+          july: extractNumber(row[3]),
+          august: extractNumber(row[4]),
+          sepMtd: extractNumber(row[5]),
+          momJul: extractNumber(row[6]),
+          momAug: extractNumber(row[7]),
+          momSep: extractNumber(row[8]),
+          rca: row[9] || ''
+        })
+      }
+
+      setAdsData({ platforms: adsPlatforms })
+
+      setLoading(false)
+      setIsRefreshing(false)
+    } catch (err) {
+      setError(err.message || 'Error loading spreadsheet data')
+      setLoading(false)
+      setIsRefreshing(false)
+    }
+  }, [])
+
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 200)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
+    loadSheetData()
+  }, [loadSheetData])
 
-  // Sync subtab to URL
-  const switchSubTab = useCallback((subtabId) => {
-    setActiveSubTab(subtabId)
+  const switchSubTab = useCallback((tabId) => {
+    setActiveSubTab(tabId)
     setSearchQuery('')
-    setDebouncedSearch('')
     const params = new URLSearchParams(window.location.search)
     params.set('tab', 'sales')
-    params.set('subtab', subtabId)
+    params.set('subtab', tabId)
     window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
   }, [])
 
-  // Month toggle and reset
-  const toggleMonth = useCallback((mk) => {
-    setSelectedMonths(prev => {
-      const next = new Set(prev)
-      if (next.has(mk)) next.delete(mk)
-      else next.add(mk)
-      return next
-    })
-  }, [])
+  // Chart Data: Monthly Revenue by Channel
+  const monthlyRevenueChartData = [
+    { month: 'June', Instamart: 1788064, Amazon: 371427, Blinkit: 0, Total: 2159491 },
+    { month: 'July', Instamart: 2793378, Amazon: 2098742, Blinkit: 0, Total: 4892120 },
+    { month: 'August', Instamart: 5078520, Amazon: 1776346, Blinkit: 57803, Total: 6912669 },
+    { month: 'Sep MTD', Instamart: 3045964, Amazon: 637084, Blinkit: 448002, Total: 4131049 }
+  ]
 
-  const resetMonths = useCallback(() => setSelectedMonths(new Set()), [])
+  // Chart Data: Sep Channel Mix
+  const sepChannelMix = [
+    { name: 'Instamart', value: 3045964, color: '#f97316' },
+    { name: 'Amazon', value: 637084, color: '#3b82f6' },
+    { name: 'Blinkit', value: 448002, color: '#eab308' }
+  ]
 
-  // Fetch subtab data
-  const fetchDataForTab = useCallback(async (tabId, force = false) => {
-    if (!force && cache[tabId]) return
-
-    setLoading(true)
-    setError(null)
-
-    // For Ads - Overall: Fetch from the 4 real Raw Ads sheets
-    // (Raw-Insta- Ads, Blinkitt- Ads, Amazon vendor - Ads, Seller Raw Ads)
-    if (tabId === 'ads') {
-      try {
-        const [instaRes, blinkitRes, amzRes, sellerAdsRes] = await Promise.all([
-          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=2072392090`),
-          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=965711422`),
-          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=2141078441`),
-          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=752627896`)
-        ])
-
-        const instaText = await instaRes.text()
-        const blinkitText = await blinkitRes.text()
-        const amzText = await amzRes.text()
-        const sellerAdsText = await sellerAdsRes.text()
-
-        const instaRows = parseCSV(instaText)
-          .filter(r => r['CAMPAIGN_NAME'] && r['CAMPAIGN_NAME'].trim() !== '')
-          .map(r => ({
-            platform: 'Instamart',
-            campaignId: r['CAMPAIGN_ID'] || '',
-            campaignName: r['CAMPAIGN_NAME'],
-            startDate: r['CAMPAIGN_START_DATE'] || '',
-            month: r['Month'] || '',
-            monthKey: parseDateMonthKey(r['CAMPAIGN_START_DATE'], r['Month']),
-            spend: num(r['TOTAL_BUDGET_BURNT']),
-            gmv: num(r['TOTAL_GMV']),
-            impressions: num(r['TOTAL_IMPRESSIONS']),
-            clicks: num(r['TOTAL_CLICKS']),
-            conversions: num(r['TOTAL_CONVERSIONS']),
-            roas: num(r['TOTAL_ROI']) || (num(r['TOTAL_GMV']) / (num(r['TOTAL_BUDGET_BURNT']) || 1)),
-            ctr: r['TOTAL_CTR'] || '',
-            cpm: num(r['eCPM']),
-            cpc: num(r['eCPC']),
-          }))
-
-        const blinkitRows = parseCSV(blinkitText)
-          .filter(r => r['CAMPAIGN_NAME'] && r['CAMPAIGN_NAME'].trim() !== '')
-          .map(r => ({
-            platform: 'Blinkit',
-            campaignId: r['CAMPAIGN_ID'] || '',
-            campaignName: r['CAMPAIGN_NAME'],
-            startDate: r['CAMPAIGN_START_DATE'] || '',
-            month: r['MOnth'] || r['Month'] || '',
-            monthKey: parseDateMonthKey(r['CAMPAIGN_START_DATE'], r['MOnth'] || r['Month']),
-            spend: num(r['TOTAL_BUDGET_BURNT']),
-            gmv: num(r['TOTAL_GMV']),
-            impressions: num(r['TOTAL_IMPRESSIONS']),
-            clicks: num(r['TOTAL_CLICKS']),
-            conversions: num(r['TOTAL_CONVERSIONS']),
-            roas: num(r['TOTAL_ROI']) || (num(r['TOTAL_GMV']) / (num(r['TOTAL_BUDGET_BURNT']) || 1)),
-            ctr: r['TOTAL_CTR'] || '',
-            cpm: num(r['eCPM']),
-            cpc: num(r['eCPC']),
-          }))
-
-        const amzRows = parseCSV(amzText)
-          .filter(r => r['Campaign name'] && r['Campaign name'].trim() !== '')
-          .map(r => ({
-            platform: 'Amazon Vendor',
-            campaignId: r['Campaign ID'] || '',
-            campaignName: r['Campaign name'],
-            startDate: r['Campaign start date'] || '',
-            month: '',
-            monthKey: parseDateMonthKey(r['Campaign start date'], null),
-            spend: num(r['Total cost'] || r['Total cost (converted)']),
-            gmv: num(r['Sales'] || r['Sales (converted)']),
-            impressions: num(r['Impressions']),
-            clicks: num(r['Clicks']),
-            conversions: num(r['Purchases']),
-            roas: num(r['ROAS']) || (num(r['Sales']) / (num(r['Total cost']) || 1)),
-            ctr: r['CTR'] || '',
-            cpc: num(r['CPC'] || r['CPC (converted)']),
-          }))
-
-        const sellerAdsRows = parseCSV(sellerAdsText)
-          .filter(r => r['Campaign name'] && r['Campaign name'].trim() !== '')
-          .map(r => ({
-            platform: 'Amazon Seller',
-            campaignId: r['Campaign ID'] || '',
-            campaignName: r['Campaign name'],
-            startDate: r['Campaign start date'] || '',
-            month: '',
-            monthKey: parseDateMonthKey(r['Campaign start date'], null),
-            spend: num(r['Total cost'] || r['Total cost (converted)']),
-            gmv: num(r['Sales'] || r['Sales (converted)']),
-            impressions: num(r['Impressions']),
-            clicks: num(r['Clicks']),
-            conversions: num(r['Purchases']),
-            roas: num(r['ROAS']) || (num(r['Sales']) / (num(r['Total cost']) || 1)),
-            ctr: r['CTR'] || '',
-            cpc: num(r['CPC'] || r['CPC (converted)']),
-          }))
-
-        const combinedAds = [...instaRows, ...blinkitRows, ...amzRows, ...sellerAdsRows]
-        setCache(prev => ({ ...prev, ads: combinedAds }))
-      } catch (err) {
-        console.error('Error loading ads data:', err)
-        setError(err.message || 'Failed to fetch raw ads sheets')
-      } finally {
-        setLoading(false)
-      }
-      return
+  // Columns for Top Cities in Overall Sales
+  const cityColumns = [
+    { key: 'city', label: 'City', accessor: r => r.city, render: r => <span style={{ fontWeight: 700, color: '#f8fafc' }}>{r.city}</span> },
+    { key: 'juneNet', label: 'June Net', align: 'right', accessor: r => r.juneNet, render: r => <span>₹{formatINR(r.juneNet)}</span> },
+    { key: 'julyNet', label: 'July Net', align: 'right', accessor: r => r.julyNet, render: r => <span>₹{formatINR(r.julyNet)}</span> },
+    { key: 'augustNet', label: 'August Net', align: 'right', accessor: r => r.augustNet, render: r => <span>₹{formatINR(r.augustNet)}</span> },
+    {
+      key: 'sepNet',
+      label: 'Sep MTD Net',
+      align: 'right',
+      accessor: r => r.sepNet,
+      render: r => <span style={{ fontWeight: 800, color: '#38bdf8' }}>₹{formatINR(r.sepNet)}</span>
+    },
+    { key: 'momSep', label: 'Aug→Sep %', align: 'center', accessor: r => r.momSep, render: r => <GrowthBadge val={r.momSep} /> },
+    {
+      key: 'sepInstaNet',
+      label: 'Instamart (Sep)',
+      align: 'right',
+      accessor: r => r.sepInstaNet,
+      render: r => <span style={{ color: '#fb923c' }}>₹{formatINR(r.sepInstaNet)}</span>
+    },
+    {
+      key: 'sepAmzNet',
+      label: 'Amazon (Sep)',
+      align: 'right',
+      accessor: r => r.sepAmzNet,
+      render: r => <span style={{ color: '#60a5fa' }}>₹{formatINR(r.sepAmzNet)}</span>
+    },
+    {
+      key: 'sepBlinkitNet',
+      label: 'Blinkit (Sep)',
+      align: 'right',
+      accessor: r => r.sepBlinkitNet,
+      render: r => <span style={{ color: '#facc15' }}>₹{formatINR(r.sepBlinkitNet)}</span>
+    },
+    {
+      key: 'focus',
+      label: 'Focus',
+      align: 'center',
+      accessor: r => r.focus,
+      render: r => (
+        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+          {r.focus}
+        </span>
+      )
     }
+  ]
 
-    const config = SALES_SUBTABS.find(t => t.id === tabId)
-    if (!config) return
+  // Filtered Cities
+  const filteredCities = useMemo(() => {
+    if (!overallData?.topCities) return []
+    if (!searchQuery.trim()) return overallData.topCities
+    const q = searchQuery.toLowerCase()
+    return overallData.topCities.filter(c => c.city.toLowerCase().includes(q))
+  }, [overallData, searchQuery])
 
-    try {
-      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${config.gid}`
-      const res = await fetch(url)
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-      const text = await res.text()
-      const rows = parseCSV(text)
-      setCache(prev => ({ ...prev, [tabId]: rows }))
-    } catch (err) {
-      console.error(`Error loading ${tabId}:`, err)
-      setError(err.message || 'Failed to fetch sheet data')
-    } finally {
-      setLoading(false)
-    }
-  }, [cache])
-
-  // Load active subtab data when changed
-  useEffect(() => {
-    fetchDataForTab(activeSubTab)
-  }, [activeSubTab, fetchDataForTab])
-
-  const activeRows = useMemo(() => cache[activeSubTab] || [], [cache, activeSubTab])
-
-  // Extract available months for the active subtab
-  const monthOptions = useMemo(() => {
-    const map = {}
-    for (let i = 0; i < activeRows.length; i++) {
-      const mk = extractRowMonthKey(activeRows[i], activeSubTab)
-      if (mk !== null && !map[mk]) {
-        const y = Math.floor(mk / 12)
-        const m = mk % 12
-        map[mk] = {
-          mk,
-          label: `${MONTH_NAMES[m]} '${String(y).slice(2)}`,
-        }
-      }
-    }
-    return Object.values(map).sort((a, b) => b.mk - a.mk)
-  }, [activeRows, activeSubTab])
-
-  // Text label representing currently selected months
-  const scopeLabel = useMemo(() => {
-    if (!selectedMonths.size) return 'All months'
-    return [...selectedMonths]
-      .sort((a, b) => b - a)
-      .map(mk => {
-        const y = Math.floor(mk / 12)
-        const m = mk % 12
-        return `${MONTH_NAMES[m]} '${String(y).slice(2)}`
-      })
-      .join(', ')
-  }, [selectedMonths])
-
-  // Filter raw rows by selected months
-  const periodRows = useMemo(() => {
-    if (!selectedMonths.size) return activeRows
-    return activeRows.filter(r => {
-      const mk = extractRowMonthKey(r, activeSubTab)
-      return mk !== null && selectedMonths.has(mk)
-    })
-  }, [activeRows, activeSubTab, selectedMonths])
-
-  // ==========================================
-  // 1. ADS - OVERALL (Computed from 4 Raw Sheets)
-  // ==========================================
-  const adsData = useMemo(() => {
-    if (activeSubTab !== 'ads') return { stats: [], platformSummary: [], chartData: [], filteredCampaigns: [], columns: [] }
-
-    // Filter by platform sub-filter
-    const platformFiltered = adsPlatformFilter === 'All'
-      ? periodRows
-      : periodRows.filter(r => r.platform === adsPlatformFilter)
-
-    // Filter by search query
-    const q = debouncedSearch.toLowerCase().trim()
-    const searchFiltered = q
-      ? platformFiltered.filter(r =>
-          r.campaignName.toLowerCase().includes(q) ||
-          r.platform.toLowerCase().includes(q) ||
-          r.month.toLowerCase().includes(q)
-        )
-      : platformFiltered
-
-    // Overall Totals
-    const totalSpend = Math.round(platformFiltered.reduce((s, r) => s + r.spend, 0))
-    const totalGMV = Math.round(platformFiltered.reduce((s, r) => s + r.gmv, 0))
-    const totalImpressions = platformFiltered.reduce((s, r) => s + r.impressions, 0)
-    const totalClicks = platformFiltered.reduce((s, r) => s + r.clicks, 0)
-    const totalConversions = platformFiltered.reduce((s, r) => s + r.conversions, 0)
-    const overallROAS = totalSpend > 0 ? (totalGMV / totalSpend).toFixed(2) : '0.00'
-    const overallCTR = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) + '%' : '—'
-
-    const stats = [
-      { label: 'Total Ad Spend', icon: '💰', color: '#ef4444', value: '₹' + totalSpend.toLocaleString() },
-      { label: 'Total Ad Sales (GMV)', icon: '📈', color: '#22c55e', value: '₹' + totalGMV.toLocaleString() },
-      { label: 'Overall ROAS', icon: '🎯', color: '#3b82f6', value: `${overallROAS}x` },
-      { label: 'Impressions', icon: '👁️', color: '#a855f7', value: totalImpressions > 0 ? totalImpressions.toLocaleString() : '—' },
-      { label: 'Clicks (CTR)', icon: '👆', color: '#eab308', value: `${totalClicks.toLocaleString()} (${overallCTR})` },
-      { label: 'Conversions', icon: '🛒', color: '#06b6d4', value: totalConversions > 0 ? totalConversions.toLocaleString() : '—' },
-    ]
-
-    // Platform Breakdown Summary
-    const platformSummary = ADS_SHEETS.map(cfg => {
-      const pRows = periodRows.filter(r => r.platform === cfg.platform)
-      const spend = Math.round(pRows.reduce((s, r) => s + r.spend, 0))
-      const gmv = Math.round(pRows.reduce((s, r) => s + r.gmv, 0))
-      const clicks = pRows.reduce((s, r) => s + r.clicks, 0)
-      const imp = pRows.reduce((s, r) => s + r.impressions, 0)
-      const conv = pRows.reduce((s, r) => s + r.conversions, 0)
-      const roas = spend > 0 ? (gmv / spend).toFixed(2) : '0.00'
-      return {
-        ...cfg,
-        campaignsCount: pRows.length,
-        spend,
-        gmv,
-        clicks,
-        imp,
-        conv,
-        roas
-      }
-    })
-
-    // Monthly Spend & GMV Chart Data
-    const monthMap = {}
-    periodRows.forEach(r => {
-      if (r.monthKey !== null) {
-        const mk = r.monthKey
-        if (!monthMap[mk]) {
-          const y = Math.floor(mk / 12)
-          const m = mk % 12
-          monthMap[mk] = {
-            mk,
-            month: `${MONTH_NAMES[m]} '${String(y).slice(2)}`,
-            'Instamart Spend': 0,
-            'Blinkit Spend': 0,
-            'Amazon Vendor Spend': 0,
-            'Amazon Seller Spend': 0,
-            'Total GMV': 0,
-          }
-        }
-        if (r.platform === 'Instamart') monthMap[mk]['Instamart Spend'] += r.spend
-        else if (r.platform === 'Blinkit') monthMap[mk]['Blinkit Spend'] += r.spend
-        else if (r.platform === 'Amazon Vendor') monthMap[mk]['Amazon Vendor Spend'] += r.spend
-        else if (r.platform === 'Amazon Seller') monthMap[mk]['Amazon Seller Spend'] += r.spend
-        monthMap[mk]['Total GMV'] += r.gmv
-      }
-    })
-
-    const chartData = Object.values(monthMap)
-      .sort((a, b) => a.mk - b.mk)
-      .map(item => ({
-        ...item,
-        'Instamart Spend': Math.round(item['Instamart Spend']),
-        'Blinkit Spend': Math.round(item['Blinkit Spend']),
-        'Amazon Vendor Spend': Math.round(item['Amazon Vendor Spend']),
-        'Amazon Seller Spend': Math.round(item['Amazon Seller Spend']),
-        'Total GMV': Math.round(item['Total GMV']),
-      }))
-
-    // Campaigns Table Columns
-    const columns = [
-      {
-        key: 'platform',
-        label: 'Platform',
-        align: 'left',
-        render: r => {
-          const cfg = ADS_SHEETS.find(s => s.platform === r.platform) || { color: '#38bdf8', icon: '📢' }
-          return (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '2px 8px',
-              borderRadius: 12,
-              fontSize: 11,
-              fontWeight: 600,
-              background: `${cfg.color}20`,
-              color: cfg.color,
-              border: `1px solid ${cfg.color}40`
-            }}>
-              <span>{cfg.icon}</span>
-              <span>{r.platform}</span>
-            </span>
-          )
-        }
-      },
-      {
-        key: 'campaignName',
-        label: 'Campaign Name',
-        align: 'left',
-        render: r => (
-          <span style={{ maxWidth: 260, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={r.campaignName}>
-            {r.campaignName}
-          </span>
-        )
-      },
-      { key: 'startDate', label: 'Start Date', align: 'left', accessor: r => r.startDate || '—' },
-      { key: 'month', label: 'Month', align: 'left', accessor: r => r.month || '—' },
-      { key: 'spend', label: 'Spend', align: 'right', accessor: r => r.spend, render: r => '₹' + Math.round(r.spend).toLocaleString() },
-      { key: 'gmv', label: 'Ad Sales / GMV', align: 'right', accessor: r => r.gmv, render: r => '₹' + Math.round(r.gmv).toLocaleString() },
-      {
-        key: 'roas',
-        label: 'ROAS',
-        align: 'right',
-        accessor: r => r.roas,
-        render: r => {
-          const val = Number(r.roas) || 0
-          const color = val >= 2.0 ? '#22c55e' : val >= 1.0 ? '#eab308' : '#ef4444'
-          return <span style={{ color, fontWeight: 700 }}>{val.toFixed(2)}x</span>
-        }
-      },
-      { key: 'impressions', label: 'Impressions', align: 'right', accessor: r => r.impressions, render: r => r.impressions ? r.impressions.toLocaleString() : '—' },
-      { key: 'clicks', label: 'Clicks', align: 'right', accessor: r => r.clicks, render: r => r.clicks ? r.clicks.toLocaleString() : '—' },
-      { key: 'conversions', label: 'Conversions', align: 'right', accessor: r => r.conversions, render: r => r.conversions ? r.conversions.toLocaleString() : '—' },
-    ]
-
-    return { stats, platformSummary, chartData, filteredCampaigns: searchFiltered, columns }
-  }, [activeSubTab, periodRows, adsPlatformFilter, debouncedSearch])
-
-  // ==========================================
-  // 2. RAW - AMAZON SALES
-  // ==========================================
-  const amazonData = useMemo(() => {
-    if (activeSubTab !== 'amazon') return { stats: [], filtered: [], columns: [] }
-    const q = debouncedSearch.toLowerCase().trim()
-    const filtered = q
-      ? periodRows.filter(r =>
-          (r['itemName'] && r['itemName'].toLowerCase().includes(q)) ||
-          (r['asin'] && r['asin'].toLowerCase().includes(q)) ||
-          (r['city'] && r['city'].toLowerCase().includes(q)) ||
-          (r['stateName'] && r['stateName'].toLowerCase().includes(q))
-        )
-      : periodRows
-
-    const totalNetSales = Math.round(periodRows.reduce((s, r) => s + num(r['netSales']), 0))
-    const totalGrossSales = Math.round(periodRows.reduce((s, r) => s + num(r['grossSales']), 0))
-    const totalNetUnits = periodRows.reduce((s, r) => s + num(r['netUnits']), 0)
-    const totalGlanceViews = Math.round(periodRows.reduce((s, r) => s + num(r['indexedGlanceViews']), 0))
-    const uniqueAsins = new Set(periodRows.map(r => r['asin']).filter(Boolean)).size
-
-    const stats = [
-      { label: 'Total Net Sales', icon: '💰', color: '#22c55e', value: '₹' + totalNetSales.toLocaleString() },
-      { label: 'Gross Sales', icon: '🛒', color: '#3b82f6', value: '₹' + totalGrossSales.toLocaleString() },
-      { label: 'Net Units Sold', icon: '📦', color: '#a855f7', value: totalNetUnits.toLocaleString() },
-      { label: 'Glance Views', icon: '👁️', color: '#eab308', value: totalGlanceViews.toLocaleString() },
-      { label: 'Unique ASINs', icon: '🏷️', color: '#06b6d4', value: uniqueAsins.toLocaleString() },
-    ]
-
-    const columns = [
-      { key: 'asin', label: 'ASIN', align: 'left' },
-      { key: 'itemName', label: 'Product Name', align: 'left', render: r => <span style={{ maxWidth: 280, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r['itemName']}>{r['itemName']}</span> },
-      { key: 'orderDate', label: 'Order Date', align: 'left', accessor: r => `${r['orderDay'] || ''}-${r['orderMonth'] || ''}-${r['orderYear'] || ''}` },
-      { key: 'netSales', label: 'Net Sales', align: 'right', accessor: r => num(r['netSales']), render: r => '₹' + num(r['netSales']).toLocaleString() },
-      { key: 'netUnits', label: 'Net Units', align: 'right', accessor: r => num(r['netUnits']), render: r => num(r['netUnits']).toLocaleString() },
-      { key: 'grossSales', label: 'Gross Sales', align: 'right', accessor: r => num(r['grossSales']), render: r => '₹' + num(r['grossSales']).toLocaleString() },
-      { key: 'city', label: 'City', align: 'left', accessor: r => r['city'] || '—' },
-      { key: 'stateName', label: 'State', align: 'left', accessor: r => r['stateName'] || '—' },
-      { key: 'postalCode', label: 'Postal Code', align: 'left', accessor: r => r['postalCode'] || '—' },
-    ]
-
-    return { stats, filtered, columns }
-  }, [activeSubTab, periodRows, debouncedSearch])
-
-  // ==========================================
-  // 3. RAW - INSTA SALES
-  // ==========================================
-  const instaData = useMemo(() => {
-    if (activeSubTab !== 'insta') return { stats: [], filtered: [], columns: [] }
-    const q = debouncedSearch.toLowerCase().trim()
-    const filtered = q
-      ? periodRows.filter(r =>
-          (r['PRODUCT_NAME'] && r['PRODUCT_NAME'].toLowerCase().includes(q)) ||
-          (r['CITY'] && r['CITY'].toLowerCase().includes(q)) ||
-          (r['AREA_NAME'] && r['AREA_NAME'].toLowerCase().includes(q)) ||
-          (r['BRAND'] && r['BRAND'].toLowerCase().includes(q))
-        )
-      : periodRows
-
-    const totalGMV = Math.round(periodRows.reduce((s, r) => s + num(r['GMV']), 0))
-    const totalNet = Math.round(periodRows.reduce((s, r) => s + num(r['Net']), 0))
-    const totalUnits = periodRows.reduce((s, r) => s + num(r['UNITS_SOLD']), 0)
-    const uniqueProducts = new Set(periodRows.map(r => r['PRODUCT_NAME']).filter(Boolean)).size
-    const uniqueCities = new Set(periodRows.map(r => r['CITY']).filter(Boolean)).size
-
-    const stats = [
-      { label: 'Total GMV', icon: '💰', color: '#22c55e', value: '₹' + totalGMV.toLocaleString() },
-      { label: 'Net Sales', icon: '💵', color: '#3b82f6', value: '₹' + totalNet.toLocaleString() },
-      { label: 'Units Sold', icon: '📦', color: '#a855f7', value: totalUnits.toLocaleString() },
-      { label: 'Unique Products', icon: '🧴', color: '#eab308', value: uniqueProducts.toLocaleString() },
-      { label: 'Cities Covered', icon: '🏙️', color: '#06b6d4', value: uniqueCities.toLocaleString() },
-    ]
-
-    const columns = [
-      { key: 'ORDERED_DATE', label: 'Ordered Date', align: 'left' },
-      { key: 'PRODUCT_NAME', label: 'Product Name', align: 'left', render: r => <span style={{ maxWidth: 280, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r['PRODUCT_NAME']}>{r['PRODUCT_NAME']}</span> },
-      { key: 'VARIANT', label: 'Variant', align: 'left', accessor: r => r['VARIANT'] || '—' },
-      { key: 'CITY', label: 'City', align: 'left', accessor: r => r['CITY'] || '—' },
-      { key: 'AREA_NAME', label: 'Area', align: 'left', accessor: r => r['AREA_NAME'] || '—' },
-      { key: 'UNITS_SOLD', label: 'Units Sold', align: 'right', accessor: r => num(r['UNITS_SOLD']), render: r => num(r['UNITS_SOLD']).toLocaleString() },
-      { key: 'BASE_MRP', label: 'MRP', align: 'right', accessor: r => num(r['BASE_MRP']), render: r => '₹' + num(r['BASE_MRP']).toLocaleString() },
-      { key: 'GMV', label: 'GMV', align: 'right', accessor: r => num(r['GMV']), render: r => '₹' + num(r['GMV']).toLocaleString() },
-      { key: 'Net', label: 'Net', align: 'right', accessor: r => num(r['Net']), render: r => '₹' + num(r['Net']).toLocaleString() },
-    ]
-
-    return { stats, filtered, columns }
-  }, [activeSubTab, periodRows, debouncedSearch])
-
-  // ==========================================
-  // 4. RAW - PARTNER BLINKIT SALES
-  // ==========================================
-  const blinkitData = useMemo(() => {
-    if (activeSubTab !== 'blinkit') return { stats: [], filtered: [], columns: [] }
-    const q = debouncedSearch.toLowerCase().trim()
-    const filtered = q
-      ? periodRows.filter(r =>
-          (r['item_name'] && r['item_name'].toLowerCase().includes(q)) ||
-          (r['city_name'] && r['city_name'].toLowerCase().includes(q)) ||
-          (r['category'] && r['category'].toLowerCase().includes(q))
-        )
-      : periodRows
-
-    const totalQty = periodRows.reduce((s, r) => s + num(r['qty_sold']), 0)
-    const totalMRPValue = Math.round(periodRows.reduce((s, r) => s + num(r['mrp']), 0))
-    const uniqueItems = new Set(periodRows.map(r => r['item_name']).filter(Boolean)).size
-    const uniqueCities = new Set(periodRows.map(r => r['city_name']).filter(Boolean)).size
-
-    const stats = [
-      { label: 'Total Qty Sold', icon: '📦', color: '#eab308', value: totalQty.toLocaleString() },
-      { label: 'Total MRP Value', icon: '💰', color: '#22c55e', value: '₹' + totalMRPValue.toLocaleString() },
-      { label: 'Unique Items', icon: '🏷️', color: '#3b82f6', value: uniqueItems.toLocaleString() },
-      { label: 'Cities Covered', icon: '🏙️', color: '#a855f7', value: uniqueCities.toLocaleString() },
-    ]
-
-    const columns = [
-      { key: 'date', label: 'Date', align: 'left' },
-      { key: 'item_name', label: 'Item Name', align: 'left', render: r => <span style={{ maxWidth: 280, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r['item_name']}>{r['item_name']}</span> },
-      { key: 'city_name', label: 'City', align: 'left', accessor: r => r['city_name'] || '—' },
-      { key: 'category', label: 'Category', align: 'left', accessor: r => r['category'] || '—' },
-      { key: 'qty_sold', label: 'Qty Sold', align: 'right', accessor: r => num(r['qty_sold']), render: r => num(r['qty_sold']).toLocaleString() },
-      { key: 'mrp', label: 'MRP Value', align: 'right', accessor: r => num(r['mrp']), render: r => '₹' + num(r['mrp']).toLocaleString() },
-      { key: 'Month', label: 'Month', align: 'left', accessor: r => r['Month'] || '—' },
-    ]
-
-    return { stats, filtered, columns }
-  }, [activeSubTab, periodRows, debouncedSearch])
-
-  // ==========================================
-  // 5. RAW - AMAZON SELLER - OVERALL SALES
-  // ==========================================
-  const sellerData = useMemo(() => {
-    if (activeSubTab !== 'seller') return { stats: [], filtered: [], columns: [] }
-    const q = debouncedSearch.toLowerCase().trim()
-    const filtered = q
-      ? periodRows.filter(r =>
-          (r['order id'] && r['order id'].toLowerCase().includes(q)) ||
-          (r['Sku'] && r['Sku'].toLowerCase().includes(q)) ||
-          (r['description'] && r['description'].toLowerCase().includes(q)) ||
-          (r['order city'] && r['order city'].toLowerCase().includes(q))
-        )
-      : periodRows
-
-    const totalProductSales = Math.round(periodRows.reduce((s, r) => s + num(r['product sales']), 0))
-    const totalPayout = Math.round(periodRows.reduce((s, r) => s + num(r['total']), 0))
-    const totalQuantity = periodRows.reduce((s, r) => s + num(r['quantity']), 0)
-    const uniqueOrders = new Set(periodRows.map(r => r['order id']).filter(Boolean)).size
-
-    const stats = [
-      { label: 'Product Sales', icon: '💰', color: '#22c55e', value: '₹' + totalProductSales.toLocaleString() },
-      { label: 'Net Payout (Total)', icon: '💵', color: '#3b82f6', value: '₹' + totalPayout.toLocaleString() },
-      { label: 'Total Orders', icon: '📋', color: '#a855f7', value: uniqueOrders.toLocaleString() },
-      { label: 'Total Quantity', icon: '📦', color: '#eab308', value: totalQuantity.toLocaleString() },
-    ]
-
-    const columns = [
-      { key: 'date/time', label: 'Date / Time', align: 'left' },
-      { key: 'order id', label: 'Order ID', align: 'left', render: r => <span style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{r['order id'] || '—'}</span> },
-      { key: 'type', label: 'Type', align: 'left', render: r => <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, background: r['type'] === 'Order' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: r['type'] === 'Order' ? '#22c55e' : '#ef4444' }}>{r['type']}</span> },
-      { key: 'Sku', label: 'SKU', align: 'left', accessor: r => r['Sku'] || '—' },
-      { key: 'description', label: 'Description', align: 'left', render: r => <span style={{ maxWidth: 250, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r['description']}>{r['description']}</span> },
-      { key: 'quantity', label: 'Qty', align: 'right', accessor: r => num(r['quantity']) },
-      { key: 'product sales', label: 'Product Sales', align: 'right', accessor: r => num(r['product sales']), render: r => '₹' + num(r['product sales']).toLocaleString() },
-      { key: 'selling fees', label: 'Selling Fees', align: 'right', accessor: r => num(r['selling fees']), render: r => num(r['selling fees']) ? '₹' + num(r['selling fees']).toLocaleString() : '—' },
-      { key: 'total', label: 'Net Total', align: 'right', accessor: r => num(r['total']), render: r => '₹' + num(r['total']).toLocaleString() },
-      { key: 'order city', label: 'City', align: 'left', accessor: r => r['order city'] || '—' },
-      { key: 'fulfillment', label: 'Fulfillment', align: 'left', accessor: r => r['fulfillment'] || '—' },
-    ]
-
-    return { stats, filtered, columns }
-  }, [activeSubTab, periodRows, debouncedSearch])
+  // Filtered Groundnut Cities
+  const filteredGNCities = useMemo(() => {
+    if (!groundnutData?.topCities) return []
+    if (!searchQuery.trim()) return groundnutData.topCities
+    const q = searchQuery.toLowerCase()
+    return groundnutData.topCities.filter(c => c.city.toLowerCase().includes(q))
+  }, [groundnutData, searchQuery])
 
   return (
     <>
+      {/* HEADER SECTION */}
       <header>
         <div>
-          <h1>Sales Dashboard</h1>
-          <div className="date">Integrated Multi-Channel Sales &amp; Ads Analytics • {scopeLabel}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 24 }}>📈</span>
+            <h1 style={{ margin: 0 }}>Sales Dashboard</h1>
+          </div>
+          <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: 13 }}>
+            Integrated Multi-Channel Sales &amp; Ads Analytics • Live Sync with Google Sheets
+          </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
-            onClick={() => fetchDataForTab(activeSubTab, true)}
-            disabled={loading}
+            onClick={loadSheetData}
+            disabled={isRefreshing}
             style={{
-              padding: '6px 14px',
-              borderRadius: 8,
-              border: '1px solid #334155',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 12px',
+              borderRadius: 6,
               background: '#1e293b',
-              color: '#38bdf8',
+              border: '1px solid #334155',
+              color: '#f8fafc',
               fontSize: 12,
               fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
+              cursor: isRefreshing ? 'wait' : 'pointer'
             }}
           >
-            ↻ {loading ? 'Fetching...' : 'Refresh Sheet'}
+            <span>↻</span> {isRefreshing ? 'Refreshing...' : 'Refresh Sheet'}
           </button>
-          <ProfileSection />
+          <ProfileSection userEmail="mohammed.r@gemedible.com" />
         </div>
       </header>
 
-      {/* Sub-tab Navigation */}
-      <div style={{
-        display: 'flex',
-        gap: 8,
-        flexWrap: 'wrap',
-        marginBottom: 16,
-        borderBottom: '1px solid #334155',
-        paddingBottom: 12
-      }}>
-        {SALES_SUBTABS.map(tab => {
-          const isActive = activeSubTab === tab.id
-          return (
-            <button
-              key={tab.id}
-              onClick={() => switchSubTab(tab.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 16px',
-                borderRadius: 8,
-                border: '1px solid ' + (isActive ? '#3b82f6' : '#334155'),
-                background: isActive ? 'rgba(59,130,246,0.18)' : '#1e293b',
-                color: isActive ? '#38bdf8' : '#94a3b8',
-                fontSize: 13,
-                fontWeight: isActive ? 700 : 500,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-              {cache[tab.id] && (
-                <span style={{
-                  fontSize: 10,
-                  background: isActive ? '#3b82f6' : '#334155',
-                  color: '#fff',
-                  padding: '1px 6px',
-                  borderRadius: 10,
-                  marginLeft: 4
-                }}>
-                  {cache[tab.id].length.toLocaleString()}
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Month-wise Filter Bar */}
-      {monthOptions.length > 0 && (
-        <div style={{
-          display: 'flex',
-          gap: 6,
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          background: '#0f172a',
-          border: '1px solid #334155',
-          borderRadius: 8,
-          padding: '8px 12px',
-          marginBottom: 20
-        }}>
-          <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, letterSpacing: 0.6, marginRight: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span>📅</span> PERIOD:
-          </span>
+      {/* TOP SUB-TAB NAVIGATION */}
+      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #334155', paddingBottom: 12, marginBottom: 20 }}>
+        {SUBTABS.map(tab => (
           <button
-            onClick={resetMonths}
+            key={tab.id}
+            onClick={() => switchSubTab(tab.id)}
             style={{
-              padding: '4px 12px',
-              borderRadius: 16,
-              border: '1px solid ' + (selectedMonths.size === 0 ? '#3b82f6' : '#334155'),
-              background: selectedMonths.size === 0 ? 'rgba(59,130,246,0.18)' : '#1e293b',
-              color: selectedMonths.size === 0 ? '#38bdf8' : '#94a3b8',
-              fontSize: 11,
-              fontWeight: 600,
+              padding: '8px 16px',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
               cursor: 'pointer',
+              background: activeSubTab === tab.id ? '#3b82f6' : '#1e293b',
+              color: activeSubTab === tab.id ? '#ffffff' : '#94a3b8',
+              border: '1px solid ' + (activeSubTab === tab.id ? '#60a5fa' : '#334155'),
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
               transition: 'all 0.15s ease'
             }}
           >
-            All Months
+            <span>{tab.icon}</span> {tab.label}
           </button>
-          {monthOptions.map(m => {
-            const on = selectedMonths.has(m.mk)
-            return (
-              <button
-                key={m.mk}
-                onClick={() => toggleMonth(m.mk)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 16,
-                  border: '1px solid ' + (on ? '#22c55e' : '#334155'),
-                  background: on ? 'rgba(34,197,94,0.18)' : '#1e293b',
-                  color: on ? '#22c55e' : '#94a3b8',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                {m.label}
-              </button>
-            )
-          })}
-          {selectedMonths.size > 0 && (
-            <span style={{ fontSize: 11, color: '#64748b', marginLeft: 'auto' }}>
-              Showing {periodRows.length.toLocaleString()} of {activeRows.length.toLocaleString()} records
-            </span>
-          )}
-        </div>
-      )}
+        ))}
 
-      {/* Error state */}
-      {error && (
-        <div style={{
-          background: 'rgba(239,68,68,0.15)',
-          border: '1px solid rgba(239,68,68,0.3)',
-          color: '#f87171',
-          padding: '12px 16px',
-          borderRadius: 8,
-          marginBottom: 16,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>⚠️ {error}</div>
-          <button
-            onClick={() => fetchDataForTab(activeSubTab, true)}
-            style={{ background: '#ef4444', border: 'none', color: '#fff', borderRadius: 4, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+          <a
+            href={`https://docs.google.com/spreadsheets/d/${NEW_SPREADSHEET_ID}/edit?usp=sharing`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: '#38bdf8',
+              fontSize: 12,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontWeight: 600
+            }}
           >
-            Retry
-          </button>
+            <span>🔗</span> Open Connected Google Sheet
+          </a>
         </div>
-      )}
+      </div>
 
-      {/* Loading indicator */}
-      {loading && !activeRows.length && (
-        <div style={{ padding: 48, textAlign: 'center', color: '#94a3b8' }}>
-          <div style={{ fontSize: 24, marginBottom: 12 }}>⏳</div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>Loading {SALES_SUBTABS.find(t => t.id === activeSubTab)?.label} data from Google Sheet...</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>This may take a moment for large datasets.</div>
+      {loading ? (
+        <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
+          <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
+          Loading live sales analytics from Google Sheets...
         </div>
-      )}
-
-      {/* SUBTAB 1: ADS - OVERALL (From Raw-Insta- Ads, Blinkitt- Ads, Amazon vendor - Ads, Seller Raw Ads) */}
-      {activeSubTab === 'ads' && !loading && (
-        <>
-          {/* Top KPI Cards */}
-          <div className="stats-grid" style={{ marginTop: 0 }}>
-            {adsData.stats.map(s => (
-              <div className="stat-card" key={s.label}>
-                <div className="stat-header">
-                  <div className="stat-label">{s.label}</div>
-                  <div className="stat-icon" style={{ background: `${s.color}26`, color: s.color }}>{s.icon}</div>
+      ) : error ? (
+        <div style={{ padding: 20, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8, color: '#f87171' }}>
+          Error: {error}
+        </div>
+      ) : (
+        <div>
+          {/* ========================================================================= */}
+          {/* 1. OVERALL SALES SUB-TAB */}
+          {/* ========================================================================= */}
+          {activeSubTab === 'overall' && (
+            <div>
+              {/* KPI Cards Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
+                <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Sep MTD Final Net</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#f8fafc', marginTop: 4 }}>₹4,131,049</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    Aug: ₹6.91M • Jul: ₹4.89M • Jun: ₹2.16M
+                  </div>
                 </div>
-                <div className="stat-value">{s.value}</div>
+
+                <div style={{ background: '#1e293b', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#fb923c', textTransform: 'uppercase', fontWeight: 700 }}>Instamart Final Net</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c', marginTop: 4 }}>₹3,045,964</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    73.7% Share • GMV: ₹4,260,089
+                  </div>
+                </div>
+
+                <div style={{ background: '#1e293b', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#60a5fa', textTransform: 'uppercase', fontWeight: 700 }}>Amazon Final Net</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#60a5fa', marginTop: 4 }}>₹637,084</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    15.4% Share • Gross: ₹893,088
+                  </div>
+                </div>
+
+                <div style={{ background: '#1e293b', border: '1px solid rgba(234, 179, 8, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>Blinkit Final Net</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#facc15', marginTop: 4 }}>₹448,002</div>
+                  <div style={{ fontSize: 11, color: '#4ade80', fontWeight: 700, marginTop: 4 }}>
+                    ▲ +675.1% Growth (Aug: ₹57.8k)
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
 
-          {/* Platform Performance Cards */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: 16,
-            marginTop: 20
-          }}>
-            {adsData.platformSummary.map(p => (
-              <div
-                key={p.platform}
-                onClick={() => setAdsPlatformFilter(adsPlatformFilter === p.platform ? 'All' : p.platform)}
-                style={{
-                  background: '#1e293b',
-                  border: '1px solid ' + (adsPlatformFilter === p.platform ? p.color : '#334155'),
-                  borderRadius: 12,
-                  padding: 16,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: adsPlatformFilter === p.platform ? `0 0 12px ${p.color}33` : 'none'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, color: p.color }}>
-                    <span>{p.icon}</span>
-                    <span>{p.platform} Ads</span>
+              {/* Monthly Overview Table */}
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 16, marginBottom: 20 }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
+                  📈 Platform Sales Overview — GMV &amp; Final Net (Jun–Sep 2026)
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: '#0f172a', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
+                        <th style={{ padding: '10px 12px' }}>Platform / Metric</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>June</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>July</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>August</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>September MTD</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>Jun→Jul %</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>Jul→Aug %</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>Aug→Sep %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {overallData?.monthlyOverview.map((row, idx) => {
+                        const isTotal = row.type === 'Total Net'
+                        return (
+                          <tr
+                            key={idx}
+                            style={{
+                              borderBottom: '1px solid #334155',
+                              background: isTotal ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                              fontWeight: isTotal ? 800 : 500,
+                              color: isTotal ? '#f8fafc' : '#cbd5e1'
+                            }}
+                          >
+                            <td style={{ padding: '10px 12px', color: isTotal ? '#38bdf8' : '#f1f5f9' }}>{row.metric}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(row.june)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(row.july)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(row.august)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>
+                              ₹{formatINR(row.sepMtd)}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}><GrowthBadge val={row.momJul} /></td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}><GrowthBadge val={row.momAug} /></td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}><GrowthBadge val={row.momSep} /></td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Visual Charts: Monthly Multi-Channel Trends & Revenue Mix */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16, marginBottom: 20 }}>
+                <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 16 }}>
+                  <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#f8fafc' }}>Monthly Revenue by Channel</h4>
+                  <div style={{ height: 260 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyRevenueChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                        <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} />
+                        <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={v => `₹${(v / 100000).toFixed(0)}L`} />
+                        <ReTooltip
+                          contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6 }}
+                          formatter={(v) => [`₹${formatINR(v)}`, '']}
+                        />
+                        <Legend />
+                        <Bar dataKey="Instamart" fill="#f97316" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Amazon" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Blinkit" fill="#eab308" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                  <span style={{
-                    fontSize: 10,
-                    background: adsPlatformFilter === p.platform ? p.color : '#334155',
-                    color: adsPlatformFilter === p.platform ? '#000' : '#94a3b8',
-                    padding: '2px 8px',
-                    borderRadius: 10,
-                    fontWeight: 700
-                  }}>
-                    {p.campaignsCount} campaigns
-                  </span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>Spend</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#ef4444' }}>₹{p.spend.toLocaleString()}</div>
+                <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 16 }}>
+                  <h4 style={{ margin: '0 0 12px', fontSize: 13, color: '#f8fafc' }}>September MTD Channel Contribution</h4>
+                  <div style={{ height: 260 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={sepChannelMix}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={90}
+                          paddingAngle={4}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                        >
+                          {sepChannelMix.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <ReTooltip
+                          contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6 }}
+                          formatter={(v) => [`₹${formatINR(v)}`, 'Revenue']}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
+                </div>
+              </div>
+
+              {/* Top 20 Cities Performance Matrix */}
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
+                <div style={{ padding: '14px 16px', background: '#0f172a', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                   <div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>Ad Sales / GMV</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>₹{p.gmv.toLocaleString()}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>ROAS</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#38bdf8' }}>{p.roas}x</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>Clicks / Orders</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>
-                      {p.clicks.toLocaleString()} / {p.conv ? p.conv.toLocaleString() : '—'}
+                    <h3 style={{ margin: 0, fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
+                      🏙️ Top 20 Cities — MoM Performance &amp; Current Platform Mix
+                    </h3>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                      City revenue tracking across Instamart, Amazon, and Blinkit
                     </div>
                   </div>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search city..."
+                    style={{
+                      background: '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: 6,
+                      color: '#f8fafc',
+                      padding: '4px 10px',
+                      fontSize: 12,
+                      width: 180
+                    }}
+                  />
                 </div>
-              </div>
-            ))}
-          </div>
 
-          {/* Monthly Comparison Bar Chart */}
-          {adsData.chartData.length > 0 && (
-            <div className="chart-card" style={{ marginTop: 20 }}>
-              <div className="chart-title">Monthly Platform Ads Spend vs GMV Trend</div>
-              <div style={{ height: 300, marginTop: 16 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={adsData.chartData} margin={{ top: 10, right: 30, left: 10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
-                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                    <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />
-                    <ReTooltip
-                      contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
-                      formatter={(val, name) => ['₹' + Number(val).toLocaleString(), name]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                    <Bar dataKey="Instamart Spend" fill="#f97316" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Blinkit Spend" fill="#eab308" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Amazon Vendor Spend" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Amazon Seller Spend" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Total GMV" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <DataTable
+                  columns={cityColumns}
+                  rows={filteredCities}
+                  pageSize={20}
+                  filename="overall_sales_top20_cities.csv"
+                  emptyMessage="No city records match your query."
+                />
+              </div>
+
+              {/* SKU-wise MoM Drilldown */}
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 16px', background: '#0f172a', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <h3 style={{ margin: 0, fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
+                    📦 SKU-wise MoM Performance Drilldown
+                  </h3>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[
+                      { id: 'insta', label: 'Instamart SKUs (5)' },
+                      { id: 'amz', label: 'Amazon SKUs (13)' },
+                      { id: 'blinkit', label: 'Blinkit SKUs (6)' }
+                    ].map(st => (
+                      <button
+                        key={st.id}
+                        onClick={() => setSkuChannelTab(st.id)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          background: skuChannelTab === st.id ? '#3b82f6' : '#1e293b',
+                          color: skuChannelTab === st.id ? '#ffffff' : '#94a3b8',
+                          border: '1px solid ' + (skuChannelTab === st.id ? '#60a5fa' : '#334155')
+                        }}
+                      >
+                        {st.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {skuChannelTab === 'insta' && (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ background: '#0b1329', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
+                          <th style={{ padding: '8px 12px' }}>Code</th>
+                          <th style={{ padding: '8px 12px' }}>SKU Title</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jun Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jul Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Aug Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD Gross</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'center' }}>Aug→Sep %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {overallData?.instaSKUs.map((r, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #334155' }}>
+                            <td style={{ padding: '8px 12px', color: '#94a3b8', fontFamily: 'monospace' }}>{r.itemCode}</td>
+                            <td style={{ padding: '8px 12px', color: '#f8fafc', fontWeight: 600 }}>{r.sku}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.juneNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.julyNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.augNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', color: '#94a3b8' }}>₹{formatINR(r.sepGross)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{formatINR(r.sepNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'center' }}><GrowthBadge val={r.momSep} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {skuChannelTab === 'amz' && (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ background: '#0b1329', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
+                          <th style={{ padding: '8px 12px' }}>ASIN</th>
+                          <th style={{ padding: '8px 12px' }}>SKU Title</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jun Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Jul Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Aug Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD Gross</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'center' }}>Aug→Sep %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {overallData?.amazonSKUs.map((r, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #334155' }}>
+                            <td style={{ padding: '8px 12px', color: '#94a3b8', fontFamily: 'monospace' }}>{r.asin}</td>
+                            <td style={{ padding: '8px 12px', color: '#f8fafc', fontWeight: 600 }}>{r.sku}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.juneNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.julyNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.augNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', color: '#94a3b8' }}>₹{formatINR(r.sepGross)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{formatINR(r.sepNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'center' }}><GrowthBadge val={r.momSep} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {skuChannelTab === 'blinkit' && (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ background: '#0b1329', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
+                          <th style={{ padding: '8px 12px' }}>Item ID</th>
+                          <th style={{ padding: '8px 12px' }}>SKU Title</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>August MRP</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>August Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD MRP</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right' }}>Sep MTD Net</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'center' }}>Aug→Sep %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {overallData?.blinkitSKUs.map((r, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #334155' }}>
+                            <td style={{ padding: '8px 12px', color: '#94a3b8', fontFamily: 'monospace' }}>{r.itemId}</td>
+                            <td style={{ padding: '8px 12px', color: '#f8fafc', fontWeight: 600 }}>{r.sku}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.augGross)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>₹{formatINR(r.augNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', color: '#94a3b8' }}>₹{formatINR(r.sepGross)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#38bdf8' }}>₹{formatINR(r.sepNet)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'center' }}><GrowthBadge val={r.momSep} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Platform Filter & Campaigns Table */}
-          <div style={{ marginTop: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, letterSpacing: 0.6 }}>PLATFORM:</span>
-                {['All', 'Instamart', 'Blinkit', 'Amazon Vendor', 'Amazon Seller'].map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setAdsPlatformFilter(p)}
+          {/* ========================================================================= */}
+          {/* 2. GROUNDNUT - SALES SUB-TAB */}
+          {/* ========================================================================= */}
+          {activeSubTab === 'groundnut' && (
+            <div>
+              {/* Groundnut KPI Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
+                <div style={{ background: '#1e293b', border: '1px solid rgba(234, 179, 8, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>Groundnut Sep MTD Net</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#facc15', marginTop: 4 }}>₹3,927,421</div>
+                  <div style={{ fontSize: 11, color: '#4ade80', fontWeight: 700, marginTop: 4 }}>
+                    95.1% of Total Business Net Sales
+                  </div>
+                </div>
+
+                <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#fb923c', textTransform: 'uppercase', fontWeight: 700 }}>Instamart GN Net</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c', marginTop: 4 }}>₹3,045,964</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    100% of Instamart Sales
+                  </div>
+                </div>
+
+                <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#60a5fa', textTransform: 'uppercase', fontWeight: 700 }}>Amazon GN Net</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#60a5fa', marginTop: 4 }}>₹597,067</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    93.7% of Amazon Sales
+                  </div>
+                </div>
+
+                <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>Blinkit GN Net</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#facc15', marginTop: 4 }}>₹284,390</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    63.5% of Blinkit Sales
+                  </div>
+                </div>
+              </div>
+
+              {/* Monthly Groundnut Platform Sales */}
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: 16, marginBottom: 20 }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
+                  🥜 Monthly Platform Groundnut Oil Sales &amp; Growth
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: '#0f172a', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
+                        <th style={{ padding: '10px 12px' }}>Platform / Metric</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>June</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>July</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>August</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>September MTD</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>Jun→Jul %</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>Jul→Aug %</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>Aug→Sep %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groundnutData?.monthlyOverview.map((row, idx) => {
+                        const isTotal = row.metric.includes('Overall')
+                        return (
+                          <tr
+                            key={idx}
+                            style={{
+                              borderBottom: '1px solid #334155',
+                              background: isTotal ? 'rgba(234, 179, 8, 0.1)' : 'transparent',
+                              fontWeight: isTotal ? 800 : 500,
+                              color: isTotal ? '#f8fafc' : '#cbd5e1'
+                            }}
+                          >
+                            <td style={{ padding: '10px 12px', color: isTotal ? '#facc15' : '#f1f5f9' }}>{row.metric}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(row.june)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(row.july)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(row.august)}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#facc15' }}>
+                              ₹{formatINR(row.sepMtd)}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}><GrowthBadge val={row.momJul} /></td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}><GrowthBadge val={row.momAug} /></td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}><GrowthBadge val={row.momSep} /></td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* City-wise Groundnut Oil Sales Table */}
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ padding: '14px 16px', background: '#0f172a', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
+                      🏙️ City-wise Groundnut Oil Sales — Top 20 Cities
+                    </h3>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                      Groundnut sales performance and platform share by metro
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search city..."
                     style={{
-                      padding: '4px 12px',
-                      borderRadius: 14,
-                      border: '1px solid ' + (adsPlatformFilter === p ? '#3b82f6' : '#334155'),
-                      background: adsPlatformFilter === p ? 'rgba(59,130,246,0.18)' : '#1e293b',
-                      color: adsPlatformFilter === p ? '#38bdf8' : '#94a3b8',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      background: '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: 6,
+                      color: '#f8fafc',
+                      padding: '4px 10px',
+                      fontSize: 12,
+                      width: 180
                     }}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-
-              <input
-                type="text"
-                placeholder="🔍 Search campaigns across platforms..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{
-                  background: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: 8,
-                  color: '#f1f5f9',
-                  padding: '7px 12px',
-                  fontSize: 12,
-                  minWidth: 260,
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            <DataTable
-              columns={adsData.columns}
-              rows={adsData.filteredCampaigns}
-              pageSize={15}
-              filename={`ads_overall_${scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_')}.csv`}
-              emptyMessage="No ad campaigns found matching your filter/search"
-            />
-          </div>
-        </>
-      )}
-
-      {/* SUBTAB 2: RAW - AMAZON SALES */}
-      {activeSubTab === 'amazon' && !loading && (
-        <>
-          <div className="stats-grid" style={{ marginTop: 0 }}>
-            {amazonData.stats.map(s => (
-              <div className="stat-card" key={s.label}>
-                <div className="stat-header">
-                  <div className="stat-label">{s.label}</div>
-                  <div className="stat-icon" style={{ background: `${s.color}26`, color: s.color }}>{s.icon}</div>
+                  />
                 </div>
-                <div className="stat-value">{s.value}</div>
-              </div>
-            ))}
-          </div>
 
-          <div style={{ marginTop: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-              <input
-                type="text"
-                placeholder="🔍 Search by ASIN, Product, City, State..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{
-                  background: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: 8,
-                  color: '#f1f5f9',
-                  padding: '8px 14px',
-                  fontSize: 13,
-                  minWidth: 320,
-                  outline: 'none'
-                }}
-              />
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                Showing {amazonData.filtered.length.toLocaleString()} of {periodRows.length.toLocaleString()} records {selectedMonths.size > 0 && `(${scopeLabel})`}
-              </div>
-            </div>
-
-            <DataTable
-              columns={amazonData.columns}
-              rows={amazonData.filtered}
-              pageSize={15}
-              filename={`raw_amazon_sales_${scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_')}.csv`}
-              emptyMessage="No Amazon sales match your filter/search"
-            />
-          </div>
-        </>
-      )}
-
-      {/* SUBTAB 3: RAW - INSTA SALES */}
-      {activeSubTab === 'insta' && !loading && (
-        <>
-          <div className="stats-grid" style={{ marginTop: 0 }}>
-            {instaData.stats.map(s => (
-              <div className="stat-card" key={s.label}>
-                <div className="stat-header">
-                  <div className="stat-label">{s.label}</div>
-                  <div className="stat-icon" style={{ background: `${s.color}26`, color: s.color }}>{s.icon}</div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: '#0b1329', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
+                        <th style={{ padding: '10px 12px' }}>City</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>June Net</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>July Net</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>August Net</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Sep MTD Net</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>Aug→Sep %</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Instamart (Sep)</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Amazon (Sep)</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Blinkit (Sep)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredGNCities.map((r, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #334155' }}>
+                          <td style={{ padding: '10px 12px', fontWeight: 700, color: '#f8fafc' }}>{r.city}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(r.juneNet)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(r.julyNet)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right' }}>₹{formatINR(r.augustNet)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#facc15' }}>
+                            ₹{formatINR(r.sepNet)}
+                          </td>
+                          <td style={{ padding: '10px 12px', textAlign: 'center' }}><GrowthBadge val={r.momSep} /></td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#fb923c' }}>₹{formatINR(r.sepInstaNet)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#60a5fa' }}>₹{formatINR(r.sepAmzNet)}</td>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#facc15' }}>₹{formatINR(r.sepBlinkitNet)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="stat-value">{s.value}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-              <input
-                type="text"
-                placeholder="🔍 Search by Product, City, Area, Brand..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{
-                  background: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: 8,
-                  color: '#f1f5f9',
-                  padding: '8px 14px',
-                  fontSize: 13,
-                  minWidth: 320,
-                  outline: 'none'
-                }}
-              />
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                Showing {instaData.filtered.length.toLocaleString()} of {periodRows.length.toLocaleString()} records {selectedMonths.size > 0 && `(${scopeLabel})`}
               </div>
             </div>
+          )}
 
-            <DataTable
-              columns={instaData.columns}
-              rows={instaData.filtered}
-              pageSize={15}
-              filename={`raw_insta_sales_${scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_')}.csv`}
-              emptyMessage="No Instamart sales match your filter/search"
-            />
-          </div>
-        </>
-      )}
-
-      {/* SUBTAB 4: RAW - PARTNER BLINKIT SALES */}
-      {activeSubTab === 'blinkit' && !loading && (
-        <>
-          <div className="stats-grid" style={{ marginTop: 0 }}>
-            {blinkitData.stats.map(s => (
-              <div className="stat-card" key={s.label}>
-                <div className="stat-header">
-                  <div className="stat-label">{s.label}</div>
-                  <div className="stat-icon" style={{ background: `${s.color}26`, color: s.color }}>{s.icon}</div>
+          {/* ========================================================================= */}
+          {/* 3. ADS SPEND SUB-TAB */}
+          {/* ========================================================================= */}
+          {activeSubTab === 'ads_spend' && (
+            <div>
+              {/* Ads KPI Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
+                <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Total Ads Spend (Sep MTD)</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#f87171', marginTop: 4 }}>₹822,079</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    Aug: ₹1,015,609 (-19.1%) • Jul: ₹731,281
+                  </div>
                 </div>
-                <div className="stat-value">{s.value}</div>
-              </div>
-            ))}
-          </div>
 
-          <div style={{ marginTop: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-              <input
-                type="text"
-                placeholder="🔍 Search by Item, City, Category..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{
-                  background: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: 8,
-                  color: '#f1f5f9',
-                  padding: '8px 14px',
-                  fontSize: 13,
-                  minWidth: 320,
-                  outline: 'none'
-                }}
-              />
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                Showing {blinkitData.filtered.length.toLocaleString()} of {periodRows.length.toLocaleString()} records {selectedMonths.size > 0 && `(${scopeLabel})`}
-              </div>
-            </div>
-
-            <DataTable
-              columns={blinkitData.columns}
-              rows={blinkitData.filtered}
-              pageSize={15}
-              filename={`raw_partner_blinkit_sales_${scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_')}.csv`}
-              emptyMessage="No Blinkit sales match your filter/search"
-            />
-          </div>
-        </>
-      )}
-
-      {/* SUBTAB 5: RAW - AMAZON SELLER - OVERALL SALES */}
-      {activeSubTab === 'seller' && !loading && (
-        <>
-          <div className="stats-grid" style={{ marginTop: 0 }}>
-            {sellerData.stats.map(s => (
-              <div className="stat-card" key={s.label}>
-                <div className="stat-header">
-                  <div className="stat-label">{s.label}</div>
-                  <div className="stat-icon" style={{ background: `${s.color}26`, color: s.color }}>{s.icon}</div>
+                <div style={{ background: '#1e293b', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#fb923c', textTransform: 'uppercase', fontWeight: 700 }}>Instamart Spend (Ads+Sample)</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#fb923c', marginTop: 4 }}>₹491,949</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    Ads: ₹401.9k (9.4% GMV) + Sample: ₹90k
+                  </div>
                 </div>
-                <div className="stat-value">{s.value}</div>
-              </div>
-            ))}
-          </div>
 
-          <div style={{ marginTop: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-              <input
-                type="text"
-                placeholder="🔍 Search by Order ID, SKU, Description, City..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{
-                  background: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: 8,
-                  color: '#f1f5f9',
-                  padding: '8px 14px',
-                  fontSize: 13,
-                  minWidth: 320,
-                  outline: 'none'
-                }}
-              />
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                Showing {sellerData.filtered.length.toLocaleString()} of {periodRows.length.toLocaleString()} records {selectedMonths.size > 0 && `(${scopeLabel})`}
+                <div style={{ background: '#1e293b', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#60a5fa', textTransform: 'uppercase', fontWeight: 700 }}>Amazon Ads Spend</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#60a5fa', marginTop: 4 }}>₹266,253</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                    Vendor: ₹193.4k (25.6%) • Seller: ₹72.9k (41.8%)
+                  </div>
+                </div>
+
+                <div style={{ background: '#1e293b', border: '1px solid rgba(234, 179, 8, 0.3)', borderRadius: 10, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#facc15', textTransform: 'uppercase', fontWeight: 700 }}>Blinkit Ads Spend</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#facc15', marginTop: 4 }}>₹63,877</div>
+                  <div style={{ fontSize: 11, color: '#4ade80', fontWeight: 700, marginTop: 4 }}>
+                    Vendor: ₹44.9k (8.1% MRP) • Seller: ₹19.0k
+                  </div>
+                </div>
+              </div>
+
+              {/* Ads Spend & Sales Comparison Table */}
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
+                <div style={{ padding: '14px 16px', background: '#0f172a', borderBottom: '1px solid #334155' }}>
+                  <h3 style={{ margin: 0, fontSize: 14, color: '#f8fafc', fontWeight: 700 }}>
+                    📢 Ads Spend vs. Overall Sales (Jun–Sep 2026) &amp; RCA Diagnostic Notes
+                  </h3>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                    Channel-wise ad efficiency, percentage of sales burnt, and root cause notes
+                  </div>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: '#0b1329', borderBottom: '1px solid #334155', textAlign: 'left', color: '#94a3b8' }}>
+                        <th style={{ padding: '10px 12px' }}>Platform</th>
+                        <th style={{ padding: '10px 12px' }}>Metric</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>June</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>July</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>August</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>September MTD</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>Aug→Sep %</th>
+                        <th style={{ padding: '10px 12px' }}>Root Cause Analysis (RCA)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adsData?.platforms.map((r, idx) => {
+                        const isSpend = r.metric.toLowerCase().includes('spend')
+                        const isPct = r.metric.includes('%')
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid #334155' }}>
+                            <td style={{ padding: '10px 12px', fontWeight: 700, color: '#f8fafc' }}>{r.platform}</td>
+                            <td style={{ padding: '10px 12px', color: isSpend ? '#f87171' : isPct ? '#facc15' : '#38bdf8', fontWeight: 600 }}>
+                              {r.metric}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>{isPct ? `${r.june}%` : `₹${formatINR(r.june)}`}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>{isPct ? `${r.july}%` : `₹${formatINR(r.july)}`}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>{isPct ? `${r.august}%` : `₹${formatINR(r.august)}`}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: isSpend ? '#f87171' : '#38bdf8' }}>
+                              {isPct ? `${r.sepMtd}%` : `₹${formatINR(r.sepMtd)}`}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'center' }}><GrowthBadge val={r.momSep} /></td>
+                            <td style={{ padding: '10px 12px', color: '#94a3b8', fontSize: 11, maxWidth: 300 }}>
+                              {r.rca || '—'}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-
-            <DataTable
-              columns={sellerData.columns}
-              rows={sellerData.filtered}
-              pageSize={15}
-              filename={`raw_amazon_seller_sales_${scopeLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_')}.csv`}
-              emptyMessage="No Amazon seller transactions match your filter/search"
-            />
-          </div>
-        </>
+          )}
+        </div>
       )}
     </>
   )
