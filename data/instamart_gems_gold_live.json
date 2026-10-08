@@ -1,6 +1,6 @@
 {
-  "lastUpdated": "2026-10-05T06:27:39.290Z",
-  "date": "2026-10-05",
+  "lastUpdated": "2026-10-08T06:03:13.644Z",
+  "date": "2026-10-08",
   "strategy": "GPS_SPOOFED_ISOLATED_DARK_STORE",
   "targetCities": [
     {
@@ -328,7 +328,7 @@
   ],
   "citySkuMatrix": {
     "CHENNAI_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "CHENNAI",
       "cityName": "Chennai",
       "area": "T Nagar",
@@ -351,10 +351,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "CHENNAI_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "CHENNAI",
       "cityName": "Chennai",
       "area": "T Nagar",
@@ -377,10 +377,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "CHENNAI_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "CHENNAI",
       "cityName": "Chennai",
       "area": "T Nagar",
@@ -403,10 +403,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "CHENNAI_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "CHENNAI",
       "cityName": "Chennai",
       "area": "T Nagar",
@@ -429,10 +429,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "CHENNAI_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "CHENNAI",
       "cityName": "Chennai",
       "area": "T Nagar",
@@ -455,10 +455,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "BANGALORE_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "BANGALORE",
       "cityName": "Bangalore",
       "area": "Koramangala",
@@ -481,10 +481,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "BANGALORE_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "BANGALORE",
       "cityName": "Bangalore",
       "area": "Koramangala",
@@ -507,10 +507,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "BANGALORE_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "BANGALORE",
       "cityName": "Bangalore",
       "area": "Koramangala",
@@ -533,10 +533,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "BANGALORE_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "BANGALORE",
       "cityName": "Bangalore",
       "area": "Koramangala",
@@ -559,10 +559,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "BANGALORE_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "BANGALORE",
       "cityName": "Bangalore",
       "area": "Koramangala",
@@ -585,10 +585,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "COIMBATORE_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "COIMBATORE",
       "cityName": "Coimbatore",
       "area": "RS Puram",
@@ -611,10 +611,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "COIMBATORE_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "COIMBATORE",
       "cityName": "Coimbatore",
       "area": "RS Puram",
@@ -637,10 +637,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "COIMBATORE_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "COIMBATORE",
       "cityName": "Coimbatore",
       "area": "RS Puram",
@@ -663,10 +663,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "COIMBATORE_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "COIMBATORE",
       "cityName": "Coimbatore",
       "area": "RS Puram",
@@ -689,10 +689,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "COIMBATORE_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "COIMBATORE",
       "cityName": "Coimbatore",
       "area": "RS Puram",
@@ -715,10 +715,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "HYDERABAD_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "HYDERABAD",
       "cityName": "Hyderabad",
       "area": "Gachibowli",
@@ -741,10 +741,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "HYDERABAD_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "HYDERABAD",
       "cityName": "Hyderabad",
       "area": "Gachibowli",
@@ -767,10 +767,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "HYDERABAD_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "HYDERABAD",
       "cityName": "Hyderabad",
       "area": "Gachibowli",
@@ -793,10 +793,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "HYDERABAD_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "HYDERABAD",
       "cityName": "Hyderabad",
       "area": "Gachibowli",
@@ -819,10 +819,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "HYDERABAD_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "HYDERABAD",
       "cityName": "Hyderabad",
       "area": "Gachibowli",
@@ -845,10 +845,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MUMBAI_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MUMBAI",
       "cityName": "Mumbai",
       "area": "Andheri East",
@@ -871,10 +871,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MUMBAI_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MUMBAI",
       "cityName": "Mumbai",
       "area": "Andheri East",
@@ -897,10 +897,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MUMBAI_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MUMBAI",
       "cityName": "Mumbai",
       "area": "Andheri East",
@@ -923,10 +923,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MUMBAI_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MUMBAI",
       "cityName": "Mumbai",
       "area": "Andheri East",
@@ -949,10 +949,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MUMBAI_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MUMBAI",
       "cityName": "Mumbai",
       "area": "Andheri East",
@@ -975,10 +975,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "SALEM_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "SALEM",
       "cityName": "Salem",
       "area": "Fairlands",
@@ -1001,10 +1001,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "SALEM_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "SALEM",
       "cityName": "Salem",
       "area": "Fairlands",
@@ -1027,10 +1027,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "SALEM_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "SALEM",
       "cityName": "Salem",
       "area": "Fairlands",
@@ -1053,10 +1053,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "SALEM_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "SALEM",
       "cityName": "Salem",
       "area": "Fairlands",
@@ -1079,10 +1079,10 @@
       "stockStatus": "Out of Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "SALEM_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "SALEM",
       "cityName": "Salem",
       "area": "Fairlands",
@@ -1105,10 +1105,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TRICHY_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TRICHY",
       "cityName": "Trichy",
       "area": "Thillai Nagar",
@@ -1131,10 +1131,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TRICHY_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TRICHY",
       "cityName": "Trichy",
       "area": "Thillai Nagar",
@@ -1157,10 +1157,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TRICHY_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TRICHY",
       "cityName": "Trichy",
       "area": "Thillai Nagar",
@@ -1183,10 +1183,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TRICHY_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TRICHY",
       "cityName": "Trichy",
       "area": "Thillai Nagar",
@@ -1209,10 +1209,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TRICHY_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TRICHY",
       "cityName": "Trichy",
       "area": "Thillai Nagar",
@@ -1235,10 +1235,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VIZAG_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VIZAG",
       "cityName": "Vizag",
       "area": "MVP Colony",
@@ -1261,10 +1261,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VIZAG_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VIZAG",
       "cityName": "Vizag",
       "area": "MVP Colony",
@@ -1287,10 +1287,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VIZAG_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VIZAG",
       "cityName": "Vizag",
       "area": "MVP Colony",
@@ -1313,10 +1313,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VIZAG_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VIZAG",
       "cityName": "Vizag",
       "area": "MVP Colony",
@@ -1339,10 +1339,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VIZAG_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VIZAG",
       "cityName": "Vizag",
       "area": "MVP Colony",
@@ -1365,10 +1365,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MADURAI_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MADURAI",
       "cityName": "Madurai",
       "area": "KK Nagar",
@@ -1391,10 +1391,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MADURAI_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MADURAI",
       "cityName": "Madurai",
       "area": "KK Nagar",
@@ -1417,10 +1417,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MADURAI_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MADURAI",
       "cityName": "Madurai",
       "area": "KK Nagar",
@@ -1443,10 +1443,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MADURAI_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MADURAI",
       "cityName": "Madurai",
       "area": "KK Nagar",
@@ -1469,10 +1469,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MADURAI_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MADURAI",
       "cityName": "Madurai",
       "area": "KK Nagar",
@@ -1495,10 +1495,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "PUNE_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "PUNE",
       "cityName": "Pune",
       "area": "Kothrud",
@@ -1521,10 +1521,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "PUNE_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "PUNE",
       "cityName": "Pune",
       "area": "Kothrud",
@@ -1547,10 +1547,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "PUNE_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "PUNE",
       "cityName": "Pune",
       "area": "Kothrud",
@@ -1573,10 +1573,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "PUNE_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "PUNE",
       "cityName": "Pune",
       "area": "Kothrud",
@@ -1599,10 +1599,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "PUNE_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "PUNE",
       "cityName": "Pune",
       "area": "Kothrud",
@@ -1625,10 +1625,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "PONDICHERRY_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "PONDICHERRY",
       "cityName": "Pondicherry",
       "area": "White Town",
@@ -1651,10 +1651,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "PONDICHERRY_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "PONDICHERRY",
       "cityName": "Pondicherry",
       "area": "White Town",
@@ -1677,10 +1677,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "PONDICHERRY_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "PONDICHERRY",
       "cityName": "Pondicherry",
       "area": "White Town",
@@ -1703,10 +1703,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "PONDICHERRY_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "PONDICHERRY",
       "cityName": "Pondicherry",
       "area": "White Town",
@@ -1729,10 +1729,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "PONDICHERRY_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "PONDICHERRY",
       "cityName": "Pondicherry",
       "area": "White Town",
@@ -1755,10 +1755,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VIJAYAWADA_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VIJAYAWADA",
       "cityName": "Vijayawada",
       "area": "Benz Circle",
@@ -1781,10 +1781,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VIJAYAWADA_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VIJAYAWADA",
       "cityName": "Vijayawada",
       "area": "Benz Circle",
@@ -1807,10 +1807,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VIJAYAWADA_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VIJAYAWADA",
       "cityName": "Vijayawada",
       "area": "Benz Circle",
@@ -1833,10 +1833,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VIJAYAWADA_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VIJAYAWADA",
       "cityName": "Vijayawada",
       "area": "Benz Circle",
@@ -1859,10 +1859,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VIJAYAWADA_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VIJAYAWADA",
       "cityName": "Vijayawada",
       "area": "Benz Circle",
@@ -1885,10 +1885,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TIRUPUR_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TIRUPUR",
       "cityName": "Tirupur",
       "area": "Kumar Nagar",
@@ -1911,10 +1911,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TIRUPUR_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TIRUPUR",
       "cityName": "Tirupur",
       "area": "Kumar Nagar",
@@ -1937,10 +1937,10 @@
       "stockStatus": "Out of Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TIRUPUR_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TIRUPUR",
       "cityName": "Tirupur",
       "area": "Kumar Nagar",
@@ -1963,10 +1963,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TIRUPUR_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TIRUPUR",
       "cityName": "Tirupur",
       "area": "Kumar Nagar",
@@ -1989,10 +1989,10 @@
       "stockStatus": "Out of Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TIRUPUR_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TIRUPUR",
       "cityName": "Tirupur",
       "area": "Kumar Nagar",
@@ -2015,10 +2015,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KOCHI_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KOCHI",
       "cityName": "Kochi",
       "area": "Kaloor",
@@ -2041,10 +2041,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KOCHI_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KOCHI",
       "cityName": "Kochi",
       "area": "Kaloor",
@@ -2067,10 +2067,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KOCHI_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KOCHI",
       "cityName": "Kochi",
       "area": "Kaloor",
@@ -2093,10 +2093,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KOCHI_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KOCHI",
       "cityName": "Kochi",
       "area": "Kaloor",
@@ -2119,10 +2119,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KOCHI_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KOCHI",
       "cityName": "Kochi",
       "area": "Kaloor",
@@ -2145,10 +2145,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "ERODE_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "ERODE",
       "cityName": "Erode",
       "area": "Perundurai Road",
@@ -2171,10 +2171,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "ERODE_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "ERODE",
       "cityName": "Erode",
       "area": "Perundurai Road",
@@ -2197,10 +2197,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "ERODE_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "ERODE",
       "cityName": "Erode",
       "area": "Perundurai Road",
@@ -2223,10 +2223,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "ERODE_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "ERODE",
       "cityName": "Erode",
       "area": "Perundurai Road",
@@ -2249,10 +2249,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "ERODE_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "ERODE",
       "cityName": "Erode",
       "area": "Perundurai Road",
@@ -2275,10 +2275,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VELLORE_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VELLORE",
       "cityName": "Vellore",
       "area": "Gandhi Nagar",
@@ -2301,10 +2301,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VELLORE_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VELLORE",
       "cityName": "Vellore",
       "area": "Gandhi Nagar",
@@ -2327,10 +2327,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VELLORE_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VELLORE",
       "cityName": "Vellore",
       "area": "Gandhi Nagar",
@@ -2353,10 +2353,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VELLORE_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VELLORE",
       "cityName": "Vellore",
       "area": "Gandhi Nagar",
@@ -2379,10 +2379,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "VELLORE_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "VELLORE",
       "cityName": "Vellore",
       "area": "Gandhi Nagar",
@@ -2405,10 +2405,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "THANJAVUR_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "THANJAVUR",
       "cityName": "Thanjavur",
       "area": "Medical College Rd",
@@ -2431,10 +2431,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "THANJAVUR_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "THANJAVUR",
       "cityName": "Thanjavur",
       "area": "Medical College Rd",
@@ -2457,10 +2457,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "THANJAVUR_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "THANJAVUR",
       "cityName": "Thanjavur",
       "area": "Medical College Rd",
@@ -2483,10 +2483,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "THANJAVUR_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "THANJAVUR",
       "cityName": "Thanjavur",
       "area": "Medical College Rd",
@@ -2509,10 +2509,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "THANJAVUR_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "THANJAVUR",
       "cityName": "Thanjavur",
       "area": "Medical College Rd",
@@ -2535,10 +2535,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TIRUNELVELI_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TIRUNELVELI",
       "cityName": "Tirunelveli",
       "area": "Palayamkottai",
@@ -2561,10 +2561,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TIRUNELVELI_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TIRUNELVELI",
       "cityName": "Tirunelveli",
       "area": "Palayamkottai",
@@ -2587,10 +2587,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TIRUNELVELI_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TIRUNELVELI",
       "cityName": "Tirunelveli",
       "area": "Palayamkottai",
@@ -2613,10 +2613,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TIRUNELVELI_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TIRUNELVELI",
       "cityName": "Tirunelveli",
       "area": "Palayamkottai",
@@ -2639,10 +2639,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "TIRUNELVELI_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "TIRUNELVELI",
       "cityName": "Tirunelveli",
       "area": "Palayamkottai",
@@ -2665,10 +2665,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MYSORE_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MYSORE",
       "cityName": "Mysore",
       "area": "Gokulam",
@@ -2691,10 +2691,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MYSORE_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MYSORE",
       "cityName": "Mysore",
       "area": "Gokulam",
@@ -2717,10 +2717,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MYSORE_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MYSORE",
       "cityName": "Mysore",
       "area": "Gokulam",
@@ -2743,10 +2743,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MYSORE_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MYSORE",
       "cityName": "Mysore",
       "area": "Gokulam",
@@ -2769,10 +2769,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "MYSORE_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "MYSORE",
       "cityName": "Mysore",
       "area": "Gokulam",
@@ -2795,10 +2795,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "NELLORE_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "NELLORE",
       "cityName": "Nellore",
       "area": "Magunta Layout",
@@ -2821,10 +2821,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "NELLORE_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "NELLORE",
       "cityName": "Nellore",
       "area": "Magunta Layout",
@@ -2847,10 +2847,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "NELLORE_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "NELLORE",
       "cityName": "Nellore",
       "area": "Magunta Layout",
@@ -2873,10 +2873,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "NELLORE_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "NELLORE",
       "cityName": "Nellore",
       "area": "Magunta Layout",
@@ -2899,10 +2899,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "NELLORE_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "NELLORE",
       "cityName": "Nellore",
       "area": "Magunta Layout",
@@ -2925,10 +2925,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "THOOTHUKUDI_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "THOOTHUKUDI",
       "cityName": "Thoothukudi",
       "area": "Millerpuram",
@@ -2951,10 +2951,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "THOOTHUKUDI_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "THOOTHUKUDI",
       "cityName": "Thoothukudi",
       "area": "Millerpuram",
@@ -2977,10 +2977,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "THOOTHUKUDI_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "THOOTHUKUDI",
       "cityName": "Thoothukudi",
       "area": "Millerpuram",
@@ -3003,10 +3003,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "THOOTHUKUDI_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "THOOTHUKUDI",
       "cityName": "Thoothukudi",
       "area": "Millerpuram",
@@ -3029,10 +3029,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "THOOTHUKUDI_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "THOOTHUKUDI",
       "cityName": "Thoothukudi",
       "area": "Millerpuram",
@@ -3055,10 +3055,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KANCHIPURAM_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KANCHIPURAM",
       "cityName": "Kanchipuram",
       "area": "Gandhi Road",
@@ -3081,10 +3081,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KANCHIPURAM_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KANCHIPURAM",
       "cityName": "Kanchipuram",
       "area": "Gandhi Road",
@@ -3107,10 +3107,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KANCHIPURAM_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KANCHIPURAM",
       "cityName": "Kanchipuram",
       "area": "Gandhi Road",
@@ -3133,10 +3133,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KANCHIPURAM_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KANCHIPURAM",
       "cityName": "Kanchipuram",
       "area": "Gandhi Road",
@@ -3159,10 +3159,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KANCHIPURAM_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KANCHIPURAM",
       "cityName": "Kanchipuram",
       "area": "Gandhi Road",
@@ -3185,10 +3185,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "WARANGAL_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "WARANGAL",
       "cityName": "Warangal",
       "area": "Hanamkonda",
@@ -3211,10 +3211,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "WARANGAL_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "WARANGAL",
       "cityName": "Warangal",
       "area": "Hanamkonda",
@@ -3237,10 +3237,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "WARANGAL_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "WARANGAL",
       "cityName": "Warangal",
       "area": "Hanamkonda",
@@ -3263,10 +3263,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "WARANGAL_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "WARANGAL",
       "cityName": "Warangal",
       "area": "Hanamkonda",
@@ -3289,10 +3289,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "WARANGAL_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "WARANGAL",
       "cityName": "Warangal",
       "area": "Hanamkonda",
@@ -3315,10 +3315,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KARUR_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KARUR",
       "cityName": "Karur",
       "area": "Kovai Road",
@@ -3341,10 +3341,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KARUR_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KARUR",
       "cityName": "Karur",
       "area": "Kovai Road",
@@ -3367,10 +3367,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KARUR_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KARUR",
       "cityName": "Karur",
       "area": "Kovai Road",
@@ -3393,10 +3393,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KARUR_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KARUR",
       "cityName": "Karur",
       "area": "Kovai Road",
@@ -3419,10 +3419,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "KARUR_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "KARUR",
       "cityName": "Karur",
       "area": "Kovai Road",
@@ -3445,10 +3445,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "CENTRAL_GOA_pouch_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "CENTRAL_GOA",
       "cityName": "Central Goa",
       "area": "Panaji",
@@ -3471,10 +3471,10 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "CENTRAL_GOA_bottle_1l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "CENTRAL_GOA",
       "cityName": "Central Goa",
       "area": "Panaji",
@@ -3497,10 +3497,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "CENTRAL_GOA_bottle_2l": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "CENTRAL_GOA",
       "cityName": "Central Goa",
       "area": "Panaji",
@@ -3523,10 +3523,10 @@
       "stockStatus": "In Stock",
       "rating": "4.5",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "CENTRAL_GOA_bottle_500ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "CENTRAL_GOA",
       "cityName": "Central Goa",
       "area": "Panaji",
@@ -3549,10 +3549,10 @@
       "stockStatus": "In Stock",
       "rating": "4.4",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     },
     "CENTRAL_GOA_spray_200ml": {
-      "date": "2026-10-05",
+      "date": "2026-10-08",
       "cityId": "CENTRAL_GOA",
       "cityName": "Central Goa",
       "area": "Panaji",
@@ -3575,7 +3575,7 @@
       "stockStatus": "In Stock",
       "rating": "4.6",
       "isListed": true,
-      "lastVerifiedAt": "2026-10-05T06:27:39.290Z"
+      "lastVerifiedAt": "2026-10-08T06:03:13.644Z"
     }
   },
   "alerts": [
