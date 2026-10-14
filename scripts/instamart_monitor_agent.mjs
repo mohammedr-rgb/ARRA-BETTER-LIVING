@@ -11,7 +11,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import { chromium } from 'playwright';
 import { sendAlertNotifications } from './notify_alerts.mjs';
 
 // 25-City Target Market Matrix Configuration (Exact Geolocation Anchors & Delivery Radii)

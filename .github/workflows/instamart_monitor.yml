@@ -20,6 +20,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
+          ref: master
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -30,9 +31,6 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
-
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
 
       - name: Run Instamart Monitor Agent
         run: npm run monitor:instamart
@@ -55,7 +53,11 @@ jobs:
             echo "No data changes to commit."
           fi
 
+      - name: Build Dashboard
+        run: npm run build
+
       - name: Deploy to GitHub Pages
-        run: npm run deploy
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
