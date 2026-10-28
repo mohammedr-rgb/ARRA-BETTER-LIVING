@@ -276,6 +276,7 @@ export default function StockTab() {
   })
 
   const toggleSkuStock = (cityId, skuId) => {
+    if (gemsGoldLive?.dataStatus === 'UNVERIFIED') return
     const key = `${cityId}_${skuId}`
     const current = activeGemsMatrix[key] || {}
     const newInStock = current.inStock === true ? false : true
@@ -1360,6 +1361,7 @@ export default function StockTab() {
       const histItem = gemsGoldHistory.find(h => h.date === gemsSelectedDate)
       if (histItem?.citySkuMatrix) base = histItem.citySkuMatrix
     }
+    if (gemsGoldLive?.dataStatus === 'UNVERIFIED') return base
     return { ...base, ...customOverrides }
   }, [gemsSelectedDate, gemsGoldLive, gemsGoldHistory, customOverrides])
 
@@ -1472,7 +1474,7 @@ export default function StockTab() {
   }, [gemsAllRecords, gemsTargetCities, gemsAlerts, gemsGoldLive])
 
   // Robust Multi-Tier Competitor Benchmarking across all 25 Cities and all 5 SKUs
-  const getCompetitorBenchmark = useCallback((cityId, volumeMl, gemsPrice, skuId) => {
+  const getCompetitorBenchmark = useCallback((cityId, volumeMl, gemsPrice) => {
     let comps = (liveAgentSnapshot?.records || []).filter(c => c.city === cityId && c.volumeMl === volumeMl && c.brand !== "GEM'S GOLD" && c.brand !== "Gem" && c.sellingPrice)
     
     if (!comps.length && competitorData.length) {
