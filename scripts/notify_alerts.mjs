@@ -57,8 +57,8 @@ export async function sendAlertNotifications(alerts, summary) {
     return [];
   }
   const nowIST = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-  const lines = safeAlerts.slice(0, 8).map((alert, index) => `${index + 1}. ${alert.type} [${alert.city}]\\n${alert.message}`);
-  const message = `GEM'S GOLD Instamart verified alerts\\n${nowIST}\\n\\n${lines.join('\\n\\n')}`;
+  const lines = safeAlerts.slice(0, 8).map((alert, index) => `${index + 1}. ${alert.type} [${alert.city}]\n${alert.message}`);
+  const message = `GEM'S GOLD Instamart verified alerts\n${nowIST}\n\n${lines.join('\n\n')}`;
   const results = [];
   const phone = process.env.WHATSAPP_PHONE?.replace(/[^0-9]/g, '');
   const apiKey = process.env.WHATSAPP_APIKEY;
