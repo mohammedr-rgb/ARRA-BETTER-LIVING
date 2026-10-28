@@ -86,3 +86,18 @@ test('price and stock alerts require a prior fresh verified observation', () => 
   assert.equal(alerts.length, 2);
   assert.deepEqual(alerts.map(alert => alert.type).sort(), ['PRICE_CHANGE', 'STOCK_CHANGE']);
 });
+
+test('licensed competitor observations are validated and normalized separately', async () => {
+  const { normalizeAuthorizedCompetitors } = await import('./instamart_feed.mjs');
+  const now = Date.parse('2026-10-28T05:00:00.000Z');
+  const records = normalizeAuthorizedCompetitors({
+    competitors: [
+      { cityId: 'COIMBATORE', brand: 'Example Oil', volumeMl: 1000, sellingPrice: 199, observedAt: '2026-10-28T04:00:00.000Z', source: 'licensed-provider' },
+      { cityId: 'COIMBATORE', brand: "GEM'S GOLD", volumeMl: 1000, sellingPrice: 199, observedAt: '2026-10-28T04:00:00.000Z' },
+      { cityId: 'COIMBATORE', brand: 'Stale Oil', volumeMl: 1000, sellingPrice: 199, observedAt: '2026-10-20T04:00:00.000Z' }
+    ]
+  }, { cities: TARGET_CITIES, now });
+  assert.equal(records.length, 1);
+  assert.equal(records[0].brand, 'Example Oil');
+  assert.equal(records[0].observationStatus, 'VERIFIED');
+});
