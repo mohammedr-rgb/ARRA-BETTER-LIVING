@@ -132,6 +132,21 @@ function readJson(filePath, fallback) {
   }
 }
 
+export function upsertDailyHistory(historyData, snapshot) {
+  const history = Array.isArray(historyData?.history) ? historyData.history : [];
+  const entry = {
+    date: snapshot.date,
+    timestamp: snapshot.lastUpdated,
+    dataStatus: snapshot.dataStatus,
+    totalCities: TARGET_CITIES.length,
+    citySkuMatrix: snapshot.citySkuMatrix
+  };
+  const existingIndex = history.findIndex(item => item.date === snapshot.date);
+  if (existingIndex >= 0) history[existingIndex] = entry;
+  else history.push(entry);
+  return { history };
+}
+
 function sanitizeHistory(historyData) {
   const history = Array.isArray(historyData?.history) ? historyData.history : [];
   for (const entry of history) {
@@ -203,11 +218,10 @@ export async function runInstamartMonitorAgent({ dataDir = path.resolve('public/
     records: competitorObservations
   }, null, 2) + '\n', 'utf8');
 
-  const historyData = sanitizeHistory(readJson(historyFile, { history: [] }));
-  historyData.history.push({
-    date: snapshot.date, timestamp: snapshot.lastUpdated, dataStatus: snapshot.dataStatus,
-    totalCities: TARGET_CITIES.length, citySkuMatrix: snapshot.citySkuMatrix
-  });
+  const historyData = upsertDailyHistory(
+    sanitizeHistory(readJson(historyFile, { history: [] })),
+    snapshot
+  );
   fs.writeFileSync(historyFile, JSON.stringify(historyData, null, 2) + '\n', 'utf8');
 
   const market = readJson(marketSnapshotFile, { records: [] });
