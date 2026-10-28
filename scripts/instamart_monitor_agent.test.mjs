@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildUnknownSnapshot, escapeCsv, isFreshObservation } from './instamart_monitor_safe.mjs';
+import { applyVerifiedObservations, buildUnknownSnapshot, detectVerifiedChanges, escapeCsv, isFreshObservation } from './instamart_monitor_safe.mjs';
+import { normalizeAuthorizedFeedPayload } from './instamart_feed.mjs';
+import { TARGET_CITIES, TARGET_SKUS } from './instamart_monitor_config.mjs';
 
 test('monitor snapshot marks all target pairs unknown instead of fabricating observations', () => {
   const snapshot = buildUnknownSnapshot(new Date('2026-10-28T05:00:00.000Z'));
@@ -38,4 +40,49 @@ test('freshness requires explicit verification, source and a recent observation 
   assert.equal(isFreshObservation({ ...good, source: null }, { now }), false);
   assert.equal(isFreshObservation({ ...good, observationStatus: 'UNVERIFIED' }, { now }), false);
   assert.equal(isFreshObservation({ ...good, observedAt: '2026-10-29T00:00:00.000Z' }, { now }), false);
+});
+
+test('authorized feed accepts only fresh, matching city/SKU observations and keeps latest duplicate', () => {
+  const now = Date.parse('2026-10-28T05:00:00.000Z');
+  const payload = { observations: [
+    { cityId: 'CHENNAI', skuId: 'pouch_1l', sellingPrice: 199, mrp: 249, inStock: true, observedAt: '2026-10-28T04:00:00.000Z', source: 'licensed-feed' },
+    { cityId: 'CHENNAI', skuId: 'pouch_1l', sellingPrice: 189, mrp: 249, inStock: true, observedAt: '2026-10-28T04:30:00.000Z', source: 'licensed-feed' },
+    { cityId: 'CHENNAI', skuId: 'pouch_1l', sellingPrice: 100, inStock: true, observedAt: '2026-10-20T00:00:00.000Z' },
+    { cityId: 'UNKNOWN_CITY', skuId: 'pouch_1l', sellingPrice: 100, inStock: true, observedAt: '2026-10-28T04:00:00.000Z' },
+    { cityId: 'CHENNAI', skuId: 'not-a-sku', sellingPrice: 100, inStock: true, observedAt: '2026-10-28T04:00:00.000Z' }
+  ] };
+  const observations = normalizeAuthorizedFeedPayload(payload, { cities: TARGET_CITIES, skus: TARGET_SKUS, now });
+  assert.equal(observations.length, 1);
+  assert.equal(observations[0].sellingPrice, 189);
+  assert.equal(observations[0].observationStatus, 'VERIFIED');
+});
+
+test('only verified observations populate the published snapshot', () => {
+  const now = new Date('2026-10-28T05:00:00.000Z');
+  const snapshot = buildUnknownSnapshot(now);
+  const observation = {
+    cityId: 'CHENNAI', skuId: 'pouch_1l', sellingPrice: 189, mrp: 249,
+    inStock: true, observedAt: '2026-10-28T04:30:00.000Z',
+    source: 'licensed-feed', sourceUrl: null, observationStatus: 'VERIFIED'
+  };
+  applyVerifiedObservations(snapshot, [observation], now);
+  const row = snapshot.citySkuMatrix.CHENNAI_pouch_1l;
+  assert.equal(row.sellingPrice, 189);
+  assert.equal(row.inStock, true);
+  assert.equal(row.observationStatus, 'VERIFIED');
+  assert.equal(snapshot.dataStatus, 'PARTIAL');
+  assert.equal(snapshot.summary.totalUnknown, 124);
+});
+
+test('price and stock alerts require a prior fresh verified observation', () => {
+  const now = new Date('2026-10-28T05:00:00.000Z');
+  const previous = buildUnknownSnapshot(now);
+  const current = buildUnknownSnapshot(now);
+  const old = previous.citySkuMatrix.CHENNAI_pouch_1l;
+  Object.assign(old, { sellingPrice: 199, inStock: true, observationStatus: 'VERIFIED', source: 'licensed-feed', observedAt: '2026-10-28T04:00:00.000Z' });
+  const row = current.citySkuMatrix.CHENNAI_pouch_1l;
+  Object.assign(row, { sellingPrice: 189, inStock: false, observationStatus: 'VERIFIED', source: 'licensed-feed', observedAt: '2026-10-28T04:45:00.000Z' });
+  const alerts = detectVerifiedChanges(previous, current, now);
+  assert.equal(alerts.length, 2);
+  assert.deepEqual(alerts.map(alert => alert.type).sort(), ['PRICE_CHANGE', 'STOCK_CHANGE']);
 });
