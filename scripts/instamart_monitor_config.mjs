@@ -28,7 +28,7 @@ export const CITY_GEO_MATRIX = {
 };
 
 export const TARGET_CITIES = Object.entries(CITY_GEO_MATRIX).map(([name, data]) => ({
-  id: name.toUpperCase().replace(/\\s+/g, '_'),
+  id: name.toUpperCase().replace(/\s+/g, '_'),
   name,
   area: data.area,
   lat: data.latitude,
