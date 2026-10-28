@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TARGET_CITIES, TARGET_SKUS } from './instamart_monitor_config.mjs';
 import { sendAlertNotifications } from './notify_alerts.mjs';
+import { fetchAuthorizedInstamartFeed } from './instamart_feed.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === __filename;
@@ -20,6 +21,66 @@ export function isFreshObservation(record, { now = Date.now(), maxAgeMs = 24 * 6
   const hasPrice = Number.isFinite(record.sellingPrice) && record.sellingPrice > 0;
   const hasStock = typeof record.inStock === 'boolean';
   return hasPrice || hasStock;
+}
+
+export function applyVerifiedObservations(snapshot, observations, now = new Date()) {
+  const byKey = new Map(observations.map(item => [`${item.cityId}_${item.skuId}`, item]));
+  for (const [key, row] of Object.entries(snapshot.citySkuMatrix)) {
+    const item = byKey.get(key);
+    if (!item || !isFreshObservation(item, { now: now.getTime() })) continue;
+    row.sellingPrice = item.sellingPrice;
+    row.mrp = item.mrp;
+    row.pricePerLiter = Number.isFinite(item.sellingPrice) ? Math.round(item.sellingPrice * 1000 / row.volumeMl * 100) / 100 : null;
+    row.discount = Number.isFinite(item.mrp) && item.mrp > 0 && Number.isFinite(item.sellingPrice)
+      ? Math.max(0, Math.round((1 - item.sellingPrice / item.mrp) * 100)) : null;
+    row.inStock = item.inStock;
+    row.stockStatus = item.inStock === true ? 'In Stock' : item.inStock === false ? 'Out of Stock' : 'Unknown';
+    row.observationStatus = 'VERIFIED';
+    row.source = item.source;
+    row.sourceUrl = item.sourceUrl;
+    row.observedAt = item.observedAt;
+    row.lastVerifiedAt = item.observedAt;
+  }
+  const rows = Object.values(snapshot.citySkuMatrix);
+  const verified = rows.filter(row => row.observationStatus === 'VERIFIED');
+  const inStock = rows.filter(row => row.inStock === true).length;
+  const outOfStock = rows.filter(row => row.inStock === false).length;
+  const bottlePrices = verified.filter(row => row.volumeMl === 1000 && Number.isFinite(row.sellingPrice)).map(row => row.sellingPrice);
+  snapshot.dataStatus = verified.length === rows.length ? 'VERIFIED' : verified.length ? 'PARTIAL' : 'UNVERIFIED';
+  snapshot.sourceStatus = verified.length ? 'AUTHORIZED_FEED_OK' : snapshot.sourceStatus;
+  snapshot.lastObservationAt = verified.length ? verified.reduce((latest, row) => !latest || row.observedAt > latest ? row.observedAt : latest, null) : null;
+  snapshot.statusMessage = verified.length
+    ? `Verified observations for ${verified.length} of ${rows.length} city/SKU pairs from the configured authorized feed.`
+    : snapshot.statusMessage;
+  snapshot.summary = {
+    totalMonitoredPairs: rows.length,
+    totalInStock: inStock,
+    totalOos: outOfStock,
+    totalUnknown: rows.length - inStock - outOfStock,
+    avgBottle1LPrice: bottlePrices.length ? Math.round(bottlePrices.reduce((sum, price) => sum + price, 0) / bottlePrices.length * 100) / 100 : null
+  };
+  return snapshot;
+}
+
+export function detectVerifiedChanges(previous, current, now = new Date()) {
+  if (!previous || !previous.citySkuMatrix) return [];
+  const alerts = [];
+  for (const [key, row] of Object.entries(current.citySkuMatrix || {})) {
+    if (row.observationStatus !== 'VERIFIED') continue;
+    const old = previous.citySkuMatrix[key];
+    if (!old || !isFreshObservation(old, { now: now.getTime() })) continue;
+    const base = {
+      city: row.cityName, sku: row.skuName, source: row.source,
+      sourceUrl: row.sourceUrl, observedAt: row.observedAt, observationStatus: 'VERIFIED'
+    };
+    if (Number.isFinite(old.sellingPrice) && Number.isFinite(row.sellingPrice) && old.sellingPrice !== row.sellingPrice) {
+      alerts.push({ ...base, type: 'PRICE_CHANGE', message: `${row.skuName}: ₹${old.sellingPrice} → ₹${row.sellingPrice}` });
+    }
+    if (typeof old.inStock === 'boolean' && typeof row.inStock === 'boolean' && old.inStock !== row.inStock) {
+      alerts.push({ ...base, type: 'STOCK_CHANGE', message: `${row.skuName}: ${old.inStock ? 'In Stock' : 'Out of Stock'} → ${row.inStock ? 'In Stock' : 'Out of Stock'}` });
+    }
+  }
+  return alerts;
 }
 
 export function buildUnknownSnapshot(now = new Date()) {
@@ -108,32 +169,40 @@ export async function runInstamartMonitorAgent({ dataDir = path.resolve('public/
   const historyFile = path.join(dataDir, 'instamart_daily_history.json');
   const csvFile = path.join(dataDir, 'instamart_gems_gold_25cities.csv');
   const marketSnapshotFile = path.join(dataDir, 'instamart_live_snapshot.json');
+  const previousSnapshot = readJson(snapshotFile, null);
+  let feedResult = { configured: false, observations: [], status: 'NO_AUTHORIZED_FEED_CONFIGURED' };
+  let feedError = null;
+  try {
+    feedResult = await fetchAuthorizedInstamartFeed({
+      cities: TARGET_CITIES, skus: TARGET_SKUS, now: now.getTime()
+    });
+  } catch (error) {
+    feedError = error;
+    console.error(`Authorized Instamart feed failed: ${error?.message || 'unknown error'}`);
+  }
 
   const snapshot = buildUnknownSnapshot(now);
+  snapshot.sourceStatus = feedError ? 'AUTHORIZED_FEED_ERROR' : feedResult.status;
+  if (feedError) snapshot.statusMessage = 'The configured authorized feed could not be read. Current prices and stock are unknown; previous values are not carried forward.';
+  if (feedResult.configured && !feedError) applyVerifiedObservations(snapshot, feedResult.observations, now);
+  snapshot.alerts = detectVerifiedChanges(previousSnapshot, snapshot, now);
   fs.writeFileSync(snapshotFile, JSON.stringify(snapshot, null, 2) + '\n', 'utf8');
 
   const historyData = sanitizeHistory(readJson(historyFile, { history: [] }));
   historyData.history.push({
-    date: snapshot.date,
-    timestamp: snapshot.lastUpdated,
-    dataStatus: 'UNVERIFIED',
-    totalCities: TARGET_CITIES.length,
-    citySkuMatrix: snapshot.citySkuMatrix
+    date: snapshot.date, timestamp: snapshot.lastUpdated, dataStatus: snapshot.dataStatus,
+    totalCities: TARGET_CITIES.length, citySkuMatrix: snapshot.citySkuMatrix
   });
   fs.writeFileSync(historyFile, JSON.stringify(historyData, null, 2) + '\n', 'utf8');
 
-  // Competitor data is usable only when it carries explicit, recent source evidence.
   const market = readJson(marketSnapshotFile, { records: [] });
   const marketRecords = Array.isArray(market?.records)
-    ? market.records.filter(record => isFreshObservation(record, { now: Date.parse(snapshot.lastUpdated) }))
+    ? market.records.filter(record => isFreshObservation(record, { now: now.getTime() }))
     : [];
-
   const rows = Object.values(snapshot.citySkuMatrix).map(record => {
     const competitors = marketRecords.filter(item =>
-      item.city === record.cityId &&
-      item.volumeMl === record.volumeMl &&
-      item.brand !== "GEM'S GOLD" &&
-      Number.isFinite(item.sellingPrice)
+      item.city === record.cityId && item.volumeMl === record.volumeMl &&
+      item.brand !== "GEM'S GOLD" && Number.isFinite(item.sellingPrice)
     );
     const lowest = competitors.length
       ? competitors.reduce((min, item) => item.sellingPrice < min.sellingPrice ? item : min, competitors[0])
@@ -148,21 +217,18 @@ export async function runInstamartMonitorAgent({ dataDir = path.resolve('public/
   });
   fs.writeFileSync(csvFile, [CSV_HEADERS.map(escapeCsv).join(','), ...rows].join('\n') + '\n', 'utf8');
 
-  // No verified observations means no stock/price alerts. Do not replay historical alerts.
-  const notificationResults = await sendAlertNotifications([], snapshot.summary);
-  console.log(JSON.stringify({
-    status: snapshot.dataStatus,
+  const notificationResults = await sendAlertNotifications(snapshot.alerts, snapshot.summary);
+  const report = {
+    status: snapshot.dataStatus, sourceStatus: snapshot.sourceStatus,
     monitoredPairs: snapshot.summary.totalMonitoredPairs,
-    unknownPairs: snapshot.summary.totalUnknown,
-    alertsDispatched: 0,
-    notificationResults,
-    snapshotFile,
-    historyFile,
-    csvFile
-  }, null, 2));
+    verifiedPairs: Object.values(snapshot.citySkuMatrix).filter(row => row.observationStatus === 'VERIFIED').length,
+    unknownPairs: snapshot.summary.totalUnknown, alertsDispatched: snapshot.alerts.length,
+    notificationResults, snapshotFile, historyFile, csvFile
+  };
+  console.log(JSON.stringify(report, null, 2));
+  if (feedError) process.exitCode = 1;
   return snapshot;
 }
-
 if (isDirectRun) {
   runInstamartMonitorAgent().catch(error => {
     console.error('Instamart monitor failed:', error?.message || error);
