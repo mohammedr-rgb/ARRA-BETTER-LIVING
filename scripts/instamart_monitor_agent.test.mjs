@@ -23,7 +23,7 @@ test('CSV escaping handles commas, quotes and newlines', () => {
   assert.equal(escapeCsv('plain'), 'plain');
   assert.equal(escapeCsv('A, B'), '"A, B"');
   assert.equal(escapeCsv('say "hello"'), '"say ""hello"""');
-  assert.equal(escapeCsv('two\\nlines'), '"two\\nlines"');
+  assert.equal(escapeCsv('two\nlines'), '"two\nlines"');
   assert.equal(escapeCsv(null), '');
 });
 
