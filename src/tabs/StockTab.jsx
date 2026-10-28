@@ -278,7 +278,7 @@ export default function StockTab() {
   const toggleSkuStock = (cityId, skuId) => {
     const key = `${cityId}_${skuId}`
     const current = activeGemsMatrix[key] || {}
-    const newInStock = current.inStock !== false ? false : true
+    const newInStock = current.inStock === true ? false : true
     const updated = {
       ...customOverrides,
       [key]: {
@@ -288,7 +288,10 @@ export default function StockTab() {
         inStock: newInStock,
         stockStatus: newInStock ? 'In Stock' : 'Out of Stock',
         sellingPrice: newInStock ? (current.sellingPrice || current.mrp || 195) : null,
-        lastVerifiedAt: new Date().toISOString()
+        observationStatus: 'MANUAL_OVERRIDE',
+        source: 'manual_override',
+        observedAt: null,
+        lastVerifiedAt: null,
       }
     }
     setCustomOverrides(updated)
@@ -1180,8 +1183,8 @@ export default function StockTab() {
       if (liveCityFilter !== 'All' && r.city !== liveCityFilter) return false
       if (liveCategoryFilter !== 'All' && r.oilType !== liveCategoryFilter) return false
       if (liveBrandFilter !== 'All' && r.brand !== liveBrandFilter) return false
-      if (liveStockFilter === 'instock' && !r.inStock) return false
-      if (liveStockFilter === 'oos' && r.inStock) return false
+      if (liveStockFilter === 'instock' && r.inStock !== true) return false
+      if (liveStockFilter === 'oos' && r.inStock !== false) return false
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase()
         return r.productName.toLowerCase().includes(q) || r.brand.toLowerCase().includes(q) || r.city.toLowerCase().includes(q) || r.area.toLowerCase().includes(q)
@@ -1195,9 +1198,10 @@ export default function StockTab() {
     const total = filteredLiveAgentRows.length
     const priced = filteredLiveAgentRows.filter(r => r.sellingPrice > 0 && r.pricePerLiter > 0)
     const avgPricePerL = priced.length ? Math.round(priced.reduce((s, r) => s + r.pricePerLiter, 0) / priced.length) : 0
-    const oosCount = filteredLiveAgentRows.filter(r => !r.inStock || (r.stockStatus || '').toLowerCase().includes('out')).length
-    const oosRate = total > 0 ? Math.round((oosCount / total) * 1000) / 10 : 0
-    const inStockCount = total - oosCount
+    const oosCount = filteredLiveAgentRows.filter(r => r.inStock === false || (r.stockStatus || '').toLowerCase().includes('out')).length
+    const unknownCount = filteredLiveAgentRows.filter(r => r.inStock !== true && r.inStock !== false).length
+    const oosRate = (total - unknownCount) > 0 ? Math.round((oosCount / (total - unknownCount)) * 1000) / 10 : null
+    const inStockCount = filteredLiveAgentRows.filter(r => r.inStock === true).length
     const brandsCount = new Set(filteredLiveAgentRows.map(r => r.brand)).size
     return {
       total,
@@ -1205,6 +1209,7 @@ export default function StockTab() {
       oosCount,
       oosRate,
       inStockCount,
+      unknownCount,
       brandsCount,
       lastUpdated: liveAgentSnapshot?.lastUpdated || null
     }
@@ -1371,8 +1376,8 @@ export default function StockTab() {
     return gemsAllRecords.filter(r => {
       if (gemsCityFilter !== 'All' && r.cityId !== gemsCityFilter) return false
       if (gemsSkuFilter !== 'All' && r.skuId !== gemsSkuFilter) return false
-      if (gemsStockFilter === 'instock' && !r.inStock) return false
-      if (gemsStockFilter === 'oos' && r.inStock) return false
+      if (gemsStockFilter === 'instock' && r.inStock !== true) return false
+      if (gemsStockFilter === 'oos' && r.inStock !== false) return false
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase()
         return r.cityName.toLowerCase().includes(q) || r.skuName.toLowerCase().includes(q) || r.area.toLowerCase().includes(q)
@@ -1399,16 +1404,16 @@ export default function StockTab() {
           shortName: s.shortName,
           packType: s.packType,
           volumeMl: s.volumeMl,
-          inStock: item?.inStock !== false,
-          sellingPrice: item?.sellingPrice || null,
-          mrp: item?.mrp || null,
+          inStock: typeof item?.inStock === 'boolean' ? item.inStock : null,
+          sellingPrice: Number.isFinite(item?.sellingPrice) ? item.sellingPrice : null,
+          mrp: Number.isFinite(item?.mrp) ? item.mrp : null,
           discount: item?.discount || '—',
-          stockStatus: item?.stockStatus || (item?.inStock === false ? 'Out of Stock' : 'In Stock'),
-          rating: item?.rating || '4.6'
+          stockStatus: item?.stockStatus || (item?.inStock === false ? 'Out of Stock' : item?.inStock === true ? 'In Stock' : 'Unknown'),
+          rating: item?.rating ?? null
         }
       })
 
-      const inStockCount = skus.filter(s => s.inStock).length
+      const inStockCount = skus.filter(s => s.inStock === true).length
       const tnCities = ['CHENNAI', 'COIMBATORE', 'SALEM', 'TRICHY', 'MADURAI', 'PONDICHERRY', 'TIRUPUR', 'ERODE', 'VELLORE', 'THANJAVUR', 'TIRUNELVELI', 'THOOTHUKUDI', 'KANCHIPURAM', 'KARUR']
       const kaCities = ['BANGALORE', 'MYSORE']
       const tgApCities = ['HYDERABAD', 'VIZAG', 'VIJAYAWADA', 'NELLORE', 'WARANGAL']
@@ -1443,9 +1448,10 @@ export default function StockTab() {
   // GEM'S GOLD KPIs
   const gemsKPIs = useMemo(() => {
     const total = gemsAllRecords.length
-    const inStock = gemsAllRecords.filter(r => r.inStock).length
-    const oos = total - inStock
-    const oosPct = total > 0 ? Math.round((oos / total) * 1000) / 10 : 0
+    const inStock = gemsAllRecords.filter(r => r.inStock === true).length
+    const oos = gemsAllRecords.filter(r => r.inStock === false).length
+    const unknown = total - inStock - oos
+    const oosPct = (inStock + oos) > 0 ? Math.round((oos / (inStock + oos)) * 1000) / 10 : null
     const bottle1LItems = gemsAllRecords.filter(r => r.skuId === 'bottle_1l' && r.sellingPrice)
     const avgBottle1L = bottle1LItems.length ? Math.round(bottle1LItems.reduce((s, r) => s + r.sellingPrice, 0) / bottle1LItems.length) : 0
     const pouch1LItems = gemsAllRecords.filter(r => r.skuId === 'pouch_1l' && r.sellingPrice)
@@ -1455,6 +1461,7 @@ export default function StockTab() {
       total,
       inStock,
       oos,
+      unknown,
       oosPct,
       avgBottle1L,
       avgPouch1L,
@@ -1474,12 +1481,6 @@ export default function StockTab() {
         .map(c => ({ brand: c.brand, sellingPrice: c.price }))
     }
 
-    if (!comps.length) {
-      if (volumeMl === 1000) comps = [{ brand: 'Gemini', sellingPrice: 135 }, { brand: 'Fortune', sellingPrice: 165 }, { brand: 'Mr. Gold', sellingPrice: 175 }]
-      else if (volumeMl === 2000) comps = [{ brand: 'Fortune', sellingPrice: 360 }, { brand: 'Gold winner', sellingPrice: 350 }, { brand: 'Jivo', sellingPrice: 449 }]
-      else if (volumeMl === 500) comps = [{ brand: 'Mr. Gold', sellingPrice: 98 }, { brand: 'Fortune', sellingPrice: 102 }, { brand: 'Jivo', sellingPrice: 115 }]
-      else if (volumeMl === 200 || skuId === 'spray_200ml') comps = [{ brand: 'Fortune Spray', sellingPrice: 149 }, { brand: 'Mr. Gold Spray', sellingPrice: 165 }, { brand: 'Jivo Spray', sellingPrice: 175 }]
-    }
 
     if (!comps.length) return null
 
@@ -2154,7 +2155,8 @@ export default function StockTab() {
                       GEM'S GOLD • 25-City Instamart Price &amp; Stock Intelligence
                     </h2>
                     <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3 }}>
-                      Tracking <strong>5 Core Groundnut Oil SKUs</strong> across <strong>25 Metro &amp; Tier-2 Dark Stores</strong> • Day: <strong>{formatPrettyDate(gemsSelectedDate || gemsGoldLive?.date)}</strong>
+                      Tracking <strong>5 Core Groundnut Oil SKUs</strong> across <strong>25 target cities</strong> • Day: <strong>{formatPrettyDate(gemsSelectedDate || gemsGoldLive?.date)}</strong>
+                      {gemsGoldLive?.dataStatus === 'UNVERIFIED' && <div role="status" style={{ marginTop: 8, color: '#fbbf24', fontWeight: 700 }}>⚠ Monitoring feed is unverified: prices and stock are unknown until a live source is connected.</div>}
                     </div>
                   </div>
                 </div>
@@ -2191,19 +2193,19 @@ export default function StockTab() {
                 </div>
                 <div style={{ background: '#0f172a', padding: '8px 14px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
                   <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>In Stock Pairs</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#4ade80' }}>{gemsKPIs.inStock} / {gemsKPIs.total}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#4ade80' }}>{gemsGoldLive?.dataStatus === 'UNVERIFIED' ? 'Unknown' : `${gemsKPIs.inStock} / ${gemsKPIs.total}`}</div>
                 </div>
                 <div style={{ background: '#0f172a', padding: '8px 14px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
                   <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Out of Stock</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#f87171' }}>{gemsKPIs.oos} ({gemsKPIs.oosPct}%)</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#f87171' }}>{gemsGoldLive?.dataStatus === 'UNVERIFIED' ? 'Unknown' : `${gemsKPIs.oos} (${gemsKPIs.oosPct ?? '—'}%)`}</div>
                 </div>
                 <div style={{ background: '#0f172a', padding: '8px 14px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
                   <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Avg Bottle 1L</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#facc15' }}>₹{gemsKPIs.avgBottle1L}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#facc15' }}>{gemsGoldLive?.dataStatus === 'UNVERIFIED' ? '—' : `₹${gemsKPIs.avgBottle1L}`}</div>
                 </div>
                 <div style={{ background: '#0f172a', padding: '8px 14px', borderRadius: 8, border: '1px solid #334155', textAlign: 'center' }}>
                   <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Avg Pouch 1L</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#c084fc' }}>₹{gemsKPIs.avgPouch1L}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#c084fc' }}>{gemsGoldLive?.dataStatus === 'UNVERIFIED' ? '—' : `₹${gemsKPIs.avgPouch1L}`}</div>
                 </div>
               </div>
             </div>
@@ -2220,7 +2222,7 @@ export default function StockTab() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <span style={{ fontSize: 16 }}>🚨</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#f87171' }}>
-                    Real-time Instamart Change Alerts Detected ({gemsAlerts.length})
+                    Verified Instamart Change Alerts
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
