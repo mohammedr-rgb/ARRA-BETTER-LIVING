@@ -188,6 +188,15 @@ export async function runInstamartMonitorAgent({ dataDir = path.resolve('public/
   snapshot.alerts = detectVerifiedChanges(previousSnapshot, snapshot, now);
   fs.writeFileSync(snapshotFile, JSON.stringify(snapshot, null, 2) + '\n', 'utf8');
 
+  const competitorObservations = !feedError && feedResult.configured ? (feedResult.competitorObservations || []) : [];
+  fs.writeFileSync(marketSnapshotFile, JSON.stringify({
+    lastUpdated: snapshot.lastUpdated,
+    dataStatus: competitorObservations.length ? 'VERIFIED' : 'UNVERIFIED',
+    sourceStatus: feedError ? 'AUTHORIZED_FEED_ERROR' : feedResult.status,
+    totalRecords: competitorObservations.length,
+    records: competitorObservations
+  }, null, 2) + '\n', 'utf8');
+
   const historyData = sanitizeHistory(readJson(historyFile, { history: [] }));
   historyData.history.push({
     date: snapshot.date, timestamp: snapshot.lastUpdated, dataStatus: snapshot.dataStatus,
