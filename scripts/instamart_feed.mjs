@@ -51,9 +51,11 @@ export function normalizeAuthorizedCompetitors(payload, { cities, now = Date.now
     if (!Number.isFinite(volumeMl) || volumeMl <= 0 || !Number.isFinite(sellingPrice) || sellingPrice <= 0) continue;
     if (!Number.isFinite(observedMs) || observedMs > now || now - observedMs > MAX_AGE_MS) continue;
     const sourceUrl = typeof item.sourceUrl === 'string' && /^https:\/\//i.test(item.sourceUrl) ? item.sourceUrl : null;
+    const mrp = item.mrp == null ? null : Number(item.mrp);
+    if (mrp !== null && (!Number.isFinite(mrp) || mrp <= 0)) continue;
     const record = {
       city, brand, volumeMl, sellingPrice,
-      mrp: item.mrp == null ? null : Number(item.mrp),
+      mrp,
       inStock: typeof item.inStock === 'boolean' ? item.inStock : null,
       observedAt: new Date(observedMs).toISOString(),
       source: String(item.source || 'authorized-licensed-competitor-feed').slice(0, 120),
