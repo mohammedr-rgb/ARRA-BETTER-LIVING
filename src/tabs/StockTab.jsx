@@ -1162,7 +1162,14 @@ export default function StockTab() {
   }, [instaAvailabilityData, searchQuery])
 
   // Live Agent Processed Records & Distinct Filters
-  const liveAgentAllRecords = useMemo(() => liveAgentSnapshot?.records || [], [liveAgentSnapshot])
+  const liveAgentAllRecords = useMemo(() => {
+    const now = Date.now()
+    return (liveAgentSnapshot?.records || []).filter(record => {
+      if (record?.observationStatus !== 'VERIFIED' || !record?.source || !record?.observedAt) return false
+      const observedAt = Date.parse(record.observedAt)
+      return Number.isFinite(observedAt) && observedAt <= now && now - observedAt <= 24 * 60 * 60 * 1000
+    })
+  }, [liveAgentSnapshot])
 
   const liveDistinctBrands = useMemo(() => {
     const s = new Set(liveAgentAllRecords.map(r => r.brand).filter(Boolean))
@@ -1479,7 +1486,13 @@ export default function StockTab() {
     
     if (!comps.length && competitorData.length) {
       comps = competitorData
-        .filter(c => (c.city === cityId || c.city === 'ALL' || c.city === 'CHENNAI' || c.city === 'TIRUPUR') && c.brand !== 'Gem' && c.brand !== "GEM'S GOLD" && c.price)
+        .filter(c => {
+          const observedAt = Date.parse(c.observedAt || c.timestamp || '')
+          return c.observationStatus === 'VERIFIED' && c.source && Number.isFinite(observedAt) &&
+            observedAt <= Date.now() && Date.now() - observedAt <= 24 * 60 * 60 * 1000 &&
+            (c.city === cityId || c.city === 'ALL') && c.brand !== 'Gem' &&
+            c.brand !== "GEM'S GOLD" && Number.isFinite(c.price)
+        })
         .map(c => ({ brand: c.brand, sellingPrice: c.price }))
     }
 
