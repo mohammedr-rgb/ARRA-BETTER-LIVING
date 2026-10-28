@@ -10,7 +10,7 @@ const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === __filen
 export function escapeCsv(value) {
   if (value === null || value === undefined) return '';
   const text = String(value);
-  return /[",\\r\\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 export function isFreshObservation(record, { now = Date.now(), maxAgeMs = 24 * 60 * 60 * 1000 } = {}) {
@@ -110,7 +110,7 @@ export async function runInstamartMonitorAgent({ dataDir = path.resolve('public/
   const marketSnapshotFile = path.join(dataDir, 'instamart_live_snapshot.json');
 
   const snapshot = buildUnknownSnapshot(now);
-  fs.writeFileSync(snapshotFile, JSON.stringify(snapshot, null, 2) + '\\n', 'utf8');
+  fs.writeFileSync(snapshotFile, JSON.stringify(snapshot, null, 2) + '\n', 'utf8');
 
   const historyData = sanitizeHistory(readJson(historyFile, { history: [] }));
   historyData.history.push({
@@ -120,7 +120,7 @@ export async function runInstamartMonitorAgent({ dataDir = path.resolve('public/
     totalCities: TARGET_CITIES.length,
     citySkuMatrix: snapshot.citySkuMatrix
   });
-  fs.writeFileSync(historyFile, JSON.stringify(historyData, null, 2) + '\\n', 'utf8');
+  fs.writeFileSync(historyFile, JSON.stringify(historyData, null, 2) + '\n', 'utf8');
 
   // Competitor data is usable only when it carries explicit, recent source evidence.
   const market = readJson(marketSnapshotFile, { records: [] });
@@ -146,7 +146,7 @@ export async function runInstamartMonitorAgent({ dataDir = path.resolve('public/
       lowest?.sellingPrice ?? '', '', 'N/A — unverified'
     ].map(escapeCsv).join(',');
   });
-  fs.writeFileSync(csvFile, [CSV_HEADERS.map(escapeCsv).join(','), ...rows].join('\\n') + '\\n', 'utf8');
+  fs.writeFileSync(csvFile, [CSV_HEADERS.map(escapeCsv).join(','), ...rows].join('\n') + '\n', 'utf8');
 
   // No verified observations means no stock/price alerts. Do not replay historical alerts.
   const notificationResults = await sendAlertNotifications([], snapshot.summary);
