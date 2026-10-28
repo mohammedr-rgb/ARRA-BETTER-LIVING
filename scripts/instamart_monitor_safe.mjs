@@ -189,6 +189,7 @@ export async function runInstamartMonitorAgent({ dataDir = path.resolve('public/
   const snapshot = buildUnknownSnapshot(now);
   snapshot.sourceStatus = feedError ? 'AUTHORIZED_FEED_ERROR' : feedResult.status;
   if (feedError) snapshot.statusMessage = 'The configured authorized feed could not be read. Current prices and stock are unknown; previous values are not carried forward.';
+  else if (feedResult.configured && !feedResult.observations.length) snapshot.statusMessage = 'The authorized feed returned no fresh, valid target observations. Prices and stock remain unknown.';
   if (feedResult.configured && !feedError) applyVerifiedObservations(snapshot, feedResult.observations, now);
   snapshot.alerts = detectVerifiedChanges(previousSnapshot, snapshot, now);
   fs.writeFileSync(snapshotFile, JSON.stringify(snapshot, null, 2) + '\n', 'utf8');
@@ -240,7 +241,7 @@ export async function runInstamartMonitorAgent({ dataDir = path.resolve('public/
     notificationResults, snapshotFile, historyFile, csvFile
   };
   console.log(JSON.stringify(report, null, 2));
-  if (feedError) process.exitCode = 1;
+  if (feedError) console.warn('Monitor completed with an unknown snapshot because the authorized feed failed; stale values were not retained.');
   return snapshot;
 }
 if (isDirectRun) {
