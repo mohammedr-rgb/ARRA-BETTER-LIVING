@@ -10,6 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "monitor:instamart": "node scripts/instamart_monitor_agent.mjs",
+    "test": "node --test scripts/instamart_monitor_agent.test.mjs",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
