@@ -1,126 +1,126 @@
 Date,City,Area,GPS_Latitude,GPS_Longitude,Coverage_Radius_KM,Delivery_Time,SKU_ID,SKU_Name,Pack_Type,Volume_ML,MRP,Selling_Price,Price_Per_Liter,Discount,Stock_Status,Observation_Status,Observed_At,Source,Lowest_Competitor_Brand,Lowest_Competitor_Price,Price_Difference,Competitor_Parity_Status
-2026-10-14,Chennai,T Nagar,13.0827,80.2707,45,8 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Chennai,T Nagar,13.0827,80.2707,45,8 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Chennai,T Nagar,13.0827,80.2707,45,8 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Chennai,T Nagar,13.0827,80.2707,45,8 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Chennai,T Nagar,13.0827,80.2707,45,8 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Bangalore,Koramangala,12.9716,77.5946,50,9 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Bangalore,Koramangala,12.9716,77.5946,50,9 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Bangalore,Koramangala,12.9716,77.5946,50,9 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Bangalore,Koramangala,12.9716,77.5946,50,9 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Bangalore,Koramangala,12.9716,77.5946,50,9 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Coimbatore,RS Puram,11.0168,76.9558,35,9 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Coimbatore,RS Puram,11.0168,76.9558,35,9 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Coimbatore,RS Puram,11.0168,76.9558,35,9 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Coimbatore,RS Puram,11.0168,76.9558,35,9 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Coimbatore,RS Puram,11.0168,76.9558,35,9 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Hyderabad,Gachibowli,17.385,78.4867,48,10 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Hyderabad,Gachibowli,17.385,78.4867,48,10 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Hyderabad,Gachibowli,17.385,78.4867,48,10 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Hyderabad,Gachibowli,17.385,78.4867,48,10 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Hyderabad,Gachibowli,17.385,78.4867,48,10 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Mumbai,Andheri East,19.076,72.8777,60,11 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Mumbai,Andheri East,19.076,72.8777,60,11 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Mumbai,Andheri East,19.076,72.8777,60,11 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Mumbai,Andheri East,19.076,72.8777,60,11 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Mumbai,Andheri East,19.076,72.8777,60,11 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Salem,Fairlands,11.6643,78.146,30,6 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Salem,Fairlands,11.6643,78.146,30,6 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Salem,Fairlands,11.6643,78.146,30,6 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Salem,Fairlands,11.6643,78.146,30,6 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Salem,Fairlands,11.6643,78.146,30,6 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Trichy,Thillai Nagar,10.7905,78.7047,28,7 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Trichy,Thillai Nagar,10.7905,78.7047,28,7 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Trichy,Thillai Nagar,10.7905,78.7047,28,7 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Trichy,Thillai Nagar,10.7905,78.7047,28,7 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Trichy,Thillai Nagar,10.7905,78.7047,28,7 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vizag,MVP Colony,17.6868,83.2185,35,9 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vizag,MVP Colony,17.6868,83.2185,35,9 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vizag,MVP Colony,17.6868,83.2185,35,9 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vizag,MVP Colony,17.6868,83.2185,35,9 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vizag,MVP Colony,17.6868,83.2185,35,9 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Madurai,KK Nagar,9.9252,78.1198,32,7 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Madurai,KK Nagar,9.9252,78.1198,32,7 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Madurai,KK Nagar,9.9252,78.1198,32,7 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Madurai,KK Nagar,9.9252,78.1198,32,7 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Madurai,KK Nagar,9.9252,78.1198,32,7 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Pune,Kothrud,18.5204,73.8567,40,10 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Pune,Kothrud,18.5204,73.8567,40,10 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Pune,Kothrud,18.5204,73.8567,40,10 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Pune,Kothrud,18.5204,73.8567,40,10 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Pune,Kothrud,18.5204,73.8567,40,10 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Pondicherry,White Town,11.9416,79.8083,25,8 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Pondicherry,White Town,11.9416,79.8083,25,8 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Pondicherry,White Town,11.9416,79.8083,25,8 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Pondicherry,White Town,11.9416,79.8083,25,8 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Pondicherry,White Town,11.9416,79.8083,25,8 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vijayawada,Benz Circle,16.5062,80.648,30,9 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vijayawada,Benz Circle,16.5062,80.648,30,9 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vijayawada,Benz Circle,16.5062,80.648,30,9 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vijayawada,Benz Circle,16.5062,80.648,30,9 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vijayawada,Benz Circle,16.5062,80.648,30,9 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Tirupur,Kumar Nagar,11.1085,77.3411,25,9 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Tirupur,Kumar Nagar,11.1085,77.3411,25,9 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Tirupur,Kumar Nagar,11.1085,77.3411,25,9 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Tirupur,Kumar Nagar,11.1085,77.3411,25,9 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Tirupur,Kumar Nagar,11.1085,77.3411,25,9 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Kochi,Kaloor,9.9312,76.2673,38,11 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Kochi,Kaloor,9.9312,76.2673,38,11 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Kochi,Kaloor,9.9312,76.2673,38,11 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Kochi,Kaloor,9.9312,76.2673,38,11 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Kochi,Kaloor,9.9312,76.2673,38,11 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Erode,Perundurai Road,11.341,77.7172,25,6 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Erode,Perundurai Road,11.341,77.7172,25,6 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Erode,Perundurai Road,11.341,77.7172,25,6 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Erode,Perundurai Road,11.341,77.7172,25,6 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Erode,Perundurai Road,11.341,77.7172,25,6 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vellore,Gandhi Nagar,12.9165,79.1325,25,8 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vellore,Gandhi Nagar,12.9165,79.1325,25,8 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vellore,Gandhi Nagar,12.9165,79.1325,25,8 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vellore,Gandhi Nagar,12.9165,79.1325,25,8 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Vellore,Gandhi Nagar,12.9165,79.1325,25,8 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Thanjavur,Medical College Rd,10.787,79.1378,20,8 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Thanjavur,Medical College Rd,10.787,79.1378,20,8 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Thanjavur,Medical College Rd,10.787,79.1378,20,8 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Thanjavur,Medical College Rd,10.787,79.1378,20,8 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Thanjavur,Medical College Rd,10.787,79.1378,20,8 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Tirunelveli,Palayamkottai,8.7139,77.7567,25,8 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Tirunelveli,Palayamkottai,8.7139,77.7567,25,8 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Tirunelveli,Palayamkottai,8.7139,77.7567,25,8 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Tirunelveli,Palayamkottai,8.7139,77.7567,25,8 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Tirunelveli,Palayamkottai,8.7139,77.7567,25,8 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Mysore,Gokulam,12.2958,76.6394,30,9 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Mysore,Gokulam,12.2958,76.6394,30,9 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Mysore,Gokulam,12.2958,76.6394,30,9 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Mysore,Gokulam,12.2958,76.6394,30,9 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Mysore,Gokulam,12.2958,76.6394,30,9 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Nellore,Magunta Layout,14.4426,79.9865,25,9 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Nellore,Magunta Layout,14.4426,79.9865,25,9 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Nellore,Magunta Layout,14.4426,79.9865,25,9 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Nellore,Magunta Layout,14.4426,79.9865,25,9 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Nellore,Magunta Layout,14.4426,79.9865,25,9 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Thoothukudi,Millerpuram,8.7642,78.1348,22,8 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Thoothukudi,Millerpuram,8.7642,78.1348,22,8 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Thoothukudi,Millerpuram,8.7642,78.1348,22,8 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Thoothukudi,Millerpuram,8.7642,78.1348,22,8 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Thoothukudi,Millerpuram,8.7642,78.1348,22,8 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Kanchipuram,Gandhi Road,12.8387,79.7016,20,7 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Kanchipuram,Gandhi Road,12.8387,79.7016,20,7 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Kanchipuram,Gandhi Road,12.8387,79.7016,20,7 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Kanchipuram,Gandhi Road,12.8387,79.7016,20,7 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Kanchipuram,Gandhi Road,12.8387,79.7016,20,7 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Warangal,Hanamkonda,17.9784,79.5941,28,10 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Warangal,Hanamkonda,17.9784,79.5941,28,10 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Warangal,Hanamkonda,17.9784,79.5941,28,10 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Warangal,Hanamkonda,17.9784,79.5941,28,10 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Warangal,Hanamkonda,17.9784,79.5941,28,10 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Karur,Kovai Road,10.9601,78.0766,20,6 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Karur,Kovai Road,10.9601,78.0766,20,6 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Karur,Kovai Road,10.9601,78.0766,20,6 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Karur,Kovai Road,10.9601,78.0766,20,6 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Karur,Kovai Road,10.9601,78.0766,20,6 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Central Goa,Panaji,15.4909,73.8278,35,11 MINS,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Central Goa,Panaji,15.4909,73.8278,35,11 MINS,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Central Goa,Panaji,15.4909,73.8278,35,11 MINS,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Central Goa,Panaji,15.4909,73.8278,35,11 MINS,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
-2026-10-14,Central Goa,Panaji,15.4909,73.8278,35,11 MINS,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Chennai,T Nagar,13.0827,80.2707,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Chennai,T Nagar,13.0827,80.2707,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Chennai,T Nagar,13.0827,80.2707,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Chennai,T Nagar,13.0827,80.2707,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Chennai,T Nagar,13.0827,80.2707,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Bangalore,Koramangala,12.9716,77.5946,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Bangalore,Koramangala,12.9716,77.5946,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Bangalore,Koramangala,12.9716,77.5946,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Bangalore,Koramangala,12.9716,77.5946,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Bangalore,Koramangala,12.9716,77.5946,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Coimbatore,RS Puram,11.0168,76.9558,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Coimbatore,RS Puram,11.0168,76.9558,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Coimbatore,RS Puram,11.0168,76.9558,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Coimbatore,RS Puram,11.0168,76.9558,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Coimbatore,RS Puram,11.0168,76.9558,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Hyderabad,Gachibowli,17.385,78.4867,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Hyderabad,Gachibowli,17.385,78.4867,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Hyderabad,Gachibowli,17.385,78.4867,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Hyderabad,Gachibowli,17.385,78.4867,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Hyderabad,Gachibowli,17.385,78.4867,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Mumbai,Andheri East,19.076,72.8777,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Mumbai,Andheri East,19.076,72.8777,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Mumbai,Andheri East,19.076,72.8777,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Mumbai,Andheri East,19.076,72.8777,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Mumbai,Andheri East,19.076,72.8777,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Salem,Fairlands,11.6643,78.146,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Salem,Fairlands,11.6643,78.146,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Salem,Fairlands,11.6643,78.146,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Salem,Fairlands,11.6643,78.146,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Salem,Fairlands,11.6643,78.146,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Trichy,Thillai Nagar,10.7905,78.7047,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Trichy,Thillai Nagar,10.7905,78.7047,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Trichy,Thillai Nagar,10.7905,78.7047,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Trichy,Thillai Nagar,10.7905,78.7047,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Trichy,Thillai Nagar,10.7905,78.7047,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vizag,MVP Colony,17.6868,83.2185,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vizag,MVP Colony,17.6868,83.2185,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vizag,MVP Colony,17.6868,83.2185,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vizag,MVP Colony,17.6868,83.2185,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vizag,MVP Colony,17.6868,83.2185,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Madurai,KK Nagar,9.9252,78.1198,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Madurai,KK Nagar,9.9252,78.1198,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Madurai,KK Nagar,9.9252,78.1198,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Madurai,KK Nagar,9.9252,78.1198,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Madurai,KK Nagar,9.9252,78.1198,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Pune,Kothrud,18.5204,73.8567,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Pune,Kothrud,18.5204,73.8567,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Pune,Kothrud,18.5204,73.8567,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Pune,Kothrud,18.5204,73.8567,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Pune,Kothrud,18.5204,73.8567,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Pondicherry,White Town,11.9416,79.8083,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Pondicherry,White Town,11.9416,79.8083,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Pondicherry,White Town,11.9416,79.8083,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Pondicherry,White Town,11.9416,79.8083,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Pondicherry,White Town,11.9416,79.8083,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vijayawada,Benz Circle,16.5062,80.648,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vijayawada,Benz Circle,16.5062,80.648,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vijayawada,Benz Circle,16.5062,80.648,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vijayawada,Benz Circle,16.5062,80.648,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vijayawada,Benz Circle,16.5062,80.648,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Tirupur,Kumar Nagar,11.1085,77.3411,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Tirupur,Kumar Nagar,11.1085,77.3411,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Tirupur,Kumar Nagar,11.1085,77.3411,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Tirupur,Kumar Nagar,11.1085,77.3411,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Tirupur,Kumar Nagar,11.1085,77.3411,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Kochi,Kaloor,9.9312,76.2673,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Kochi,Kaloor,9.9312,76.2673,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Kochi,Kaloor,9.9312,76.2673,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Kochi,Kaloor,9.9312,76.2673,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Kochi,Kaloor,9.9312,76.2673,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Erode,Perundurai Road,11.341,77.7172,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Erode,Perundurai Road,11.341,77.7172,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Erode,Perundurai Road,11.341,77.7172,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Erode,Perundurai Road,11.341,77.7172,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Erode,Perundurai Road,11.341,77.7172,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vellore,Gandhi Nagar,12.9165,79.1325,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vellore,Gandhi Nagar,12.9165,79.1325,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vellore,Gandhi Nagar,12.9165,79.1325,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vellore,Gandhi Nagar,12.9165,79.1325,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Vellore,Gandhi Nagar,12.9165,79.1325,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Thanjavur,Medical College Rd,10.787,79.1378,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Thanjavur,Medical College Rd,10.787,79.1378,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Thanjavur,Medical College Rd,10.787,79.1378,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Thanjavur,Medical College Rd,10.787,79.1378,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Thanjavur,Medical College Rd,10.787,79.1378,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Tirunelveli,Palayamkottai,8.7139,77.7567,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Tirunelveli,Palayamkottai,8.7139,77.7567,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Tirunelveli,Palayamkottai,8.7139,77.7567,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Tirunelveli,Palayamkottai,8.7139,77.7567,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Tirunelveli,Palayamkottai,8.7139,77.7567,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Mysore,Gokulam,12.2958,76.6394,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Mysore,Gokulam,12.2958,76.6394,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Mysore,Gokulam,12.2958,76.6394,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Mysore,Gokulam,12.2958,76.6394,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Mysore,Gokulam,12.2958,76.6394,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Nellore,Magunta Layout,14.4426,79.9865,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Nellore,Magunta Layout,14.4426,79.9865,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Nellore,Magunta Layout,14.4426,79.9865,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Nellore,Magunta Layout,14.4426,79.9865,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Nellore,Magunta Layout,14.4426,79.9865,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Thoothukudi,Millerpuram,8.7642,78.1348,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Thoothukudi,Millerpuram,8.7642,78.1348,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Thoothukudi,Millerpuram,8.7642,78.1348,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Thoothukudi,Millerpuram,8.7642,78.1348,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Thoothukudi,Millerpuram,8.7642,78.1348,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Kanchipuram,Gandhi Road,12.8387,79.7016,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Kanchipuram,Gandhi Road,12.8387,79.7016,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Kanchipuram,Gandhi Road,12.8387,79.7016,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Kanchipuram,Gandhi Road,12.8387,79.7016,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Kanchipuram,Gandhi Road,12.8387,79.7016,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Warangal,Hanamkonda,17.9784,79.5941,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Warangal,Hanamkonda,17.9784,79.5941,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Warangal,Hanamkonda,17.9784,79.5941,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Warangal,Hanamkonda,17.9784,79.5941,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Warangal,Hanamkonda,17.9784,79.5941,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Karur,Kovai Road,10.9601,78.0766,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Karur,Kovai Road,10.9601,78.0766,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Karur,Kovai Road,10.9601,78.0766,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Karur,Kovai Road,10.9601,78.0766,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Karur,Kovai Road,10.9601,78.0766,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Central Goa,Panaji,15.4909,73.8278,,,pouch_1l,GEM'S GOLD Cold Pressed Groundnut oil Pouch 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Central Goa,Panaji,15.4909,73.8278,,,bottle_1l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 1.0 ltr,,1000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Central Goa,Panaji,15.4909,73.8278,,,bottle_2l,GEM'S GOLD Cold Pressed Groundnut oil Bottle 2.0 ltr,,2000,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Central Goa,Panaji,15.4909,73.8278,,,bottle_500ml,GEM'S GOLD Cold Pressed Groundnut oil 500.0 ml,,500,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
+2026-10-28,Central Goa,Panaji,15.4909,73.8278,,,spray_200ml,Gem's Gold Groundnut Oil Reusable Spray 200.0 ml,,200,,,,,Unknown,UNVERIFIED,,,,,,N/A — unverified
