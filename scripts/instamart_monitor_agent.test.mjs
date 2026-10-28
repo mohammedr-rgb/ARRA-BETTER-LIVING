@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyVerifiedObservations, buildUnknownSnapshot, detectVerifiedChanges, escapeCsv, isFreshObservation } from './instamart_monitor_safe.mjs';
+import { applyVerifiedObservations, buildUnknownSnapshot, detectVerifiedChanges, escapeCsv, isFreshObservation, upsertDailyHistory } from './instamart_monitor_safe.mjs';
 import { normalizeAuthorizedFeedPayload } from './instamart_feed.mjs';
 import { TARGET_CITIES, TARGET_SKUS } from './instamart_monitor_config.mjs';
 
@@ -100,4 +100,15 @@ test('licensed competitor observations are validated and normalized separately',
   assert.equal(records.length, 1);
   assert.equal(records[0].brand, 'Example Oil');
   assert.equal(records[0].observationStatus, 'VERIFIED');
+});
+
+test('target city IDs are normalized and daily history replaces same-day entries', () => {
+  assert.equal(TARGET_CITIES.some(city => city.id === 'CENTRAL_GOA'), true);
+  assert.equal(TARGET_CITIES.every(city => !city.id.includes(' ')), true);
+  const first = buildUnknownSnapshot(new Date('2026-10-28T01:00:00.000Z'));
+  const second = buildUnknownSnapshot(new Date('2026-10-28T02:00:00.000Z'));
+  const history = upsertDailyHistory({ history: [] }, first);
+  const updated = upsertDailyHistory(history, second);
+  assert.equal(updated.history.length, 1);
+  assert.equal(updated.history[0].timestamp, second.lastUpdated);
 });
