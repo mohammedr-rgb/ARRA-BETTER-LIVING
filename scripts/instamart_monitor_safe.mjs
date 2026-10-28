@@ -141,6 +141,11 @@ function sanitizeHistory(historyData) {
       for (const row of Object.values(entry.citySkuMatrix)) {
         row.observationStatus = 'LEGACY_UNVERIFIED';
         row.lastVerifiedAt = null;
+        row.mrp = null;
+        row.darkStoreLocked = false;
+        row.deliveryMin = null;
+        row.radiusKm = null;
+        delete row.premium;
         row.observedAt = null;
         row.sellingPrice = null;
         row.pricePerLiter = null;
