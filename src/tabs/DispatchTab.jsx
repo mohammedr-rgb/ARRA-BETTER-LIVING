@@ -175,10 +175,25 @@ export default function DispatchTab({ data, onOpenPO }) {
     return pendingData.filter(r => (r['Platform'] || 'Unknown') === pendingFilter)
   }, [pendingData, pendingFilter])
 
-  const priorityPOs = useMemo(() => buildPriorityPOs(pendingData.filter(row => {
+  const priorityDispatchRows = useMemo(() => pendingData.filter(row => {
     if ((row['Status'] || '').trim() !== 'Pending for Dispatch') return false
     return priorityPlatformFilter === 'All' || (row['Platform'] || '').toLowerCase().includes(priorityPlatformFilter.toLowerCase())
-  })), [pendingData, priorityPlatformFilter])
+  }), [pendingData, priorityPlatformFilter])
+
+  const priorityPOs = useMemo(() => buildPriorityPOs(priorityDispatchRows), [priorityDispatchRows])
+
+  const priorityProductSummary = useMemo(() => {
+    const products = new Map()
+    for (const row of priorityDispatchRows) {
+      const product = (row['Product'] || 'Unknown').trim()
+      if (!products.has(product)) products.set(product, { product, qty: 0, boxes: 0, tonnage: 0 })
+      const summary = products.get(product)
+      summary.qty += num(row['PO Qty'])
+      summary.boxes += num(row['Box Count'])
+      summary.tonnage += num(row['Tonnage'])
+    }
+    return [...products.values()].sort((a, b) => b.tonnage - a.tonnage)
+  }, [priorityDispatchRows])
 
   const pendingPlatformData = useMemo(() => {
     const map = {}
@@ -488,6 +503,44 @@ export default function DispatchTab({ data, onOpenPO }) {
           onRowClick={onOpenPO}
           emptyMessage="No open dispatch POs"
         />
+        <div style={{ marginTop: 20 }}>
+          <div className="orders-header">
+            <div className="orders-title">Unique Product Summary</div>
+            <div className="chart-period">{priorityProductSummary.length} products • follows the selected platform and period filters</div>
+          </div>
+          <div className="table-scroll">
+            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '12px 10px', fontSize: 11, color: '#64748b', borderBottom: '1px solid #334155' }}>PRODUCT</th>
+                  <th style={{ textAlign: 'right', padding: '12px 10px', fontSize: 11, color: '#64748b', borderBottom: '1px solid #334155' }}>QTY</th>
+                  <th style={{ textAlign: 'right', padding: '12px 10px', fontSize: 11, color: '#64748b', borderBottom: '1px solid #334155' }}>BOX COUNT</th>
+                  <th style={{ textAlign: 'right', padding: '12px 10px', fontSize: 11, color: '#64748b', borderBottom: '1px solid #334155' }}>TONNAGE (KG)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {priorityProductSummary.length === 0 ? (
+                  <tr><td colSpan={4} style={{ padding: 16, textAlign: 'center', color: '#64748b' }}>No pending-for-dispatch products for these filters</td></tr>
+                ) : priorityProductSummary.map(row => (
+                  <tr key={row.product}>
+                    <td style={{ padding: '12px 10px', fontSize: 13, borderBottom: '1px solid #1e293b', maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.product}</td>
+                    <td style={{ padding: '12px 10px', fontSize: 13, borderBottom: '1px solid #1e293b', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Math.round(row.qty).toLocaleString()}</td>
+                    <td style={{ padding: '12px 10px', fontSize: 13, borderBottom: '1px solid #1e293b', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Math.round(row.boxes).toLocaleString()}</td>
+                    <td style={{ padding: '12px 10px', fontSize: 13, borderBottom: '1px solid #1e293b', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Math.round(row.tonnage).toLocaleString()}</td>
+                  </tr>
+                ))}
+                {priorityProductSummary.length > 0 && (
+                  <tr style={{ fontWeight: 700, borderTop: '2px solid #334155' }}>
+                    <td style={{ padding: '12px 10px' }}>TOTAL</td>
+                    <td style={{ padding: '12px 10px', textAlign: 'right' }}>{Math.round(priorityProductSummary.reduce((sum, row) => sum + row.qty, 0)).toLocaleString()}</td>
+                    <td style={{ padding: '12px 10px', textAlign: 'right' }}>{Math.round(priorityProductSummary.reduce((sum, row) => sum + row.boxes, 0)).toLocaleString()}</td>
+                    <td style={{ padding: '12px 10px', textAlign: 'right' }}>{Math.round(priorityProductSummary.reduce((sum, row) => sum + row.tonnage, 0)).toLocaleString()}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div className="recent-orders" style={{ marginTop: 0, marginBottom: 20 }}>
