@@ -26,7 +26,7 @@ const PIE_COLORS = {
   Unknown: '#64748b',
 }
 
-export default function DashboardTab({ data, allData, metrics, recentOrders, platformFilter, onOpenPO }) {
+export default function DashboardTab({ data, allData, metrics, recentOrders, platformFilter, onOpenPO, onSearchPO }) {
   const [hoverPlatform, setHoverPlatform] = useState(null)
   const [drill, setDrill] = useState(null)
   const [cityMetric, setCityMetric] = useState('orders')
@@ -619,7 +619,7 @@ export default function DashboardTab({ data, allData, metrics, recentOrders, pla
         </div>
 </header>
 
-      <UniversalSearch data={allData || data} onSelect={onOpenPO} />
+      <UniversalSearch data={allData || data} onSelect={onSearchPO} />
 
       <InsightsPanel periodData={periodData} data={data} onOpenPO={onOpenPO} monthData={monthData} />
 
