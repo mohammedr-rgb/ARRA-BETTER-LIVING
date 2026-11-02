@@ -1,22 +1,7 @@
-import { Fragment, useMemo } from 'react'
+import { useMemo } from 'react'
 import { num, sumField } from '../lib/utils'
 import { StatusPill } from './ui'
-
-const sectionStyle = {
-  background: '#1e293b',
-  border: '1px solid #334155',
-  borderRadius: 12,
-  padding: '18px 20px',
-}
-
-const sectionTitle = {
-  fontSize: 11,
-  fontWeight: 700,
-  color: '#64748b',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  marginBottom: 14,
-}
+import './PODetailsPage.css'
 
 export function PODetailsPage({ po, data, onBack }) {
   const lines = useMemo(() => {
@@ -25,13 +10,11 @@ export function PODetailsPage({ po, data, onBack }) {
   }, [po, data])
 
   const base = lines[0] || {}
-
   const summary = {
     city: base['City'] || '—',
     platform: base['Platform'] || '—',
     entity: base['Entity'] || '—',
     status: base['Status'] || '—',
-    products: [...new Set(lines.map(l => l['Product']).filter(Boolean))],
     qty: sumField(lines, 'PO Qty'),
     tonnage: sumField(lines, 'Tonnage'),
     boxes: sumField(lines, 'Box Count'),
@@ -63,187 +46,204 @@ export function PODetailsPage({ po, data, onBack }) {
   }
 
   const hasRTO = summary.rtoStatus !== '—' || summary.rtoQty > 0 || summary.rtoValue > 0
-
+  const hasPaymentInfo = [summary.paymentStatus, summary.finalSettlement, summary.utr, summary.dn, summary.overdue, summary.fillRate]
+    .some(value => value && value !== '—' && value !== 0)
   const isRTO = (summary.status || '').toLowerCase() === 'rto' || hasRTO
 
-  const rankOf = (s) => {
-    const st = String(s || '').toLowerCase()
-    if (st === 'rto' || st.includes('deliver')) return 5
-    if (st.includes('schedule') || st.includes('appoint')) return 4
-    if (st.includes('transit') || st.includes('dispatch')) return 3
-    if (st.includes('process') || st.includes('invoice')) return 2
-    if (st.includes('pending')) return 1
+  const rankOf = (status) => {
+    const value = String(status || '').toLowerCase()
+    if (value === 'rto' || value.includes('deliver')) return 5
+    if (value.includes('schedule') || value.includes('appoint')) return 4
+    if (value.includes('transit') || value.includes('dispatch')) return 3
+    if (value.includes('process') || value.includes('invoice')) return 2
+    if (value.includes('pending')) return 1
     return 0
   }
 
   const rank = rankOf(summary.status)
-
-  const origin = [summary.platform, summary.facility].filter(x => x && x !== '—').join(' • ') || 'Unknown origin'
-
+  const origin = [summary.platform, summary.facility].filter(value => value && value !== '—').join(' • ') || 'Origin not recorded'
   const steps = [
-    { label: 'PO Released', icon: '📄', value: summary.released !== '—' ? summary.released : '', sub: origin },
-    { label: 'Invoiced', icon: '🧾', value: summary.invoiceDate !== '—' ? summary.invoiceDate : '', sub: summary.invoiceNo !== '—' ? `Invoice: ${summary.invoiceNo}` : '' },
-    { label: 'In Transit', icon: '🚚', value: summary.transporter !== '—' ? summary.transporter : '', sub: summary.trackingNo !== '—' ? `Tracking: ${summary.trackingNo}` : '' },
-    { label: 'Appointment', icon: '📅', value: summary.apptDate !== '—' ? summary.apptDate : '', sub: summary.apptId !== '—' ? `ID: ${summary.apptId}` : '' },
-    { label: 'Delivered', icon: '✅', value: summary.actualDelivery !== '—' ? summary.actualDelivery : '', sub: summary.grn !== '—' ? `GRN: ${summary.grn}` : '' },
-    { label: 'Destination', icon: '📍', value: summary.city, sub: summary.pincode !== '—' ? `Pincode: ${summary.pincode}` : '' },
+    { label: 'PO released', icon: '📄', value: summary.released, sub: origin },
+    { label: 'Invoiced', icon: '🧾', value: summary.invoiceDate, sub: summary.invoiceNo !== '—' ? `Invoice ${summary.invoiceNo}` : '' },
+    { label: 'In transit', icon: '🚚', value: summary.transporter, sub: summary.trackingNo !== '—' ? `Tracking ${summary.trackingNo}` : '' },
+    { label: 'Appointment', icon: '📅', value: summary.apptDate, sub: summary.apptId !== '—' ? `ID ${summary.apptId}` : '' },
+    { label: 'Delivered', icon: '✅', value: summary.actualDelivery, sub: summary.grn !== '—' ? `GRN ${summary.grn}` : '' },
+    { label: 'Destination', icon: '📍', value: summary.city, sub: summary.pincode !== '—' ? `Pincode ${summary.pincode}` : '' },
   ]
-
-  const journeySteps = steps.map((s, i) => {
-    const isDestination = i === 5
+  const journeySteps = steps.map((step, index) => {
+    const destination = index === 5
     let color = '#64748b'
-    if (isRTO) color = s.value ? '#ef4444' : '#64748b'
-    else if (isDestination) color = rank >= 5 ? '#22c55e' : '#64748b'
-    else if (i < rank) color = '#22c55e'
-    else if (i === Math.min(rank, 4)) color = '#3b82f6'
-    return { ...s, color }
+    if (isRTO) color = step.value ? '#ef4444' : '#64748b'
+    else if (destination) color = rank >= 5 ? '#22c55e' : '#64748b'
+    else if (index < rank) color = '#22c55e'
+    else if (index === Math.min(rank, 4)) color = '#3b82f6'
+    return { ...step, color }
   })
 
-  const item = (label, value, color) => (
-    <div style={{ minWidth: 140 }}>
-      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: color || '#f1f5f9', wordBreak: 'break-word' }}>{value}</div>
-    </div>
-  )
+  const item = (label, value, color) => {
+    if (value == null || value === '' || value === '—') return null
+    return (
+      <div className="po-info-item" key={label}>
+        <div className="po-info-label">{label}</div>
+        <div className="po-info-value" style={color ? { color } : undefined}>{value}</div>
+      </div>
+    )
+  }
+
+  const metrics = [
+    { label: 'Order quantity', value: summary.qty.toLocaleString(), unit: 'units' },
+    { label: 'Tonnage', value: `${Math.round(summary.tonnage).toLocaleString()} KG` },
+    { label: 'Boxes', value: summary.boxes.toLocaleString() },
+    { label: 'PO value', value: summary.poValue ? `₹${Math.round(summary.poValue).toLocaleString()}` : '—', highlight: true },
+  ]
 
   return (
-    <div style={{ padding: '24px 28px' }}>
-      <button
-        onClick={onBack}
-        style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#3b82f6', padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 18 }}
-      >
-        ← Back
-      </button>
+    <main className="po-detail-page">
+      <button className="po-back-button" onClick={onBack}>← Back to dashboard</button>
 
-      <div style={{ marginBottom: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'monospace', fontSize: 24, fontWeight: 700 }}>{po}</span>
+      <header className="po-page-header">
+        <div className="po-title-row">
+          <h1>{po}</h1>
           <StatusPill status={summary.status} />
         </div>
-        <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 8 }}>
-          {summary.city} • {summary.platform} {summary.entity !== '—' ? `• ${summary.entity}` : ''} • {lines.length} line item{lines.length === 1 ? '' : 's'}
-        </div>
-      </div>
+        <p>{summary.city} <span>•</span> {summary.platform}{summary.entity !== '—' ? <> <span>•</span> {summary.entity}</> : null}</p>
+        <div className="po-line-count">{lines.length} line item{lines.length === 1 ? '' : 's'}</div>
+      </header>
 
-      <div style={{ ...sectionStyle, marginBottom: 18 }}>
-        <div style={{ ...sectionTitle, marginBottom: 12 }}>
-          🧭 Journey — <span style={{ color: '#60a5fa' }}>{origin}</span> <span style={{ color: '#475569' }}>→</span> <span style={{ color: '#60a5fa' }}>{summary.city}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'stretch', overflowX: 'auto', paddingBottom: 6 }}>
-          {journeySteps.map((s, i) => (
-            <Fragment key={s.label}>
-              {i > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: 18, color: '#475569', flexShrink: 0 }}>→</div>
-              )}
-              <div style={{ flexShrink: 0, width: 160, background: `${s.color}14`, border: `1px solid ${s.color}44`, borderRadius: 10, padding: '10px 12px' }}>
-                <div style={{ fontSize: 16, marginBottom: 4 }}>{s.icon}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: s.color, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{s.label}</div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: s.value ? '#f1f5f9' : '#64748b', wordBreak: 'break-word' }}>{s.value || '—'}</div>
-                {s.sub && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3, wordBreak: 'break-word' }}>{s.sub}</div>}
-              </div>
-            </Fragment>
-          ))}
-        </div>
-        {isRTO && (
-          <div style={{ marginTop: 10, fontSize: 12, fontWeight: 700, color: '#ef4444' }}>
-            ↩ RTO: {summary.rtoStatus !== '—' ? summary.rtoStatus : 'Returned'}{summary.rtoQty > 0 ? ` • ${Math.round(summary.rtoQty).toLocaleString()} KG` : ''}{summary.rtoValue > 0 ? ` • ₹${Math.round(summary.rtoValue).toLocaleString()}` : ''}
+      <section className="po-summary-grid" aria-label="Purchase order summary">
+        {metrics.map(metric => (
+          <div className={`po-metric-card${metric.highlight ? ' po-metric-highlight' : ''}`} key={metric.label}>
+            <div className="po-metric-label">{metric.label}</div>
+            <div className="po-metric-value">{metric.value}</div>
+            {metric.unit && <div className="po-metric-unit">{metric.unit}</div>}
           </div>
-        )}
-      </div>
+        ))}
+      </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 18 }}>
-        <div style={sectionStyle}>
-          <div style={sectionTitle}>Order Info</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
+      <section className="po-section po-journey-section">
+        <div className="po-section-heading">
+          <div>
+            <h2>Delivery journey</h2>
+            <p>{origin} <span>→</span> {summary.city}</p>
+          </div>
+          {isRTO && <span className="po-rto-badge">↩ Returned</span>}
+        </div>
+        <ol className="po-journey-grid">
+          {journeySteps.map(step => (
+            <li className="po-journey-step" key={step.label} style={{ '--step-color': step.color }}>
+              <div className="po-step-icon" aria-hidden="true">{step.icon}</div>
+              <div className="po-step-copy">
+                <div className="po-step-label">{step.label}</div>
+                <div className={`po-step-value${step.value ? '' : ' is-empty'}`}>{step.value || 'Not recorded'}</div>
+                {step.sub && <div className="po-step-note">{step.sub}</div>}
+              </div>
+            </li>
+          ))}
+        </ol>
+        {hasRTO && <div className="po-rto-detail">{summary.rtoStatus !== '—' ? summary.rtoStatus : 'Return to origin'}{summary.rtoQty > 0 ? ` • ${Math.round(summary.rtoQty).toLocaleString()} KG` : ''}{summary.rtoValue > 0 ? ` • ₹${Math.round(summary.rtoValue).toLocaleString()}` : ''}</div>}
+      </section>
+
+      <section className="po-details-grid" aria-label="Purchase order details">
+        <article className="po-section">
+          <h2 className="po-card-heading">Order details</h2>
+          <div className="po-info-grid">
             {item('City', summary.city)}
             {item('Platform', summary.platform)}
             {item('Entity', summary.entity)}
             {item('Status', summary.status)}
           </div>
-        </div>
+        </article>
 
-        <div style={sectionStyle}>
-          <div style={sectionTitle}>Products & Qty</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
-            {item('Product', summary.products.length ? summary.products.join(' • ') : '—')}
-            {item('Qty', summary.qty.toLocaleString())}
-            {item('Tonnage', Math.round(summary.tonnage).toLocaleString() + ' KG')}
-            {item('Box Count', summary.boxes.toLocaleString())}
-            {item('MRP', summary.mrp ? '₹' + summary.mrp.toLocaleString() : '—')}
-            {item('Unit Cost', summary.unitCost ? '₹' + summary.unitCost.toLocaleString() : '—')}
-            {item('PO Value', summary.poValue ? '₹' + Math.round(summary.poValue).toLocaleString() : '—', '#22c55e')}
+        <article className="po-section">
+          <h2 className="po-card-heading">Schedule</h2>
+          <div className="po-info-grid">
+            {item('PO release date', summary.released)}
+            {item('Appointment date', summary.apptDate)}
+            {item('Expiry date', summary.expiry)}
           </div>
-        </div>
+        </article>
 
-        <div style={sectionStyle}>
-          <div style={sectionTitle}>Invoicing</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
-            {item('Invoice Number', summary.invoiceNo, summary.invoiceNo !== '—' ? '#60a5fa' : undefined)}
-            {item('Invoice Date', summary.invoiceDate)}
-            {item('Invoice Value', summary.invoiceValue ? '₹' + Math.round(summary.invoiceValue).toLocaleString() : '—')}
+        <article className="po-section">
+          <h2 className="po-card-heading">Invoicing</h2>
+          <div className="po-info-grid">
+            {item('Invoice number', summary.invoiceNo, summary.invoiceNo !== '—' ? '#60a5fa' : undefined)}
+            {item('Invoice date', summary.invoiceDate)}
+            {item('Invoice value', summary.invoiceValue ? `₹${Math.round(summary.invoiceValue).toLocaleString()}` : '—')}
           </div>
-        </div>
+        </article>
 
-        <div style={sectionStyle}>
-          <div style={sectionTitle}>Schedule</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
-            {item('PO Release Date', summary.released)}
-            {item('Appointment Date', summary.apptDate)}
-            {item('PO Expiry Date', summary.expiry)}
+        {(summary.mrp > 0 || summary.unitCost > 0) && (
+          <article className="po-section">
+            <h2 className="po-card-heading">Pricing</h2>
+            <div className="po-info-grid">
+              {item('MRP', summary.mrp ? `₹${summary.mrp.toLocaleString()}` : '—')}
+              {item('Unit cost', summary.unitCost ? `₹${summary.unitCost.toLocaleString()}` : '—')}
+            </div>
+          </article>
+        )}
+
+        {hasPaymentInfo && (
+          <article className="po-section">
+            <h2 className="po-card-heading">Payment</h2>
+            <div className="po-info-grid">
+              {item('Payment status', summary.paymentStatus, (summary.paymentStatus || '').toLowerCase().includes('paid') ? '#22c55e' : undefined)}
+              {item('Final settlement', summary.finalSettlement ? `₹${Math.round(summary.finalSettlement).toLocaleString()}` : '—')}
+              {item('UTR details', summary.utr)}
+              {item('Debit note amount', summary.dn ? `₹${Math.round(summary.dn).toLocaleString()}` : '—')}
+              {item('Overdue alert', summary.overdue, (summary.overdue || '').toLowerCase().includes('overdue') ? '#ef4444' : undefined)}
+              {item('Final fill rate', summary.fillRate)}
+            </div>
+          </article>
+        )}
+
+        {hasRTO && (
+          <article className="po-section po-rto-section">
+            <h2 className="po-card-heading">Return to origin</h2>
+            <div className="po-info-grid">
+              {item('RTO status', summary.rtoStatus, '#f87171')}
+              {item('Returned quantity', summary.rtoQty ? `${Math.round(summary.rtoQty).toLocaleString()} KG` : '—', '#f87171')}
+              {item('Value at risk', summary.rtoValue ? `₹${Math.round(summary.rtoValue).toLocaleString()}` : '—', '#f87171')}
+            </div>
+          </article>
+        )}
+      </section>
+
+      <section className="po-section po-line-items-section">
+        <div className="po-section-heading po-line-items-heading">
+          <div>
+            <h2>Line items</h2>
+            <p>Products and quantities included in this PO</p>
           </div>
+          <span className="po-item-count">{lines.length} item{lines.length === 1 ? '' : 's'}</span>
         </div>
-
-        <div style={sectionStyle}>
-          <div style={sectionTitle}>RTO</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
-            {item('RTO Status', summary.rtoStatus, hasRTO ? '#ef4444' : undefined)}
-            {item('RTO Qty', hasRTO ? Math.round(summary.rtoQty).toLocaleString() + ' KG' : '—', hasRTO ? '#ef4444' : undefined)}
-            {item('RTO Value', hasRTO ? '₹' + Math.round(summary.rtoValue).toLocaleString() : '—', hasRTO ? '#ef4444' : undefined)}
-          </div>
-        </div>
-
-        <div style={sectionStyle}>
-          <div style={sectionTitle}>Payment</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16 }}>
-            {item('Payment Status', summary.paymentStatus, (summary.paymentStatus || '').toLowerCase().includes('paid') ? '#22c55e' : undefined)}
-            {item('Final Settlement', summary.finalSettlement ? '₹' + Math.round(summary.finalSettlement).toLocaleString() : '—')}
-            {item('UTR Details', summary.utr)}
-            {item('DN Amount', summary.dn ? '₹' + Math.round(summary.dn).toLocaleString() : '—')}
-            {item('Overdue Alert', summary.overdue, (summary.overdue || '').toLowerCase().includes('overdue') ? '#ef4444' : '#f1f5f9')}
-            {item('Final Fill Rate', summary.fillRate)}
-          </div>
-        </div>
-      </div>
-
-      <div style={sectionStyle}>
-        <div style={{ ...sectionTitle, marginBottom: 12 }}>Line Items</div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+        <div className="po-table-scroll">
+          <table className="po-line-items-table">
             <thead>
               <tr>
-                {['Product', 'Qty', 'Delivered', 'Rejected', 'Tonnage', 'Boxes', 'MRP', 'Unit Cost', 'Status'].map(h => (
-                  <th key={h} style={{ textAlign: h === 'Product' ? 'left' : 'right', padding: '8px 10px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #334155', whiteSpace: 'nowrap' }}>{h}</th>
+                {['Product', 'Qty', 'Delivered', 'Rejected', 'Tonnage', 'Boxes', 'MRP', 'Unit cost', 'Status'].map((heading, index) => (
+                  <th key={heading} className={index === 0 || index === 8 ? 'po-text-column' : ''}>{heading}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {lines.map((r, i) => (
-                <tr key={i}>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #1e293b', fontSize: 13, fontWeight: 600, maxWidth: 260 }}>{r['Product']}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #1e293b', textAlign: 'right', fontSize: 13 }}>{num(r['PO Qty'])}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #1e293b', textAlign: 'right', fontSize: 13, color: '#22c55e' }}>{num(r['Delivered QTY'])}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #1e293b', textAlign: 'right', fontSize: 13, color: '#ef4444' }}>{num(r['Rejected Qty'])}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #1e293b', textAlign: 'right', fontSize: 13 }}>{num(r['Tonnage'])}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #1e293b', textAlign: 'right', fontSize: 13 }}>{num(r['Box Count'])}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #1e293b', textAlign: 'right', fontSize: 13 }}>{num(r['MRP']) ? '₹' + num(r['MRP']).toLocaleString() : '—'}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #1e293b', textAlign: 'right', fontSize: 13 }}>{num(r['Unit Cost']) ? '₹' + num(r['Unit Cost']).toLocaleString() : '—'}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #1e293b', fontSize: 13 }}><StatusPill status={r['Status']} /></td>
+              {lines.map((row, index) => (
+                <tr key={`${row['Product'] || 'line'}-${index}`}>
+                  <td className="po-product-cell">{row['Product']}</td>
+                  <td>{num(row['PO Qty']).toLocaleString()}</td>
+                  <td className="po-positive-cell">{num(row['Delivered QTY']).toLocaleString()}</td>
+                  <td className="po-negative-cell">{num(row['Rejected Qty']).toLocaleString()}</td>
+                  <td>{num(row['Tonnage']).toLocaleString()}</td>
+                  <td>{num(row['Box Count']).toLocaleString()}</td>
+                  <td>{num(row['MRP']) ? `₹${num(row['MRP']).toLocaleString()}` : '—'}</td>
+                  <td>{num(row['Unit Cost']) ? `₹${num(row['Unit Cost']).toLocaleString()}` : '—'}</td>
+                  <td className="po-status-cell"><StatusPill status={row['Status']} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
+        <div className="po-table-hint">Swipe or scroll horizontally to view all columns</div>
+      </section>
+    </main>
   )
 }
