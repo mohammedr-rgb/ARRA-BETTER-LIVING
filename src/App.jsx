@@ -102,6 +102,10 @@ function Dashboard({ authUser, onLogout }) {
     if (row && row['PO Number']) setViewPO(row['PO Number'])
   }, [])
 
+  const openPOByNumber = useCallback((po) => {
+    if (po) setViewPO(po)
+  }, [])
+
   const closePO = useCallback(() => {
     setViewPO(null)
     const params = new URLSearchParams(window.location.search)
@@ -546,7 +550,7 @@ function Dashboard({ authUser, onLogout }) {
             <div key={tab} className="tab-pane">
               <ErrorBoundary key="dashboard">
                 {tab === 'dashboard' && renderOrderDataTab(() => (
-                  <DashboardTab data={filteredData} allData={data} metrics={metrics} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />
+                  <DashboardTab data={filteredData} allData={data} metrics={metrics} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} onSearchPO={openPOByNumber} />
                 ))}
               </ErrorBoundary>
               <ErrorBoundary key="orders">
@@ -595,7 +599,7 @@ function Dashboard({ authUser, onLogout }) {
         onClose={() => setCmdOpen(false)}
         onSelectTab={handleTabChange}
         data={data}
-        onOpenPO={openPO}
+        onOpenPO={openPOByNumber}
       />
     </>
   )
