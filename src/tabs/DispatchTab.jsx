@@ -97,6 +97,7 @@ const DISPATCH_STATUSES = new Set(['Ready for Dispatch', 'Pending for Dispatch',
 
 export default function DispatchTab({ data, onOpenPO }) {
   const [selectedMonths, setSelectedMonths] = useState(() => new Set())
+  const [priorityPlatformFilter, setPriorityPlatformFilter] = useState('All')
 
   const monthOptions = useMemo(() => {
     const map = {}
@@ -174,10 +175,10 @@ export default function DispatchTab({ data, onOpenPO }) {
     return pendingData.filter(r => (r['Platform'] || 'Unknown') === pendingFilter)
   }, [pendingData, pendingFilter])
 
-  const priorityPOs = useMemo(
-    () => buildPriorityPOs(pendingData.filter(row => (row['Status'] || '').trim() === 'Pending for Dispatch')),
-    [pendingData],
-  )
+  const priorityPOs = useMemo(() => buildPriorityPOs(pendingData.filter(row => {
+    if ((row['Status'] || '').trim() !== 'Pending for Dispatch') return false
+    return priorityPlatformFilter === 'All' || (row['Platform'] || '').toLowerCase().includes(priorityPlatformFilter.toLowerCase())
+  })), [pendingData, priorityPlatformFilter])
 
   const pendingPlatformData = useMemo(() => {
     const map = {}
@@ -452,6 +453,21 @@ export default function DispatchTab({ data, onOpenPO }) {
         </div>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>
           Production should start 5 days before the earlier of the PO expiry date and appointment date. Past start-by dates are flagged as overdue.
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          {['All', 'Amazon', 'Swiggy', 'Blinkit'].map(platform => {
+            const active = priorityPlatformFilter === platform
+            const color = active ? '#3b82f6' : '#94a3b8'
+            return (
+              <button
+                key={platform}
+                onClick={() => setPriorityPlatformFilter(platform)}
+                style={{ padding: '5px 12px', borderRadius: 18, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(59,130,246,0.18)' : 'rgba(100,116,139,0.1)', color, border: `1px solid ${active ? 'rgba(59,130,246,0.5)' : 'rgba(100,116,139,0.25)'}` }}
+              >
+                {platform === 'All' ? 'All Platforms' : platform}
+              </button>
+            )
+          })}
         </div>
         <DataTable
           columns={[
