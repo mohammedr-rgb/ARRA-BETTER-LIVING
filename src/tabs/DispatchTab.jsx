@@ -174,7 +174,10 @@ export default function DispatchTab({ data, onOpenPO }) {
     return pendingData.filter(r => (r['Platform'] || 'Unknown') === pendingFilter)
   }, [pendingData, pendingFilter])
 
-  const priorityPOs = useMemo(() => buildPriorityPOs(pendingData), [pendingData])
+  const priorityPOs = useMemo(
+    () => buildPriorityPOs(pendingData.filter(row => (row['Status'] || '').trim() === 'Pending for Dispatch')),
+    [pendingData],
+  )
 
   const pendingPlatformData = useMemo(() => {
     const map = {}
@@ -445,7 +448,7 @@ export default function DispatchTab({ data, onOpenPO }) {
       <div className="recent-orders" style={{ marginTop: 0, marginBottom: 20 }}>
         <div className="orders-header">
           <div className="orders-title">Priority PO Dispatch</div>
-          <div className="chart-period">{priorityPOs.length} open POs • production lead time: 5 days</div>
+          <div className="chart-period">{priorityPOs.length} pending-for-dispatch POs • production lead time: 5 days</div>
         </div>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>
           Production should start 5 days before the earlier of the PO expiry date and appointment date. Past start-by dates are flagged as overdue.
