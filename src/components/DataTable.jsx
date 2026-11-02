@@ -53,7 +53,7 @@ export function DataTable({ columns = [], rows, data, pageSize = 10, filename, o
     lines.push(columns.map(c => csvEscape(c.label)).join(','))
     sorted.forEach(r => {
       lines.push(columns.map(c => {
-        const v = accessors[c.key](r)
+        const v = c.exportAccessor ? c.exportAccessor(r) : accessors[c.key](r)
         return csvEscape(c.align === 'right' ? csvNum(v) : String(v ?? ''))
       }).join(','))
     })
@@ -66,7 +66,7 @@ export function DataTable({ columns = [], rows, data, pageSize = 10, filename, o
     const aoa = [columns.map(c => c.label)]
     sorted.forEach(r => {
       aoa.push(columns.map(c => {
-        const v = accessors[c.key](r)
+        const v = c.exportAccessor ? c.exportAccessor(r) : accessors[c.key](r)
         return c.align === 'right' ? Number(csvNum(v) || 0) : String(v ?? '')
       }))
     })

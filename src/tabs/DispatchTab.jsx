@@ -457,13 +457,14 @@ export default function DispatchTab({ data, onOpenPO }) {
             { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
             { key: 'qty', label: 'PO Qty', accessor: r => r.qty, align: 'right' },
             { key: 'tonnage', label: 'Tonnage', accessor: r => Math.round(r.tonnage), align: 'right' },
-            { key: 'expiry', label: 'PO Expiry', accessor: r => parseMMDDDate(r['Expiry Date(MM-DD-YYYY)'])?.getTime() || 0, render: r => formatDate(parseMMDDDate(r['Expiry Date(MM-DD-YYYY)'])) },
-            { key: 'appointment', label: 'Appointment', accessor: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])?.getTime() || 0, render: r => formatDate(parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])) },
-            { key: 'startBy', label: 'Production Start By', accessor: r => r.startBy?.getTime() || 0, render: r => formatDate(r.startBy) },
-            { key: 'alert', label: 'Production Alert', accessor: r => r.rank, render: r => <ProductionAlertPill alert={r.alert} /> },
+            { key: 'expiry', label: 'PO Expiry', accessor: r => parseMMDDDate(r['Expiry Date(MM-DD-YYYY)'])?.getTime() || 0, exportAccessor: r => formatDate(parseMMDDDate(r['Expiry Date(MM-DD-YYYY)'])), render: r => formatDate(parseMMDDDate(r['Expiry Date(MM-DD-YYYY)'])) },
+            { key: 'appointment', label: 'Appointment', accessor: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])?.getTime() || 0, exportAccessor: r => formatDate(parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])), render: r => formatDate(parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])) },
+            { key: 'startBy', label: 'Production Start By', accessor: r => r.startBy?.getTime() || 0, exportAccessor: r => formatDate(r.startBy), render: r => formatDate(r.startBy) },
+            { key: 'alert', label: 'Production Alert', accessor: r => r.rank, exportAccessor: r => r.alert, render: r => <ProductionAlertPill alert={r.alert} /> },
           ]}
           rows={priorityPOs}
           pageSize={10}
+          filename="priority_po_dispatch.csv"
           onRowClick={onOpenPO}
           emptyMessage="No open dispatch POs"
         />
