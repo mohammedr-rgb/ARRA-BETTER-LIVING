@@ -173,7 +173,7 @@ export function UniversalSearch({ data, onSelect }) {
                 </div>
               )}
               <div style={{ padding: '8px 16px', fontSize: 11, color: '#475569', borderTop: '1px solid #1e293b' }}>
-                Enter opens the first result • results open in a new tab
+                Enter opens the first result • PO details open here
               </div>
             </>
           )}
