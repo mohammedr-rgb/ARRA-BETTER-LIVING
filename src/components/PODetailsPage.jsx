@@ -46,6 +46,7 @@ export function PODetailsPage({ po, data, onBack }) {
   }
 
   const hasRTO = summary.rtoStatus !== '—' || summary.rtoQty > 0 || summary.rtoValue > 0
+  const hasInvoiceInfo = summary.invoiceNo !== '—' || summary.invoiceDate !== '—' || summary.invoiceValue > 0
   const hasPaymentInfo = [summary.paymentStatus, summary.finalSettlement, summary.utr, summary.dn, summary.overdue, summary.fillRate]
     .some(value => value && value !== '—' && value !== 0)
   const isRTO = (summary.status || '').toLowerCase() === 'rto' || hasRTO
@@ -163,14 +164,16 @@ export function PODetailsPage({ po, data, onBack }) {
           </div>
         </article>
 
-        <article className="po-section">
-          <h2 className="po-card-heading">Invoicing</h2>
-          <div className="po-info-grid">
-            {item('Invoice number', summary.invoiceNo, summary.invoiceNo !== '—' ? '#60a5fa' : undefined)}
-            {item('Invoice date', summary.invoiceDate)}
-            {item('Invoice value', summary.invoiceValue ? `₹${Math.round(summary.invoiceValue).toLocaleString()}` : '—')}
-          </div>
-        </article>
+        {hasInvoiceInfo && (
+          <article className="po-section">
+            <h2 className="po-card-heading">Invoicing</h2>
+            <div className="po-info-grid">
+              {item('Invoice number', summary.invoiceNo, summary.invoiceNo !== '—' ? '#60a5fa' : undefined)}
+              {item('Invoice date', summary.invoiceDate)}
+              {item('Invoice value', summary.invoiceValue ? `₹${Math.round(summary.invoiceValue).toLocaleString()}` : '—')}
+            </div>
+          </article>
+        )}
 
         {(summary.mrp > 0 || summary.unitCost > 0) && (
           <article className="po-section">
