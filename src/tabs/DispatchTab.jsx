@@ -205,8 +205,15 @@ export default function DispatchTab({ data, onOpenPO }) {
     return Object.values(map).map(x => ({ platform: x.platform, pos: x.pos.size })).sort((a, b) => b.pos - a.pos)
   }, [pendingData])
 
+  const openDispatchLines = useMemo(
+    () => periodData.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes((r['Status'] || '').trim())),
+    [periodData],
+  )
+
+  const openDispatchPOs = useMemo(() => uniqueByPO(openDispatchLines), [openDispatchLines])
+
   const openMetrics = useMemo(() => {
-    const lines = periodData.filter(r => ['Pending for Dispatch', 'Pending for Schedule'].includes((r['Status'] || '').trim()))
+    const lines = openDispatchLines
     const pos = uniqueByPO(lines)
     const byStatus = {}
     for (const r of lines) {
@@ -225,7 +232,7 @@ export default function DispatchTab({ data, onOpenPO }) {
       value: sumField(lines, 'PO Value with Tax'),
       byStatus: byStatusArr,
     }
-  }, [periodData])
+  }, [openDispatchLines])
 
   const readyMetrics = useMemo(() => {
     const lines = periodData.filter(r => (r['Status'] || '').trim() === 'Ready for Dispatch')
@@ -253,8 +260,15 @@ export default function DispatchTab({ data, onOpenPO }) {
     }
   }, [invoicePeriodData])
 
+  const inTransitLines = useMemo(
+    () => invoicePeriodData.filter(r => ['In-Transit', 'In Transit', 'Dispatched'].includes((r['Status'] || '').trim())),
+    [invoicePeriodData],
+  )
+
+  const inTransitPOs = useMemo(() => uniqueByPO(inTransitLines), [inTransitLines])
+
   const inTransitMetrics = useMemo(() => {
-    const lines = invoicePeriodData.filter(r => ['In-Transit', 'In Transit', 'Dispatched'].includes((r['Status'] || '').trim()))
+    const lines = inTransitLines
     const pos = uniqueByPO(lines)
     const byStatus = {}
     for (const r of lines) {
@@ -273,7 +287,7 @@ export default function DispatchTab({ data, onOpenPO }) {
       value: sumField(lines, 'PO Value with Tax'),
       byStatus: byStatusArr,
     }
-  }, [invoicePeriodData])
+  }, [inTransitLines])
 
   const downloadPendingCSV = () => {
     const filtered = periodData.filter(r => DISPATCH_STATUSES.has(r['Status']))
@@ -396,6 +410,16 @@ export default function DispatchTab({ data, onOpenPO }) {
                   ))}
                 </>
               )}
+              <div style={{ fontSize: 12, color: '#94a3b8', margin: '10px 0 6px', fontWeight: 600 }}>Purchase orders • click a PO to view details</div>
+              <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
+                {openDispatchPOs.map(row => (
+                  <div key={row['PO Number']} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', borderTop: '1px solid #334155' }}>
+                    <PONumberLink row={row} onOpenPO={onOpenPO} />
+                    <span style={{ fontSize: 11, color: '#94a3b8', textAlign: 'right' }}>{row['City'] || '—'} • {row['Platform'] || '—'} • {row['Status']}</span>
+                  </div>
+                ))}
+                {!openDispatchPOs.length && <div style={{ fontSize: 12, color: '#64748b' }}>No open dispatch POs in this period</div>}
+              </div>
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
@@ -455,6 +479,16 @@ export default function DispatchTab({ data, onOpenPO }) {
                   ))}
                 </>
               )}
+              <div style={{ fontSize: 12, color: '#94a3b8', margin: '10px 0 6px', fontWeight: 600 }}>Purchase orders • click a PO to view details</div>
+              <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
+                {inTransitPOs.map(row => (
+                  <div key={row['PO Number']} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', borderTop: '1px solid #334155' }}>
+                    <PONumberLink row={row} onOpenPO={onOpenPO} />
+                    <span style={{ fontSize: 11, color: '#94a3b8', textAlign: 'right' }}>{row['City'] || '—'} • {row['Platform'] || '—'} • {row['Status']}</span>
+                  </div>
+                ))}
+                {!inTransitPOs.length && <div style={{ fontSize: 12, color: '#64748b' }}>No in-transit POs in this period</div>}
+              </div>
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
