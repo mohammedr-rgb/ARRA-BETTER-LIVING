@@ -423,6 +423,7 @@ export default function DispatchTab({ data, onOpenPO }) {
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
+          clickToToggleTooltip
         />
         <StatCard
           label="Ready for Dispatch" icon="📦" color="#22c55e"
@@ -492,6 +493,7 @@ export default function DispatchTab({ data, onOpenPO }) {
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
+          clickToToggleTooltip
         />
       </div>
 

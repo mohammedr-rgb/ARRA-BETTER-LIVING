@@ -24,7 +24,7 @@ export function TooltipRow({ label, value, valueColor = '#f1f5f9' }) {
   )
 }
 
-export function StatCard({ label, icon, color = '#3b82f6', value, valueColor, change, changeColor = '#94a3b8', delta, deltaTitle = 'vs previous 30 days', tooltip, tooltipStyle, style }) {
+export function StatCard({ label, icon, color = '#3b82f6', value, valueColor, change, changeColor = '#94a3b8', delta, deltaTitle = 'vs previous 30 days', tooltip, tooltipStyle, clickToToggleTooltip = false, style }) {
   const [open, setOpen] = useState(false)
   const tid = useId()
   const show = tooltip ? open : false
@@ -40,7 +40,10 @@ export function StatCard({ label, icon, color = '#3b82f6', value, valueColor, ch
       onMouseEnter={() => tooltip && setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       onFocus={() => tooltip && setOpen(true)}
-      onBlur={() => setOpen(false)}
+      onBlur={e => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false)
+      }}
+      onClick={() => clickToToggleTooltip && tooltip && setOpen(v => !v)}
       onKeyDown={e => {
         if (!tooltip) return
         if (e.key === 'Escape') setOpen(false)
