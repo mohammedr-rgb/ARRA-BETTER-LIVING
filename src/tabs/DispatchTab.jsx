@@ -34,6 +34,56 @@ function priorityFor(row) {
   return { rank: 3, label: 'Low' }
 }
 
+function productionAlertFor(row, today = new Date()) {
+  const expiry = parseMMDDDate(row['Expiry Date(MM-DD-YYYY)'])
+  const appointment = parseMMDDDate(row['Appointment Date(MM-DD-YYYY)'])
+  const targetDate = [expiry, appointment].filter(Boolean).sort((a, b) => a - b)[0]
+  if (!targetDate) return { targetDate: null, startBy: null, daysUntilStart: null, alert: 'Date missing', rank: 3 }
+
+  const startBy = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() - 5)
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const daysUntilStart = Math.round((startBy - todayStart) / 86400000)
+  if (daysUntilStart < 0) return { targetDate, startBy, daysUntilStart, alert: 'Production overdue', rank: 0 }
+  if (daysUntilStart <= 2) return { targetDate, startBy, daysUntilStart, alert: 'Start production soon', rank: 1 }
+  return { targetDate, startBy, daysUntilStart, alert: 'On track', rank: 2 }
+}
+
+function formatDate(date) {
+  return date ? date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+}
+
+function ProductionAlertPill({ alert }) {
+  const colors = {
+    'Production overdue': '#ef4444',
+    'Start production soon': '#f59e0b',
+    'On track': '#22c55e',
+    'Date missing': '#94a3b8',
+  }
+  const color = colors[alert] || '#94a3b8'
+  return (
+    <span style={{ display: 'inline-block', padding: '4px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: `${color}1a`, color, border: `1px solid ${color}40` }}>
+      {alert}
+    </span>
+  )
+}
+
+function buildPriorityPOs(rows) {
+  const byPO = new Map()
+  for (const row of rows) {
+    const po = row['PO Number']
+    if (!po) continue
+    if (!byPO.has(po)) byPO.set(po, { ...row, qty: 0, tonnage: 0, boxes: 0 })
+    const poRow = byPO.get(po)
+    poRow.qty += num(row['PO Qty'])
+    poRow.tonnage += num(row['Tonnage'])
+    poRow.boxes += num(row['Box Count'])
+    if (!poRow['Appointment Date(MM-DD-YYYY)'] && row['Appointment Date(MM-DD-YYYY)']) poRow['Appointment Date(MM-DD-YYYY)'] = row['Appointment Date(MM-DD-YYYY)']
+    if (!poRow['Expiry Date(MM-DD-YYYY)'] && row['Expiry Date(MM-DD-YYYY)']) poRow['Expiry Date(MM-DD-YYYY)'] = row['Expiry Date(MM-DD-YYYY)']
+  }
+  return [...byPO.values()].map(row => ({ ...row, ...productionAlertFor(row) }))
+    .sort((a, b) => a.rank - b.rank || (a.startBy || Infinity) - (b.startBy || Infinity))
+}
+
 function PriorityPill({ rank }) {
   const s = PRIORITY_STYLE[rank] || PRIORITY_STYLE[4]
   return (
@@ -123,6 +173,8 @@ export default function DispatchTab({ data, onOpenPO }) {
     if (!pendingFilter) return pendingData
     return pendingData.filter(r => (r['Platform'] || 'Unknown') === pendingFilter)
   }, [pendingData, pendingFilter])
+
+  const priorityPOs = useMemo(() => buildPriorityPOs(pendingData), [pendingData])
 
   const pendingPlatformData = useMemo(() => {
     const map = {}
@@ -387,6 +439,33 @@ export default function DispatchTab({ data, onOpenPO }) {
             </>
           }
           tooltipStyle={{ zIndex: 100 }}
+        />
+      </div>
+
+      <div className="recent-orders" style={{ marginTop: 0, marginBottom: 20 }}>
+        <div className="orders-header">
+          <div className="orders-title">Priority PO Dispatch</div>
+          <div className="chart-period">{priorityPOs.length} open POs • production lead time: 5 days</div>
+        </div>
+        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>
+          Production should start 5 days before the earlier of the PO expiry date and appointment date. Past start-by dates are flagged as overdue.
+        </div>
+        <DataTable
+          columns={[
+            { key: 'po', label: 'PO #', accessor: r => r['PO Number'], render: r => <PONumberLink row={r} onOpenPO={onOpenPO} /> },
+            { key: 'city', label: 'City', accessor: r => r['City'] },
+            { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
+            { key: 'qty', label: 'PO Qty', accessor: r => r.qty, align: 'right' },
+            { key: 'tonnage', label: 'Tonnage', accessor: r => Math.round(r.tonnage), align: 'right' },
+            { key: 'expiry', label: 'PO Expiry', accessor: r => parseMMDDDate(r['Expiry Date(MM-DD-YYYY)'])?.getTime() || 0, render: r => formatDate(parseMMDDDate(r['Expiry Date(MM-DD-YYYY)'])) },
+            { key: 'appointment', label: 'Appointment', accessor: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])?.getTime() || 0, render: r => formatDate(parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])) },
+            { key: 'startBy', label: 'Production Start By', accessor: r => r.startBy?.getTime() || 0, render: r => formatDate(r.startBy) },
+            { key: 'alert', label: 'Production Alert', accessor: r => r.rank, render: r => <ProductionAlertPill alert={r.alert} /> },
+          ]}
+          rows={priorityPOs}
+          pageSize={10}
+          onRowClick={onOpenPO}
+          emptyMessage="No open dispatch POs"
         />
       </div>
 
