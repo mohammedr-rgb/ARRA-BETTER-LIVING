@@ -546,7 +546,7 @@ function Dashboard({ authUser, onLogout }) {
             <div key={tab} className="tab-pane">
               <ErrorBoundary key="dashboard">
                 {tab === 'dashboard' && renderOrderDataTab(() => (
-                  <DashboardTab data={filteredData} allData={data} metrics={metrics} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} onSearchOpen={openPO} />
+                  <DashboardTab data={filteredData} allData={data} metrics={metrics} recentOrders={recentOrders} platformFilter={globalPlatform} onOpenPO={openPO} />
                 ))}
               </ErrorBoundary>
               <ErrorBoundary key="orders">
