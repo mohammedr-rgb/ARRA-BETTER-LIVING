@@ -475,6 +475,7 @@ export default function DispatchTab({ data, onOpenPO }) {
             { key: 'city', label: 'City', accessor: r => r['City'] },
             { key: 'platform', label: 'Platform', accessor: r => r['Platform'] },
             { key: 'qty', label: 'PO Qty', accessor: r => r.qty, align: 'right' },
+            { key: 'boxes', label: 'Box Count', accessor: r => Math.round(r.boxes), align: 'right' },
             { key: 'tonnage', label: 'Tonnage', accessor: r => Math.round(r.tonnage), align: 'right' },
             { key: 'expiry', label: 'PO Expiry', accessor: r => parseMMDDDate(r['Expiry Date(MM-DD-YYYY)'])?.getTime() || 0, exportAccessor: r => formatDate(parseMMDDDate(r['Expiry Date(MM-DD-YYYY)'])), render: r => formatDate(parseMMDDDate(r['Expiry Date(MM-DD-YYYY)'])) },
             { key: 'appointment', label: 'Appointment', accessor: r => parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])?.getTime() || 0, exportAccessor: r => formatDate(parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])), render: r => formatDate(parseMMDDDate(r['Appointment Date(MM-DD-YYYY)'])) },
