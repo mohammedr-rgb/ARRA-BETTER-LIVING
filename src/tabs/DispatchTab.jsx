@@ -44,7 +44,7 @@ function productionAlertFor(row, today = new Date()) {
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const daysUntilStart = Math.round((startBy - todayStart) / 86400000)
   if (daysUntilStart < 0) return { targetDate, startBy, daysUntilStart, alert: 'Production overdue', rank: 0 }
-  if (daysUntilStart <= 2) return { targetDate, startBy, daysUntilStart, alert: 'Start production soon', rank: 1 }
+  if (daysUntilStart <= 2) return { targetDate, startBy, daysUntilStart, alert: 'Start production now', rank: 1 }
   return { targetDate, startBy, daysUntilStart, alert: 'On track', rank: 2 }
 }
 
@@ -55,7 +55,7 @@ function formatDate(date) {
 function ProductionAlertPill({ alert }) {
   const colors = {
     'Production overdue': '#ef4444',
-    'Start production soon': '#f59e0b',
+    'Start production now': '#f59e0b',
     'On track': '#22c55e',
     'Date missing': '#94a3b8',
   }
