@@ -34,9 +34,6 @@ jobs:
 
       - name: Send appointment alerts
         env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          APPOINTMENT_EMAIL_FROM: ${{ secrets.APPOINTMENT_EMAIL_FROM }}
-          APPOINTMENT_EMAIL_TO: ${{ secrets.APPOINTMENT_EMAIL_TO }}
           WHATSAPP_ACCESS_TOKEN: ${{ secrets.WHATSAPP_ACCESS_TOKEN }}
           WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
           WHATSAPP_TEMPLATE_NAME: ${{ secrets.WHATSAPP_TEMPLATE_NAME }}
