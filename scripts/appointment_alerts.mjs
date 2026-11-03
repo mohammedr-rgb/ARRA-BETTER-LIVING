@@ -93,29 +93,6 @@ function parseList(value) {
   return String(value || '').split(/[;,\n]/).map(item => item.trim()).filter(Boolean)
 }
 
-async function sendEmail(digest, runDate) {
-  const apiKey = process.env.RESEND_API_KEY
-  const from = process.env.APPOINTMENT_EMAIL_FROM
-  const recipients = parseList(process.env.APPOINTMENT_EMAIL_TO)
-  if (!apiKey || !from || !recipients.length) {
-    console.warn('Email alert skipped: set RESEND_API_KEY, APPOINTMENT_EMAIL_FROM, and APPOINTMENT_EMAIL_TO.')
-    return false
-  }
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from,
-      to: recipients,
-      subject: `Appointment alerts — ${formatDate(runDate)}`,
-      text: `${digest.text}\n\nDashboard: ${DASHBOARD_URL}`,
-    }),
-  })
-  if (!response.ok) throw new Error(`Email provider returned HTTP ${response.status}`)
-  console.log(`Appointment email sent to ${recipients.length} recipient(s).`)
-  return true
-}
-
 function whatsappText(digest) {
   const sections = [
     ['Today', digest.todayRows],
@@ -166,10 +143,9 @@ async function sendWhatsApp(digest) {
 }
 
 async function main() {
-  const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.APPOINTMENT_EMAIL_FROM && parseList(process.env.APPOINTMENT_EMAIL_TO).length)
   const whatsappConfigured = Boolean(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_TEMPLATE_NAME && parseList(process.env.APPOINTMENT_WHATSAPP_TO).length)
-  if (!emailConfigured && !whatsappConfigured) {
-    console.log('No appointment alert channel is configured; nothing fetched or sent.')
+  if (!whatsappConfigured) {
+    console.log('WhatsApp appointment alerts are not fully configured; nothing fetched or sent.')
     return
   }
 
@@ -191,10 +167,7 @@ async function main() {
     console.log('Dry run enabled; no notification sent.')
     return
   }
-  if (emailConfigured) await sendEmail(digest, today)
-  else console.warn('Email alert skipped: email delivery is not configured.')
-  if (whatsappConfigured) await sendWhatsApp(digest)
-  else console.warn('WhatsApp alert skipped: WhatsApp delivery is not configured.')
+  await sendWhatsApp(digest)
 }
 
 main().catch(error => {
