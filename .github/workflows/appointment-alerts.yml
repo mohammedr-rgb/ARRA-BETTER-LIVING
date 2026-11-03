@@ -5,6 +5,12 @@ on:
     # 10:00 AM and 5:00 PM India Standard Time (UTC+05:30).
     - cron: '30 4,11 * * *'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Prepare the digest but do not send messages
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -37,4 +43,5 @@ jobs:
           WHATSAPP_TEMPLATE_LANGUAGE: ${{ secrets.WHATSAPP_TEMPLATE_LANGUAGE }}
           WHATSAPP_GRAPH_API_VERSION: v26.0
           APPOINTMENT_WHATSAPP_TO: ${{ secrets.APPOINTMENT_WHATSAPP_TO }}
+          APPOINTMENT_ALERT_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
         run: node scripts/appointment_alerts.mjs
