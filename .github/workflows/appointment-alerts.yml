@@ -1,0 +1,40 @@
+name: Appointment Alerts
+
+on:
+  schedule:
+    # 10:00 AM and 5:00 PM India Standard Time (UTC+05:30).
+    - cron: '30 4,11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appointment-alerts
+  cancel-in-progress: false
+
+jobs:
+  send-appointment-alerts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out dashboard source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Send appointment alerts
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          APPOINTMENT_EMAIL_FROM: ${{ secrets.APPOINTMENT_EMAIL_FROM }}
+          APPOINTMENT_EMAIL_TO: ${{ secrets.APPOINTMENT_EMAIL_TO }}
+          WHATSAPP_ACCESS_TOKEN: ${{ secrets.WHATSAPP_ACCESS_TOKEN }}
+          WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          WHATSAPP_TEMPLATE_NAME: ${{ secrets.WHATSAPP_TEMPLATE_NAME }}
+          WHATSAPP_TEMPLATE_LANGUAGE: ${{ secrets.WHATSAPP_TEMPLATE_LANGUAGE }}
+          WHATSAPP_GRAPH_API_VERSION: v26.0
+          APPOINTMENT_WHATSAPP_TO: ${{ secrets.APPOINTMENT_WHATSAPP_TO }}
+        run: node scripts/appointment_alerts.mjs
