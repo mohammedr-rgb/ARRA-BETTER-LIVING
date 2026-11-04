@@ -247,14 +247,14 @@ export default function JioMartTab() {
           <div className="recent-orders" style={{ marginTop: 20 }}>
             <div className="orders-header">
               <div className="orders-title">Shipments and order amount by status</div>
-              <DataTable columns={statusColumns} rows={metrics.statusRows} pageSize={10} filename="jiomart_metrics_by_status.csv" emptyMessage="No JioMart shipments in this period" />
             </div>
+            <DataTable columns={statusColumns} rows={metrics.statusRows} pageSize={10} filename="jiomart_metrics_by_status.csv" emptyMessage="No JioMart shipments in this period" />
           </div>
           <div className="recent-orders" style={{ marginTop: 20 }}>
             <div className="orders-header">
               <div className="orders-title">Order amount by payment method</div>
-              <DataTable columns={paymentColumns} rows={metrics.paymentRows} pageSize={10} filename="jiomart_metrics_by_payment_method.csv" emptyMessage="No payment methods in this period" />
             </div>
+            <DataTable columns={paymentColumns} rows={metrics.paymentRows} pageSize={10} filename="jiomart_metrics_by_payment_method.csv" emptyMessage="No payment methods in this period" />
           </div>
           <div className="recent-orders" style={{ marginTop: 20 }}>
             <div className="orders-header" style={{ gap: 12, flexWrap: 'wrap' }}>
