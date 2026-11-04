@@ -258,6 +258,52 @@ export default function JioMartTab() {
     const bankPayoutRows = ledgerRows.filter(row => /payout|bank transfer|settlement transfer|withdrawal|disbursement|paid to bank/i.test(String(row.Event || '')))
     const bankPayoutAmount = bankPayoutRows.reduce((sum, row) => sum + num(row.Amount), 0)
 
+    const invoiceByShipment = new Map()
+    for (const row of serviceRows) {
+      const shipment = String(row['Shipment Number'] || '').trim()
+      if (!shipment) continue
+      if (!invoiceByShipment.has(shipment)) invoiceByShipment.set(shipment, { paymentTotal: 0, serviceFees: 0 })
+      const summary = invoiceByShipment.get(shipment)
+      summary.paymentTotal += num(row['Payment Total'])
+      summary.serviceFees += num(row['Total with GST'])
+    }
+    const ledgerByShipment = new Map()
+    for (const row of ledgerRows) {
+      const shipment = String(row.Shipment_Number || '').trim()
+      if (!shipment) continue
+      if (!ledgerByShipment.has(shipment)) ledgerByShipment.set(shipment, { amount: 0, entries: 0 })
+      const summary = ledgerByShipment.get(shipment)
+      summary.amount += num(row.Amount)
+      summary.entries += 1
+    }
+    const payoutByStatus = new Map()
+    for (const order of orders) {
+      const status = order.status
+      if (!payoutByStatus.has(status)) payoutByStatus.set(status, {
+        status, shipments: 0, orderValue: 0, serviceInvoicePayment: 0, serviceFees: 0,
+        ledgerMovement: 0, ledgerMatchedShipments: 0, noLedgerShipments: 0,
+        orderValueWithoutLedger: 0, amountConflicts: 0,
+      })
+      const summary = payoutByStatus.get(status)
+      summary.shipments += 1
+      if (order.orderValue !== null) summary.orderValue += order.orderValue
+      else if (order.amountConflict) summary.amountConflicts += 1
+      const invoice = invoiceByShipment.get(order.shipment)
+      if (invoice) {
+        summary.serviceInvoicePayment += invoice.paymentTotal
+        summary.serviceFees += invoice.serviceFees
+      }
+      const ledger = ledgerByShipment.get(order.shipment)
+      if (ledger) {
+        summary.ledgerMovement += ledger.amount
+        summary.ledgerMatchedShipments += 1
+      } else {
+        summary.noLedgerShipments += 1
+        if (order.orderValue !== null) summary.orderValueWithoutLedger += order.orderValue
+      }
+    }
+    const payoutStatusRows = [...payoutByStatus.values()].sort((a, b) => b.shipments - a.shipments)
+
     return {
       orders,
       orderValue,
@@ -284,6 +330,7 @@ export default function JioMartTab() {
       unmatchedServiceFee,
       eventRows,
       accountableRows,
+      payoutStatusRows,
       netSellerPayableMovement,
       bankPayoutRows,
       bankPayoutAmount,
@@ -328,6 +375,18 @@ export default function JioMartTab() {
     { key: 'accountableType', label: 'Ledger Type', align: 'left' },
     { key: 'entries', label: 'Entries', align: 'right', accessor: row => row.entries },
     { key: 'amount', label: 'Signed Ledger Amount (₹)', align: 'right', accessor: row => row.amount, render: row => formatCurrency(row.amount) },
+  ]
+  const payoutStatusColumns = [
+    { key: 'status', label: 'Shipment Status', align: 'left', render: row => row.status.replace(/_/g, ' ') },
+    { key: 'shipments', label: 'Shipments', align: 'right', accessor: row => row.shipments },
+    { key: 'orderValue', label: 'Main Data Order Value (₹)', align: 'right', accessor: row => row.orderValue, render: row => formatCurrency(row.orderValue) },
+    { key: 'serviceInvoicePayment', label: 'Service Invoice Payment Total (₹)', align: 'right', accessor: row => row.serviceInvoicePayment, render: row => formatCurrency(row.serviceInvoicePayment) },
+    { key: 'serviceFees', label: 'Service Fees / Credits incl. GST (₹)', align: 'right', accessor: row => row.serviceFees, render: row => formatCurrency(row.serviceFees) },
+    { key: 'ledgerMovement', label: 'Shipment-linked Ledger Movement (₹)', align: 'right', accessor: row => row.ledgerMovement, render: row => formatCurrency(row.ledgerMovement) },
+    { key: 'ledgerMatchedShipments', label: 'Ledger-matched Shipments', align: 'right', accessor: row => row.ledgerMatchedShipments },
+    { key: 'noLedgerShipments', label: 'No Ledger Match', align: 'right', accessor: row => row.noLedgerShipments },
+    { key: 'orderValueWithoutLedger', label: 'Order Value Without Ledger Match (₹)', align: 'right', accessor: row => row.orderValueWithoutLedger, render: row => formatCurrency(row.orderValueWithoutLedger) },
+    { key: 'amountConflicts', label: 'Amount Conflicts', align: 'right', accessor: row => row.amountConflicts },
   ]
 
   const stats = [
@@ -399,6 +458,13 @@ export default function JioMartTab() {
           <div className="recent-orders" style={{ marginTop: 20 }}>
             <div className="orders-header"><div className="orders-title">📦 Order metrics by status</div></div>
             <DataTable columns={orderStatusColumns} rows={metrics.statusRows} pageSize={10} filename="jiomart_orders_by_status.csv" emptyMessage="No shipments in this period" />
+          </div>
+          <div className="recent-orders" style={{ marginTop: 20 }}>
+            <div className="orders-header"><div className="orders-title">💸 Shipment payment pipeline by status</div></div>
+            <div style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.6, marginBottom: 12 }}>
+              Compares Main Data order value with service-invoice totals and shipment-linked Disbursement entries. “Order value without ledger match” is an exposure indicator, not a payout forecast. Pickup-confirmed and ready-to-dispatch shipments may not have settlement records yet.
+            </div>
+            <DataTable columns={payoutStatusColumns} rows={metrics.payoutStatusRows} pageSize={10} filename="jiomart_shipment_payment_pipeline.csv" emptyMessage="No shipment status data in this period" />
           </div>
           <div className="recent-orders" style={{ marginTop: 20 }}>
             <div className="orders-header"><div className="orders-title">💳 Order amount by payment method</div></div>
