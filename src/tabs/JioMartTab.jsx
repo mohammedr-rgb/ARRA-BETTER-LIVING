@@ -332,7 +332,7 @@ export default function JioMartTab() {
 
   const stats = [
     { label: 'Unique Shipments', icon: '📦', color: '#38bdf8', value: metrics.orders.length.toLocaleString('en-IN') },
-    { label: 'Gross Order Amount', icon: '🛒', color: '#22c55e', value: formatCurrency(metrics.orderValue) },
+    { label: 'Final Order Amount', icon: '🛒', color: '#22c55e', value: formatCurrency(metrics.orderValue) },
     { label: 'Settled Invoice Payment Total', icon: '🧾', color: '#a855f7', value: formatCurrency(metrics.totalInvoicePayment) },
     { label: 'Service Fees / Credits incl. GST', icon: '↕️', color: '#f59e0b', value: formatCurrency(metrics.totalServiceFees) },
     { label: 'Seller Payable Ledger Movement', icon: '💸', color: '#14b8a6', value: formatCurrency(metrics.netSellerPayableMovement) },
