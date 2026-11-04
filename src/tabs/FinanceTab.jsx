@@ -194,11 +194,11 @@ export default function FinanceTab() {
       } else if (tabId === 'channels') {
         const [shopifyRes, jioRes, rkRes] = await Promise.all([
           fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=835341930`),
-          fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=1051223168`),
+          fetch('https://docs.google.com/spreadsheets/d/1vocnshtKn8ezovFFsPr-bOkf7vqDIuhX9RXU3YWI2yQ/export?format=csv&gid=0'),
           fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=153736843`)
         ])
         const shopifyRows = parseCSV(await shopifyRes.text()).filter(r => r['Invoice No'] && r['Invoice No'].trim() !== '')
-        const jioRows = parseCSV(await jioRes.text()).filter(r => r['Number'] && r['Number'].trim() !== '')
+        const jioRows = parseCSV(await jioRes.text()).filter(r => r['Shipment Number'] && r['Shipment Number'].trim() !== '')
         const rkRows = parseCSV(await rkRes.text()).filter(r => r['INV NO'] && r['INV NO'].trim() !== '')
 
         setCache(prev => ({
@@ -247,6 +247,7 @@ export default function FinanceTab() {
     }
     if (cache.channels) {
       scanRows(cache.channels.shopifyRows, ['Invoice Date', 'Order Date'])
+      scanRows(cache.channels.jioRows, ['Date'])
       scanRows(cache.channels.rkRows, ['DATE', 'DUE DATE'])
     }
 
@@ -615,45 +616,150 @@ export default function FinanceTab() {
     if (activeSubTab !== 'channels' || !cache.channels) return null
     const { shopifyRows, jioRows, rkRows } = cache.channels
 
-    // Month filter
     const monthShopify = shopifyRows.filter(r => rowMatchesMonth(r, ['Invoice Date', 'Order Date', 'Date of Supply']))
-    const monthJio = jioRows // JioMart doesn't have standard date column
+    const monthJio = jioRows.filter(r => rowMatchesMonth(r, ['Date']))
     const monthRK = rkRows.filter(r => rowMatchesMonth(r, ['DATE', 'DUE DATE']))
 
-    const totalShopify = monthShopify.reduce((s, r) => s + num(r['TOTAL']), 0)
-    const totalRK = monthRK.reduce((s, r) => s + num(r['INV AMOUNT']), 0)
-    const jioReturns = monthJio.filter(r => r['Status'] === 'shipment_returned').length
-    const jioCanceled = monthJio.filter(r => r['Status'] === 'canceled').length
+    const jioOrdersById = new Map()
+    const jioLinesByKey = new Map()
+    for (const row of monthJio) {
+      const shipment = String(row['Shipment Number'] || '').trim()
+      if (!shipment) continue
+      if (!jioOrdersById.has(shipment)) {
+        jioOrdersById.set(shipment, {
+          shipment,
+          statuses: new Set(),
+          paymentMethods: new Set(),
+          amounts: new Set(),
+          date: '',
+          quantity: 0,
+        })
+      }
+      const order = jioOrdersById.get(shipment)
+      if (row['Status']) order.statuses.add(String(row['Status']).trim())
+      if (row['Payment_method']) order.paymentMethods.add(String(row['Payment_method']).trim())
+      if (String(row['Final Amount'] || '').trim() !== '') order.amounts.add(num(row['Final Amount']))
+      const date = String(row['Date'] || '').trim()
+      if (date && (!order.date || date > order.date)) order.date = date
 
+      const lineKey = [
+        shipment,
+        row['Sku'],
+        row['Shipment_item'],
+        row['Quantity'],
+        row['MRP'],
+      ].map(value => String(value || '').trim()).join('|')
+      if (!jioLinesByKey.has(lineKey)) {
+        const line = {
+          shipment,
+          sku: String(row['Sku'] || '').trim(),
+          product: String(row['Shipment_item'] || '').trim() || 'Unspecified product',
+          quantity: num(row['Quantity']),
+        }
+        jioLinesByKey.set(lineKey, line)
+        order.quantity += line.quantity
+      }
+    }
+
+    const jioOrders = [...jioOrdersById.values()].map(order => ({
+      ...order,
+      status: order.statuses.size === 1 ? [...order.statuses][0] : (order.statuses.size ? 'status_conflict' : 'unknown'),
+      paymentMethod: order.paymentMethods.size === 1 ? [...order.paymentMethods][0] : (order.paymentMethods.size ? 'mixed' : 'unknown'),
+      orderValue: order.amounts.size === 1 ? [...order.amounts][0] : null,
+      amountConflict: order.amounts.size > 1,
+    }))
+    const totalJioValue = jioOrders.reduce((sum, order) => sum + (order.orderValue ?? 0), 0)
+    const jioReturns = jioOrders.filter(order => order.status === 'shipment_returned').length
+    const jioCanceled = jioOrders.filter(order => order.status === 'canceled').length
+    const jioUnits = jioOrders.reduce((sum, order) => sum + order.quantity, 0)
+
+    const statusMap = new Map()
+    for (const order of jioOrders) {
+      if (!statusMap.has(order.status)) statusMap.set(order.status, { status: order.status, orders: 0, units: 0, orderValue: 0 })
+      const summary = statusMap.get(order.status)
+      summary.orders += 1
+      summary.units += order.quantity
+      summary.orderValue += order.orderValue ?? 0
+    }
+    const statusRows = [...statusMap.values()].sort((a, b) => b.orders - a.orders)
+
+    const paymentMap = new Map()
+    for (const order of jioOrders) {
+      if (!paymentMap.has(order.paymentMethod)) paymentMap.set(order.paymentMethod, { paymentMethod: order.paymentMethod, orders: 0, orderValue: 0 })
+      const summary = paymentMap.get(order.paymentMethod)
+      summary.orders += 1
+      summary.orderValue += order.orderValue ?? 0
+    }
+    const paymentRows = [...paymentMap.values()].sort((a, b) => b.orders - a.orders)
+
+    const productMap = new Map()
+    for (const line of jioLinesByKey.values()) {
+      const key = line.sku + '|' + line.product
+      if (!productMap.has(key)) productMap.set(key, { sku: line.sku || '—', product: line.product, units: 0, shipments: new Set() })
+      const product = productMap.get(key)
+      product.units += line.quantity
+      product.shipments.add(line.shipment)
+    }
+    const q = debouncedSearch.toLowerCase().trim()
+    const productRows = [...productMap.values()]
+      .map(product => ({ sku: product.sku, product: product.product, units: product.units, shipments: product.shipments.size }))
+      .filter(product => !q || product.sku.toLowerCase().includes(q) || product.product.toLowerCase().includes(q))
+      .sort((a, b) => b.units - a.units)
+
+    const totalShopify = monthShopify.reduce((sum, row) => sum + num(row['TOTAL']), 0)
+    const totalRK = monthRK.reduce((sum, row) => sum + num(row['INV AMOUNT']), 0)
     const stats = [
-      { label: 'Shopify Direct Sales', icon: '🛍️', color: '#22c55e', value: '₹' + Math.round(totalShopify).toLocaleString() },
-      { label: 'RK Worldinfocom Billed', icon: '🏢', color: '#3b82f6', value: '₹' + Math.round(totalRK).toLocaleString() },
-      { label: 'JioMart Total Orders', icon: '📱', color: '#a855f7', value: monthJio.length.toLocaleString() },
-      { label: 'Jio Returns / Pending GRN', icon: '🔄', color: '#ef4444', value: `${jioReturns} ret / ${jioCanceled} can` },
+      { label: 'Shopify Direct Sales', icon: '🛍️', color: '#22c55e', value: '₹' + Math.round(totalShopify).toLocaleString('en-IN') },
+      { label: 'RK Worldinfocom Billed', icon: '🏢', color: '#3b82f6', value: '₹' + Math.round(totalRK).toLocaleString('en-IN') },
+      { label: 'JioMart Unique Shipments', icon: '📱', color: '#a855f7', value: jioOrders.length.toLocaleString('en-IN') },
+      { label: 'JioMart Returns / Cancellations', icon: '🔄', color: '#ef4444', value: jioReturns + ' ret / ' + jioCanceled + ' can' },
     ]
 
-    const q = debouncedSearch.toLowerCase().trim()
+    const jioMetrics = {
+      stats: [
+        { label: 'Unique Shipments', icon: '📦', color: '#38bdf8', value: jioOrders.length.toLocaleString('en-IN') },
+        { label: 'Units', icon: '🧴', color: '#a855f7', value: jioUnits.toLocaleString('en-IN') },
+        { label: 'Final Order Amount', icon: '₹', color: '#22c55e', value: '₹' + Math.round(totalJioValue).toLocaleString('en-IN') },
+        { label: 'Delivered Order Amount', icon: '✅', color: '#14b8a6', value: '₹' + Math.round(jioOrders.filter(order => order.status === 'delivered').reduce((sum, order) => sum + (order.orderValue ?? 0), 0)).toLocaleString('en-IN') },
+      ],
+      statusRows,
+      paymentRows,
+      productRows,
+      amountConflictCount: jioOrders.filter(order => order.amountConflict).length,
+      missingAmountCount: jioOrders.filter(order => order.orderValue === null).length,
+      statusConflictCount: jioOrders.filter(order => order.status === 'status_conflict').length,
+      orderCount: jioOrders.length,
+      statusColumns: [
+        { key: 'status', label: 'Order Status', align: 'left', render: row => row.status.replace(/_/g, ' ') },
+        { key: 'orders', label: 'Shipments', align: 'right', accessor: row => row.orders },
+        { key: 'units', label: 'Units', align: 'right', accessor: row => row.units },
+        { key: 'orderValue', label: 'Final Order Amount (₹)', align: 'right', accessor: row => row.orderValue, render: row => '₹' + Math.round(row.orderValue).toLocaleString('en-IN') },
+      ],
+      paymentColumns: [
+        { key: 'paymentMethod', label: 'Payment Method', align: 'left' },
+        { key: 'orders', label: 'Shipments', align: 'right', accessor: row => row.orders },
+        { key: 'orderValue', label: 'Final Order Amount (₹)', align: 'right', accessor: row => row.orderValue, render: row => '₹' + Math.round(row.orderValue).toLocaleString('en-IN') },
+      ],
+      productColumns: [
+        { key: 'sku', label: 'SKU', align: 'left' },
+        { key: 'product', label: 'Product', align: 'left' },
+        { key: 'units', label: 'Units', align: 'right', accessor: row => row.units },
+        { key: 'shipments', label: 'Shipments', align: 'right', accessor: row => row.shipments },
+      ],
+    }
 
     const shopifyFiltered = q
-      ? monthShopify.filter(r =>
-          (r['Invoice No'] && r['Invoice No'].toLowerCase().includes(q)) ||
-          (r['BILL TO PARTY'] && r['BILL TO PARTY'].toLowerCase().includes(q)) ||
-          (r['Place of Supply'] && r['Place of Supply'].toLowerCase().includes(q))
+      ? monthShopify.filter(row =>
+          (row['Invoice No'] && row['Invoice No'].toLowerCase().includes(q)) ||
+          (row['BILL TO PARTY'] && row['BILL TO PARTY'].toLowerCase().includes(q)) ||
+          (row['Place of Supply'] && row['Place of Supply'].toLowerCase().includes(q))
         )
       : monthShopify
 
-    const jioFiltered = q
-      ? monthJio.filter(r =>
-          (r['Number'] && r['Number'].toLowerCase().includes(q)) ||
-          (r['Recipient'] && r['Recipient'].toLowerCase().includes(q)) ||
-          (r['Shipment_item'] && r['Shipment_item'].toLowerCase().includes(q))
-        )
-      : monthJio
-
     const rkFiltered = q
-      ? monthRK.filter(r =>
-          (r['INV NO'] && r['INV NO'].toLowerCase().includes(q)) ||
-          (r['PO NO'] && r['PO NO'].toLowerCase().includes(q))
+      ? monthRK.filter(row =>
+          (row['INV NO'] && row['INV NO'].toLowerCase().includes(q)) ||
+          (row['PO NO'] && row['PO NO'].toLowerCase().includes(q))
         )
       : monthRK
 
@@ -665,34 +771,8 @@ export default function FinanceTab() {
       { key: 'Place of Supply', label: 'City / Destination', align: 'left' },
       { key: 'ITEM - SKU', label: 'Product Item', align: 'left', render: r => <span style={{ maxWidth: 220, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r['ITEM - SKU']}>{r['ITEM - SKU']}</span> },
       { key: 'QTY', label: 'Qty', align: 'right', accessor: r => num(r['QTY']) },
-      { key: 'RATE PER ITEM', label: 'Rate', align: 'right', accessor: r => num(r['RATE PER ITEM']), render: r => '₹' + num(r['RATE PER ITEM']).toLocaleString() },
-      { key: 'TOTAL', label: 'Total (₹)', align: 'right', accessor: r => num(r['TOTAL']), render: r => <span style={{ color: '#22c55e', fontWeight: 700 }}>₹{num(r['TOTAL']).toLocaleString()}</span> },
-    ]
-
-    const jioColumns = [
-      { key: 'Number', label: 'Order Number', align: 'left', render: r => <span style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{r['Number']}</span> },
-      {
-        key: 'Status',
-        label: 'Status',
-        align: 'left',
-        render: r => (
-          <span style={{
-            padding: '2px 8px',
-            borderRadius: 10,
-            fontSize: 11,
-            background: r['Status'] === 'shipment_returned' ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.15)',
-            color: r['Status'] === 'shipment_returned' ? '#f87171' : '#eab308'
-          }}>
-            {r['Status']}
-          </span>
-        )
-      },
-      { key: 'Recipient', label: 'Recipient', align: 'left' },
-      { key: 'Shipment_item', label: 'Shipment Item', align: 'left', render: r => <span style={{ maxWidth: 220, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r['Shipment_item']}>{r['Shipment_item']}</span> },
-      { key: 'Quantity', label: 'Qty', align: 'right', accessor: r => num(r['Quantity']) },
-      { key: 'MRP', label: 'MRP (₹)', align: 'right', accessor: r => num(r['MRP']), render: r => '₹' + num(r['MRP']).toLocaleString() },
-      { key: 'Payment_method', label: 'Payment Method', align: 'left' },
-      { key: 'Shipping_Agent', label: 'Courier Agent', align: 'left', render: r => r['Shipping_Agent'] || '—' },
+      { key: 'RATE PER ITEM', label: 'Rate', align: 'right', accessor: r => num(r['RATE PER ITEM']), render: r => '₹' + num(r['RATE PER ITEM']).toLocaleString('en-IN') },
+      { key: 'TOTAL', label: 'Total (₹)', align: 'right', accessor: r => num(r['TOTAL']), render: r => <span style={{ color: '#22c55e', fontWeight: 700 }}>₹{num(r['TOTAL']).toLocaleString('en-IN')}</span> },
     ]
 
     const rkColumns = [
@@ -700,10 +780,10 @@ export default function FinanceTab() {
       { key: 'INV NO', label: 'Invoice No', align: 'left', render: r => <span style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{r['INV NO']}</span> },
       { key: 'PO NO', label: 'PO No', align: 'left' },
       { key: 'COMPANY NAME', label: 'Company Name', align: 'left' },
-      { key: 'INV AMOUNT', label: 'Invoice Amount (₹)', align: 'right', accessor: r => num(r['INV AMOUNT']), render: r => <span style={{ color: '#22c55e', fontWeight: 700 }}>₹{num(r['INV AMOUNT']).toLocaleString()}</span> },
+      { key: 'INV AMOUNT', label: 'Invoice Amount (₹)', align: 'right', accessor: r => num(r['INV AMOUNT']), render: r => <span style={{ color: '#22c55e', fontWeight: 700 }}>₹{num(r['INV AMOUNT']).toLocaleString('en-IN')}</span> },
     ]
 
-    return { stats, shopifyFiltered, jioFiltered, rkFiltered, shopifyColumns, jioColumns, rkColumns }
+    return { stats, shopifyFiltered, rkFiltered, shopifyColumns, rkColumns, jioMetrics }
   }, [activeSubTab, cache.channels, debouncedSearch, rowMatchesMonth])
 
   return (
@@ -1280,7 +1360,7 @@ export default function FinanceTab() {
                 {[
                   { key: 'Shopify', label: `🛍️ Shopify D2C (${channelsData.shopifyFiltered.length})` },
                   { key: 'RK', label: `🏢 RK Worldinfocom (${channelsData.rkFiltered.length})` },
-                  { key: 'JioMart', label: `📱 JioMart Orders (${channelsData.jioFiltered.length})` }
+                  { key: 'JioMart', label: `📱 JioMart Metrics (${channelsData.jioMetrics.orderCount})` }
                 ].map(opt => (
                   <button
                     key={opt.key}
@@ -1304,7 +1384,7 @@ export default function FinanceTab() {
 
               <input
                 type="text"
-                placeholder="🔍 Search Orders, Items, Customer..."
+                placeholder={channelFilter === 'JioMart' ? "🔍 Search product or SKU..." : "🔍 Search Invoice, PO, Customer..."}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 style={{
@@ -1341,13 +1421,47 @@ export default function FinanceTab() {
             )}
 
             {channelFilter === 'JioMart' && (
-              <DataTable
-                columns={channelsData.jioColumns}
-                rows={channelsData.jioFiltered}
-                pageSize={10}
-                filename="jiomart_orders.csv"
-                emptyMessage="No JioMart orders found"
-              />
+              <div className="recent-orders" style={{ marginTop: 16 }}>
+                <div className="orders-header">
+                  <div className="orders-title">📊 JioMart Metrics Data</div>
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.6, marginBottom: 14 }}>
+                  Shipment totals are deduplicated by shipment number. Customer names and tracking IDs are not shown.
+                  “Final Order Amount” is the order amount in the source sheet; it is not a seller payout.
+                </div>
+                <div className="stats-grid" style={{ marginTop: 0 }}>
+                  {channelsData.jioMetrics.stats.map(stat => (
+                    <div className="stat-card" key={stat.label}>
+                      <div className="stat-header">
+                        <div className="stat-label">{stat.label}</div>
+                        <div className="stat-icon" style={{ background: stat.color + '26', color: stat.color }}>{stat.icon}</div>
+                      </div>
+                      <div className="stat-value">{stat.value}</div>
+                    </div>
+                  ))}
+                </div>
+                {(channelsData.jioMetrics.amountConflictCount || channelsData.jioMetrics.missingAmountCount || channelsData.jioMetrics.statusConflictCount) > 0 && (
+                  <div style={{ color: '#fbbf24', fontSize: 12, margin: '12px 0' }}>
+                    Review source rows: {channelsData.jioMetrics.amountConflictCount} shipments have conflicting amounts,
+                    {channelsData.jioMetrics.missingAmountCount} are missing amounts, and {channelsData.jioMetrics.statusConflictCount} have conflicting statuses.
+                  </div>
+                )}
+                <div style={{ marginTop: 20 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 8 }}>Shipments and order amount by status</div>
+                  <DataTable columns={channelsData.jioMetrics.statusColumns} rows={channelsData.jioMetrics.statusRows} pageSize={10} filename="jiomart_metrics_by_status.csv" emptyMessage="No JioMart shipments in this period" />
+                </div>
+                <div style={{ marginTop: 20 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 8 }}>Order amount by payment method</div>
+                  <DataTable columns={channelsData.jioMetrics.paymentColumns} rows={channelsData.jioMetrics.paymentRows} pageSize={10} filename="jiomart_metrics_by_payment_method.csv" emptyMessage="No payment methods in this period" />
+                </div>
+                <div style={{ marginTop: 20 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 8 }}>Product units (search by product or SKU)</div>
+                  <DataTable columns={channelsData.jioMetrics.productColumns} rows={channelsData.jioMetrics.productRows} pageSize={10} filename="jiomart_product_units.csv" emptyMessage="No products found" />
+                </div>
+                <div style={{ background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.35)', color: '#fbbf24', borderRadius: 8, padding: 12, marginTop: 16, fontSize: 12, lineHeight: 1.6 }}>
+                  Payout reconciliation is not available from this sheet. Add a JioMart settlement report with net payout, fees, deductions, and settlement date to show actual payouts.
+                </div>
+              </div>
             )}
           </div>
         </>
