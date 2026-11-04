@@ -4,6 +4,7 @@ const TAB_DEFS = [
   { key: 'dashboard', icon: '📈', label: 'Dashboard' },
   { key: 'orders', icon: '📦', label: 'Orders' },
   { key: 'sales', icon: '📊', label: 'Sales' },
+  { key: 'jiomart', icon: '📱', label: 'Jio Mart' },
   { key: 'inventory', icon: '🏭', label: 'Inventory' },
   { key: 'stock', icon: '🗃️', label: 'Stock' },
   { key: 'logistics', icon: '🚚', label: 'Logistics' },
