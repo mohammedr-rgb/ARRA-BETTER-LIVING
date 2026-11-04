@@ -200,7 +200,7 @@ export default function JioMartTab() {
             <h1 style={{ margin: 0 }}>Jio Mart Orders &amp; Metrics</h1>
           </div>
           <div className="date" style={{ marginTop: 4 }}>
-            Order value, units, status, payment method, and product summary • {selectedMonths.size ? 'Selected periods' : 'All periods'}
+            Aggregate view only; customer names and tracking IDs are hidden • {selectedMonths.size ? 'Selected periods' : 'All periods'}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
