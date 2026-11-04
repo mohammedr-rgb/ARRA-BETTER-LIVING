@@ -8,57 +8,10 @@ import {
 
 const SPREADSHEET_ID = '1auxWTw7MntZdYHNb8hZZqWvG3WVQ60BS5Jz2-8kYcWE'
 const SHEETS = ['Overall sales', 'Ads Spend', 'Logistics']
-
-function parseCSVGrid(text) {
-  const rows = []
-  let row = []
-  let cell = ''
-  let quoted = false
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i]
-    if (char === '"') {
-      if (quoted && text[i + 1] === '"') {
-        cell += '"'
-        i += 1
-      } else {
-        quoted = !quoted
-      }
-    } else if (char === ',' && !quoted) {
-      row.push(cell)
-      cell = ''
-    } else if ((char === '\n' || char === '\r') && !quoted) {
-      if (char === '\r' && text[i + 1] === '\n') i += 1
-      row.push(cell)
-      rows.push(row)
-      row = []
-      cell = ''
-    } else {
-      cell += char
-    }
-  }
-  if (cell || row.length) {
-    row.push(cell)
-    rows.push(row)
-  }
-  return rows
-}
-
-function cell(row, index) {
-  return String(row?.[index] ?? '').trim()
-}
-
-function number(value) {
-  if (value === null || value === undefined) return 0
-  const cleaned = String(value).replace(/[₹,%\s]/g, '').replace(/,/g, '')
-  if (!cleaned || cleaned === '—' || cleaned === '-') return 0
-  const parsed = Number(cleaned)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-function optionalNumber(value) {
-  const text = String(value ?? '').trim()
-  if (!text || text === '—' || text === '-') return null
-  return number(text)
+const EMPTY_METRICS = {
+  platformRows: [], total: {}, cutoff: '', salesTrend: [], adRows: [], periods: [],
+  latestAdsPeriod: 'No total reported', latestAdsSpend: null,
+  logisticsRows: [], latestLogistics: null, carrierRows: [], logisticsHeader: [], sourceRows: [],
 }
 
 function formatINR(value) {
@@ -77,8 +30,40 @@ function formatPercent(value) {
   return (amount > 0 ? '+' : '') + amount.toLocaleString('en-IN', { maximumFractionDigits: 1 }) + '%'
 }
 
-function findIndex(headers, label) {
-  return headers.findIndex(header => header.toLowerCase() === label.toLowerCase())
+function fetchFilteredMetrics(endpoint) {
+  return new Promise((resolve, reject) => {
+    const callbackName = '__salesMetricsCb_' + Date.now() + '_' + Math.random().toString(36).slice(2)
+    const script = document.createElement('script')
+    let finished = false
+    const cleanup = () => {
+      if (finished) return
+      finished = true
+      delete window[callbackName]
+      script.remove()
+      clearTimeout(timeout)
+    }
+    const timeout = setTimeout(() => {
+      cleanup()
+      reject(new Error('The private Sales connection timed out. Check the Apps Script deployment and try again.'))
+    }, 30000)
+
+    window[callbackName] = payload => {
+      cleanup()
+      if (payload?.error) reject(new Error(payload.error))
+      else if (payload?.schemaVersion !== 1) reject(new Error('The filtered Sales connection returned an unsupported response.'))
+      else resolve(payload)
+    }
+    script.onerror = () => {
+      cleanup()
+      reject(new Error('Could not reach the filtered Sales connection. Check its deployed URL and access setting.'))
+    }
+    const url = new URL(endpoint)
+    url.searchParams.set('callback', callbackName)
+    url.searchParams.set('t', String(Date.now()))
+    script.src = url.toString()
+    script.async = true
+    document.head.appendChild(script)
+  })
 }
 
 function SectionCard({ title, subtitle, children, id }) {
@@ -94,7 +79,7 @@ function SectionCard({ title, subtitle, children, id }) {
 }
 
 export default function SalesTab() {
-  const [sheets, setSheets] = useState({ overall: [], ads: [], logistics: [] })
+  const [metrics, setMetrics] = useState(EMPTY_METRICS)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
@@ -104,26 +89,18 @@ export default function SalesTab() {
     setRefreshing(true)
     setError('')
     try {
-      const cacheKey = Date.now()
-      const responses = await Promise.all(SHEETS.map(sheet => {
-        const url = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID +
-          '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(sheet) + '&t=' + cacheKey
-        return fetch(url, { cache: 'no-store' })
-      }))
-      const failed = responses.findIndex(response => !response.ok)
-      if (failed >= 0) throw new Error('Could not load “' + SHEETS[failed] + '”. Check that the sheet is viewable by the dashboard.')
-      const grids = await Promise.all(responses.map(async response => parseCSVGrid(await response.text())))
-      const [overall, ads, logistics] = grids
-      if (!overall[0]?.some(value => String(value).includes('GMV Nov MTD'))) {
-        throw new Error('“Overall sales” is missing the expected platform sales summary.')
+      const endpoint = import.meta.env.VITE_SALES_METRICS_URL
+      if (!endpoint) {
+        throw new Error('Private Sales connection is not configured yet. Deploy the filtered Apps Script and add its URL as the VITE_SALES_METRICS_URL GitHub Actions variable.')
       }
-      if (!ads[0]?.some(value => String(value).toLowerCase().includes('metric'))) {
-        throw new Error('“Ads Spend” is missing its monthly metrics header.')
+      if (!endpoint.startsWith('https://script.google.com/macros/s/') || !endpoint.endsWith('/exec')) {
+        throw new Error('The filtered Sales connection URL must be the deployed Google Apps Script URL ending in /exec.')
       }
-      if (!logistics.some(row => cell(row, 0) === 'Month' && cell(row, 1) === 'Shipment Weight (kg)')) {
-        throw new Error('“Logistics” is missing its monthly cost and shipment-weight table.')
+      const filtered = await fetchFilteredMetrics(endpoint)
+      if (!Array.isArray(filtered.platformRows) || !Array.isArray(filtered.adRows) || !Array.isArray(filtered.logisticsRows)) {
+        throw new Error('The filtered Sales connection is missing required summary data.')
       }
-      setSheets({ overall, ads, logistics })
+      setMetrics(filtered)
       setLastUpdated(new Date())
     } catch (err) {
       setError(err?.message || 'Could not load Sales data.')
@@ -134,119 +111,6 @@ export default function SalesTab() {
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
-
-  const metrics = useMemo(() => {
-    const overall = sheets.overall
-    const overallHeaders = overall[0] || []
-    const combined = overall.find(row => ['Combined', 'All-platform total'].includes(cell(row, 0))) || []
-    const summaryRows = overall.slice(1, overall.indexOf(combined) >= 0 ? overall.indexOf(combined) + 1 : 6)
-      .filter(row => cell(row, 0) && !cell(row, 0).startsWith('MoM basis') && !cell(row, 0).startsWith('Source columns'))
-
-    const getSummaryValue = (row, label) => {
-      const index = findIndex(overallHeaders, label)
-      return index >= 0 ? optionalNumber(cell(row, index)) : null
-    }
-
-    const platformRows = summaryRows.map(row => ({
-      platform: cell(row, 0),
-      gmvSep: getSummaryValue(row, 'GMV Sep'),
-      gmvOct: getSummaryValue(row, 'GMV Oct'),
-      gmvOctGrowth: getSummaryValue(row, 'GMV Oct/Sep %'),
-      gmvNov: getSummaryValue(row, 'GMV Nov MTD'),
-      gmvNovGrowth: getSummaryValue(row, 'GMV Nov/Oct MTD %'),
-      invoiceSep: getSummaryValue(row, 'Invoice Sep'),
-      invoiceOct: getSummaryValue(row, 'Invoice Oct'),
-      invoiceNov: getSummaryValue(row, 'Invoice Nov MTD'),
-      purchaseSep: getSummaryValue(row, 'Purchase cost Sep'),
-      purchaseOct: getSummaryValue(row, 'Purchase cost Oct'),
-      purchaseNov: getSummaryValue(row, 'Purchase cost Nov MTD'),
-      netSep: getSummaryValue(row, 'Net Sep'),
-      netOct: getSummaryValue(row, 'Net Oct'),
-      netNov: getSummaryValue(row, 'Net Nov MTD'),
-      netNovGrowth: getSummaryValue(row, 'Net Nov/Oct MTD %'),
-      isTotal: ['Combined', 'All-platform total'].includes(cell(row, 0)),
-    }))
-    const total = platformRows.find(row => row.isTotal) || platformRows[platformRows.length - 1] || {}
-    const title = cell(overallHeaders, 0)
-    const cutoff = title.match(/November MTD through ([^.]+)/i)?.[1]?.trim() || 'current source cutoff'
-
-    const salesTrend = [
-      { month: 'September', GMV: total.gmvSep ?? 0, Invoice: total.invoiceSep ?? 0, 'Purchase cost': total.purchaseSep ?? 0, 'Source net': total.netSep ?? 0 },
-      { month: 'October', GMV: total.gmvOct ?? 0, Invoice: total.invoiceOct ?? 0, 'Purchase cost': total.purchaseOct ?? 0, 'Source net': total.netOct ?? 0 },
-      { month: 'November MTD', GMV: total.gmvNov ?? 0, Invoice: total.invoiceNov ?? 0, 'Purchase cost': total.purchaseNov ?? 0, 'Source net': total.netNov ?? 0 },
-    ]
-
-    const adsGrid = sheets.ads
-    const adsHeaders = adsGrid[0] || []
-    const periods = adsHeaders.slice(2).map(value => String(value || '').trim()).filter(Boolean)
-    const adRows = adsGrid.slice(1)
-      .filter(row => cell(row, 0) || cell(row, 1))
-      .map(row => {
-        const platform = cell(row, 0)
-        const metric = cell(row, 1) || (platform === 'Ads spend Overall' ? 'Total ad spend' : 'Spend')
-        const isPercent = metric.includes('%')
-        const values = periods.map((_, index) => optionalNumber(cell(row, index + 2)))
-        return { platform, metric, isPercent, values }
-      })
-    const totalAds = adRows.find(row => row.platform.toLowerCase() === 'ads spend overall')
-    let latestAdsIndex = -1
-    if (totalAds) {
-      for (let i = totalAds.values.length - 1; i >= 0; i--) {
-        if (totalAds.values[i] !== null) { latestAdsIndex = i; break }
-      }
-    }
-    const latestAdsSpend = latestAdsIndex >= 0 ? totalAds.values[latestAdsIndex] : null
-    const latestAdsPeriod = latestAdsIndex >= 0 ? periods[latestAdsIndex] : 'No total reported'
-
-    const logisticsGrid = sheets.logistics
-    const monthlyHeaderIndex = logisticsGrid.findIndex(row => cell(row, 0) === 'Month' && cell(row, 1) === 'Shipment Weight (kg)')
-    const logisticsRows = []
-    if (monthlyHeaderIndex >= 0) {
-      for (let i = monthlyHeaderIndex + 1; i < logisticsGrid.length; i++) {
-        const row = logisticsGrid[i]
-        const month = cell(row, 0)
-        if (!month || !/^(May|June|July|August|September|October|November|December)$/i.test(month)) break
-        logisticsRows.push({
-          month,
-          weight: optionalNumber(cell(row, 1)),
-          cost: optionalNumber(cell(row, 2)),
-          costGrowth: optionalNumber(cell(row, 3)),
-          rate: optionalNumber(cell(row, 4)),
-        })
-      }
-    }
-    const latestLogistics = logisticsRows[logisticsRows.length - 1] || null
-    const logisticsHeader = (logisticsGrid[0] || []).slice(15)
-    const carrierRows = logisticsGrid.slice(1)
-      .filter(row => cell(row, 20) && cell(row, 20).toUpperCase() !== 'GRAND TOTAL')
-      .map(row => ({
-        carrier: cell(row, 20),
-        weight: optionalNumber(cell(row, 21)),
-        cost: optionalNumber(cell(row, 22)),
-        rate: optionalNumber(cell(row, 23)),
-      }))
-      .filter(row => row.weight !== null || row.cost !== null)
-
-    const sourceRows = SHEETS.map((name, index) => ({
-      source: name,
-      rows: Math.max(0, [overall, adsGrid, logisticsGrid][index].length - 1),
-    }))
-    return {
-      platformRows,
-      total,
-      cutoff,
-      salesTrend,
-      adRows,
-      periods,
-      latestAdsPeriod,
-      latestAdsSpend,
-      logisticsRows,
-      latestLogistics,
-      carrierRows,
-      logisticsHeader,
-      sourceRows,
-    }
-  }, [sheets])
 
   const platformColumns = [
     { key: 'platform', label: 'Platform / source total', align: 'left', render: row => <span style={{ fontWeight: row.isTotal ? 800 : 600, color: row.isTotal ? '#38bdf8' : '#f1f5f9' }}>{row.platform}</span> },

@@ -79,11 +79,13 @@ jobs:
           fi
 
       - name: Build dashboard
-        if: github.event_name == 'push' || steps.feed.outputs.configured == 'true'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || steps.feed.outputs.configured == 'true'
+        env:
+          VITE_SALES_METRICS_URL: ${{ vars.VITE_SALES_METRICS_URL }}
         run: npm run build
 
       - name: Deploy GitHub Pages
-        if: github.event_name == 'push' || steps.feed.outputs.configured == 'true'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || steps.feed.outputs.configured == 'true'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
