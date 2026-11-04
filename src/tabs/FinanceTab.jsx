@@ -62,7 +62,7 @@ export default function FinanceTab() {
   const [instaFilter, setInstaFilter] = useState('All') // 'All' | 'Overdue' | 'Not Due' | 'grn_pending'
   const [blinkitFilter, setBlinkitFilter] = useState('All') // 'All' | 'Vendor' | 'Seller' | 'grn_pending'
   const [amazonFilter, setAmazonFilter] = useState('All') // 'All' | 'Vendor' | 'Seller' | 'pending'
-  const [channelFilter, setChannelFilter] = useState('Shopify') // 'Shopify' | 'JioMart' | 'RK'
+  const [channelFilter, setChannelFilter] = useState('Shopify') // 'Shopify' | 'RK'
 
   // Debounce search query
   useEffect(() => {
