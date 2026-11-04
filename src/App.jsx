@@ -13,6 +13,7 @@ import LogisticsTab from './tabs/LogisticsTab'
 import DispatchTab from './tabs/DispatchTab'
 import ReportsTab from './tabs/ReportsTab'
 import FinanceTab from './tabs/FinanceTab'
+import JioMartTab from './tabs/JioMartTab'
 import PerformanceTab from './tabs/PerformanceTab'
 import SettingsTab from './tabs/SettingsTab'
 import SalesTab from './tabs/SalesTab'
@@ -456,6 +457,7 @@ function Dashboard({ authUser, onLogout }) {
           {navItem('dashboard', '📈', 'Dashboard')}
           {navItem('orders', '📦', 'Orders')}
           {navItem('sales', '📊', 'Sales')}
+          {navItem('jiomart', '📱', 'Jio Mart')}
           {navItem('inventory', '🏭', 'Inventory')}
           {navItem('stock', '🗃️', 'Stock')}
           {navItem('logistics', '🚚', 'Logistics')}
@@ -560,6 +562,9 @@ function Dashboard({ authUser, onLogout }) {
               </ErrorBoundary>
               <ErrorBoundary key="sales">
                 {tab === 'sales' && <SalesTab />}
+              </ErrorBoundary>
+              <ErrorBoundary key="jiomart">
+                {tab === 'jiomart' && <JioMartTab />}
               </ErrorBoundary>
               <ErrorBoundary key="inventory">
                 {tab === 'inventory' && renderOrderDataTab(() => (
