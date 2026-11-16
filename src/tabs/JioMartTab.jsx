@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { num, parseCSV, MONTH_NAMES } from '../lib/utils'
+import { num, parseCSV, MONTH_NAMES, downloadCSV, downloadXLSX, csvEscape } from '../lib/utils'
 import { ProfileSection } from '../components/ui'
 import { DataTable } from '../components/DataTable'
 
@@ -102,7 +102,7 @@ export default function JioMartTab() {
         months.set(key, MONTH_NAMES[month] + ' ' + String(year).slice(-2))
       }
     }
-    collect(data.main, row => row.Date)
+    collect(data.main, row => row.Date || row['Main Data'])
     collect(data.service, getServiceInvoiceDate)
     collect(data.disbursement, row => row.Created_At)
     return [...months.entries()].sort((a, b) => b[0] - a[0]).map(([key, label]) => ({ key, label }))
@@ -119,7 +119,7 @@ export default function JioMartTab() {
 
   const metrics = useMemo(() => {
     const inPeriod = value => !selectedMonths.size || selectedMonths.has(monthKey(value))
-    const mainRows = data.main.filter(row => inPeriod(row.Date))
+    const mainRows = data.main.filter(row => inPeriod(row.Date || row['Main Data']))
     const serviceRows = data.service.filter(row => inPeriod(getServiceInvoiceDate(row)))
     const ledgerRows = data.disbursement.filter(row => inPeriod(row.Created_At))
 
@@ -397,6 +397,115 @@ export default function JioMartTab() {
     { label: 'Seller Payable Ledger Movement', icon: '💸', color: '#14b8a6', value: formatCurrency(metrics.netSellerPayableMovement) },
   ]
 
+  const downloadDetailedOrdersCSV = useCallback((format = 'csv') => {
+    const inPeriod = value => !selectedMonths.size || selectedMonths.has(monthKey(value))
+    const mainRows = data.main.filter(row => inPeriod(row.Date || row['Main Data']))
+
+    const serviceByShipment = new Map()
+    for (const row of data.service) {
+      const s = String(row['Shipment Number'] || '').trim()
+      if (!s) continue
+      if (!serviceByShipment.has(s)) {
+        serviceByShipment.set(s, {
+          invoiceNumber: row['Service Invoice Number'] || '',
+          invoiceDate: row['Invoice Created At'] || '',
+          paymentTotal: 0,
+          totalWithGst: 0,
+          sellerCommissionWithGst: 0,
+          shippingFeeWithGst: 0,
+          reverseShippingFeeWithGst: 0,
+          fixedFeeWithGst: 0,
+          collectionFeeWithGst: 0,
+          cancellationFeeWithGst: 0,
+        })
+      }
+      const inv = serviceByShipment.get(s)
+      inv.paymentTotal += num(row['Payment Total'])
+      inv.totalWithGst += num(row['Total with GST'])
+      inv.sellerCommissionWithGst += num(row['Net Seller commission']) + num(row['Seller commission GST'])
+      inv.shippingFeeWithGst += num(row['Net Shipping fee']) + num(row['Shipping fee GST'])
+      inv.reverseShippingFeeWithGst += num(row['Net Reverse shipping fee']) + num(row['Reverse shipping fee GST'])
+      inv.fixedFeeWithGst += num(row['Net Fixed fee']) + num(row['Fixed fee GST'])
+      inv.collectionFeeWithGst += num(row['Net Collection fee']) + num(row['Collection fee GST'])
+      inv.cancellationFeeWithGst += num(row['Net Cancellation charges']) + num(row['Cancellation charges GST'])
+    }
+
+    const ledgerByShipment = new Map()
+    for (const row of data.disbursement) {
+      const s = String(row.Shipment_Number || '').trim()
+      if (!s) continue
+      if (!ledgerByShipment.has(s)) {
+        ledgerByShipment.set(s, {
+          totalAmount: 0,
+          events: [],
+        })
+      }
+      const d = ledgerByShipment.get(s)
+      d.totalAmount += num(row.Amount)
+      if (row.Event) d.events.push(`${row.Event}: ${row.Amount}`)
+    }
+
+    const headers = [
+      'Order Date',
+      'Shipment Number',
+      'Status',
+      'Recipient',
+      'SKU',
+      'Shipment Item',
+      'Quantity',
+      'MRP',
+      'Final Amount (₹)',
+      'Payment Method',
+      'Shipping Agent',
+      'Tracking Details',
+      'Service Invoice Number',
+      'Service Payment Total (₹)',
+      'Service Fees incl GST (₹)',
+      'Commission incl GST (₹)',
+      'Shipping Fee incl GST (₹)',
+      'Reverse Shipping Fee incl GST (₹)',
+      'Disbursement Amount (₹)',
+      'Disbursement Events',
+    ]
+
+    const rawRows = mainRows.map(row => {
+      const shipmentNum = String(row['Shipment Number'] || '').trim()
+      const inv = serviceByShipment.get(shipmentNum) || {}
+      const d = ledgerByShipment.get(shipmentNum) || {}
+
+      return [
+        row.Date || row['Main Data'] || '',
+        shipmentNum,
+        row.Status || '',
+        row.Recipient || '',
+        row.Sku || '',
+        row.Shipment_item || '',
+        row.Quantity || '',
+        row.MRP || '',
+        row['Final Amount'] || '',
+        row.Payment_method || '',
+        row.Shipping_Agent || '',
+        row['TRACKING DETAILS'] || '',
+        inv.invoiceNumber || '',
+        inv.paymentTotal !== undefined ? inv.paymentTotal.toFixed(2) : '',
+        inv.totalWithGst !== undefined ? inv.totalWithGst.toFixed(2) : '',
+        inv.sellerCommissionWithGst !== undefined ? inv.sellerCommissionWithGst.toFixed(2) : '',
+        inv.shippingFeeWithGst !== undefined ? inv.shippingFeeWithGst.toFixed(2) : '',
+        inv.reverseShippingFeeWithGst !== undefined ? inv.reverseShippingFeeWithGst.toFixed(2) : '',
+        d.totalAmount !== undefined ? d.totalAmount.toFixed(2) : '',
+        d.events ? d.events.join('; ') : '',
+      ]
+    })
+
+    if (format === 'xlsx') {
+      const aoa = [headers, ...rawRows]
+      downloadXLSX(aoa, 'jiomart_orders_detailed_view.xlsx', 'Detailed Orders')
+    } else {
+      const lines = [headers.map(csvEscape).join(','), ...rawRows.map(r => r.map(csvEscape).join(','))]
+      downloadCSV(lines, 'jiomart_orders_detailed_view.csv')
+    }
+  }, [data, selectedMonths])
+
   return (
     <>
       <header>
@@ -456,7 +565,50 @@ export default function JioMartTab() {
           )}
 
           <div className="recent-orders" style={{ marginTop: 20 }}>
-            <div className="orders-header"><div className="orders-title">📦 Order metrics by status</div></div>
+            <div className="orders-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div className="orders-title">📦 Order metrics by status</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  onClick={() => downloadDetailedOrdersCSV('csv')}
+                  style={{
+                    background: '#059669',
+                    border: 'none',
+                    borderRadius: 8,
+                    color: '#fff',
+                    padding: '7px 13px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  }}
+                  title="Download detailed order-level view with fees and disbursements as CSV"
+                >
+                  ⬇ Detailed Orders CSV
+                </button>
+                <button
+                  onClick={() => downloadDetailedOrdersCSV('xlsx')}
+                  style={{
+                    background: 'rgba(59,130,246,0.15)',
+                    border: '1px solid rgba(59,130,246,0.35)',
+                    borderRadius: 8,
+                    color: '#38bdf8',
+                    padding: '7px 13px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                  title="Download detailed order-level view as Excel spreadsheet"
+                >
+                  ⬇ Detailed XLSX
+                </button>
+              </div>
+            </div>
             <DataTable columns={orderStatusColumns} rows={metrics.statusRows} pageSize={10} filename="jiomart_orders_by_status.csv" emptyMessage="No shipments in this period" />
           </div>
           <div className="recent-orders" style={{ marginTop: 20 }}>
